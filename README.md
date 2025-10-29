@@ -191,10 +191,6 @@ Sessions are stored **in-memory** (not persisted to database).
 
 To upgrade to a more powerful model (e.g., Claude 3.5 Sonnet), edit `backend/app/agent/graph.py` and change the model name in the `create_llm()` function.
 
-## License
-
-MIT
-
 ## Contributing
 
 Contributions welcome! Please open an issue or submit a pull request.
