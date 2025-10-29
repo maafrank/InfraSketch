@@ -29,6 +29,7 @@ def create_llm():
         model="claude-3-haiku-20240307",
         api_key=api_key,
         temperature=0.7,
+        max_tokens=4096,  # Increase to allow longer responses
     )
 
 
@@ -43,28 +44,40 @@ def generate_diagram_node(state: AgentState) -> AgentState:
 
     response = llm.invoke(messages)
 
+    print(f"\n=== CLAUDE RESPONSE ===")
+    print(f"Content: {response.content}")
+    print(f"======================\n")
+
     try:
         # Parse JSON response
         diagram_json = json.loads(response.content)
+        print(f"Successfully parsed JSON directly")
         state["output"] = json.dumps(diagram_json)
         state["diagram"] = diagram_json
         state["diagram_updated"] = True
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as e:
+        print(f"Failed to parse JSON directly: {e}")
         # Fallback: try to extract JSON from response
         content = response.content
         if "```json" in content:
             json_str = content.split("```json")[1].split("```")[0].strip()
+            print(f"Extracted JSON from ```json block")
         elif "```" in content:
             json_str = content.split("```")[1].split("```")[0].strip()
+            print(f"Extracted JSON from ``` block")
         else:
             json_str = content.strip()
+            print(f"Using content as-is")
 
         try:
             diagram_json = json.loads(json_str)
+            print(f"Successfully parsed extracted JSON")
             state["output"] = json.dumps(diagram_json)
             state["diagram"] = diagram_json
             state["diagram_updated"] = True
-        except:
+        except Exception as e2:
+            print(f"Failed to parse extracted JSON: {e2}")
+            print(f"JSON string was: {json_str[:500]}")
             # Create error response
             state["output"] = json.dumps({
                 "nodes": [],
