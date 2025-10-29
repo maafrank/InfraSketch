@@ -15,7 +15,7 @@ body {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f5f5f5;
+  background: #f0f4f8;
 }
 
 .app-header {
@@ -76,10 +76,10 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: #ffffff;
+  background: #fefefe;
   padding: 2rem;
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.15);
   width: 90%;
   max-width: 600px;
   z-index: 10;
@@ -132,7 +132,7 @@ body {
 .diagram-canvas {
   width: 100%;
   height: 100%;
-  background: #fafafa;
+  background: #f7fafc;
 }
 
 .diagram-canvas-empty {
@@ -150,9 +150,9 @@ body {
   padding: 1rem 1.5rem;
   border-radius: 8px;
   border: 2px solid;
-  background: #f8f9fa;
+  background: #fefefe;
   min-width: 150px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.12);
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
@@ -187,12 +187,12 @@ body {
 }
 
 .node-tooltip {
-  background: #ffffff;
-  border: 1px solid #d0d0d0;
+  background: #fefefe;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
   padding: 1rem;
   max-width: 300px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
 }
 
 .node-tooltip h4 {
@@ -233,11 +233,11 @@ body {
 
 /* Chat Panel */
 .chat-panel {
-  background: #ffffff;
-  border-left: 1px solid #e0e0e0;
+  background: #fefefe;
+  border-left: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
-  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  box-shadow: -2px 0 8px rgba(102, 126, 234, 0.1);
   position: relative;
   min-width: 300px;
   max-width: 1200px;
@@ -265,11 +265,11 @@ body {
 
 .chat-header {
   padding: 1rem;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e2e8f0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #f5f5f5;
+  background: #f7fafc;
 }
 
 .chat-header h3 {
@@ -389,28 +389,28 @@ body {
 }
 
 .message.user .message-content {
-  background: #667eea;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   align-self: flex-end;
   max-width: 80%;
 }
 
 .message.assistant .message-content {
-  background: #e8e8e8;
-  color: #333;
+  background: #edf2f7;
+  color: #2d3748;
   align-self: flex-start;
   max-width: 85%;
 }
 
 .message.system .message-content {
-  background: #f5f5f5;
-  color: #666;
+  background: #f7fafc;
+  color: #718096;
   align-self: center;
   max-width: 90%;
   text-align: center;
   font-size: 0.9rem;
   font-style: italic;
-  border: 1px dashed #ccc;
+  border: 1px dashed #cbd5e0;
 }
 
 .message-content.typing {
@@ -420,23 +420,26 @@ body {
 
 .chat-input-form {
   padding: 1rem;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid #e2e8f0;
   display: flex;
   gap: 0.5rem;
+  background: #f7fafc;
 }
 
 .chat-input-form input {
   flex: 1;
   padding: 0.75rem;
-  border: 2px solid #e0e0e0;
+  border: 2px solid #e2e8f0;
   border-radius: 8px;
   font-size: 0.95rem;
   font-family: inherit;
+  background: white;
 }
 
 .chat-input-form input:focus {
   outline: none;
   border-color: #667eea;
+  background: white;
 }
 
 .chat-input-form button {
