@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 export default function ChatPanel({
   selectedNode,
   messages,
   onSendMessage,
-  onClose,
   loading,
+  diagram,
 }) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);
@@ -26,25 +27,26 @@ export default function ChatPanel({
     }
   };
 
-  if (!selectedNode) return null;
-
   return (
     <div className="chat-panel">
       <div className="chat-header">
         <div>
-          <h3>{selectedNode.data.label}</h3>
-          <span className="chat-node-type">{selectedNode.data.type}</span>
+          <h3>System Chat</h3>
+          {selectedNode && (
+            <span className="chat-context">
+              Context: {selectedNode.data.label} ({selectedNode.data.type})
+            </span>
+          )}
         </div>
-        <button className="close-button" onClick={onClose}>
-          ×
-        </button>
       </div>
 
       <div className="chat-messages">
         {messages.map((msg, idx) => (
           <div key={idx} className={`message ${msg.role}`}>
             <div className="message-role">{msg.role}</div>
-            <div className="message-content">{msg.content}</div>
+            <div className="message-content">
+              <ReactMarkdown>{msg.content}</ReactMarkdown>
+            </div>
           </div>
         ))}
         {loading && (
@@ -61,7 +63,11 @@ export default function ChatPanel({
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask about this component or request changes..."
+          placeholder={
+            selectedNode
+              ? `Ask about ${selectedNode.data.label}...`
+              : 'Ask about the system...'
+          }
           disabled={loading}
         />
         <button type="submit" disabled={loading || !input.trim()}>

@@ -23,8 +23,26 @@ function App() {
       console.log('Edges:', response.diagram?.edges);
       setSessionId(response.session_id);
       setDiagram(response.diagram);
-      setMessages([]);
       setSelectedNode(null);
+
+      // Generate system summary
+      const nodeCount = response.diagram?.nodes?.length || 0;
+      const nodeTypes = [...new Set(response.diagram?.nodes?.map(n => n.type) || [])];
+      const summary = `## System Overview
+
+I've generated a system architecture with **${nodeCount} components**.
+
+### Component Types
+${nodeTypes.map(type => `- **${type}**`).join('\n')}
+
+### What's Next?
+- **Click any node** to focus the conversation on that component
+- **Ask questions** about the overall system design
+- **Request changes** to add, remove, or modify components
+
+Feel free to explore the diagram and ask me anything!`;
+
+      setMessages([{ role: 'assistant', content: summary }]);
     } catch (error) {
       console.error('Failed to generate diagram:', error);
       alert('Failed to generate diagram. Please try again.');
@@ -34,8 +52,15 @@ function App() {
   };
 
   const handleNodeClick = (node) => {
+    // Only add context message if selecting a different node
+    if (selectedNode?.id !== node.id) {
+      const contextMessage = {
+        role: 'system',
+        content: `*Now focusing on: **${node.data.label}** (${node.data.type})*`,
+      };
+      setMessages((prev) => [...prev, contextMessage]);
+    }
     setSelectedNode(node);
-    // Don't reset messages - keep conversation history
   };
 
   const handleSendMessage = async (message) => {
@@ -78,10 +103,6 @@ function App() {
     }
   };
 
-  const handleCloseChat = () => {
-    setSelectedNode(null);
-  };
-
   return (
     <div className="app">
       <header className="app-header">
@@ -95,13 +116,13 @@ function App() {
           <DiagramCanvas diagram={diagram} onNodeClick={handleNodeClick} />
         </div>
 
-        {selectedNode && (
+        {diagram && (
           <ChatPanel
             selectedNode={selectedNode}
             messages={messages}
             onSendMessage={handleSendMessage}
-            onClose={handleCloseChat}
             loading={chatLoading}
+            diagram={diagram}
           />
         )}
       </div>
