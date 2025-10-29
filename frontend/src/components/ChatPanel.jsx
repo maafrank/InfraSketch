@@ -29,7 +29,7 @@ export default function ChatPanel({
       const newWidth = window.innerWidth - e.clientX;
 
       // Set min/max constraints
-      if (newWidth >= 300 && newWidth <= 800) {
+      if (newWidth >= 300 && newWidth <= 1200) {
         setWidth(newWidth);
       }
     };
