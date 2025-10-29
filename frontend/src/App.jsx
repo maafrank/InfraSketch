@@ -106,8 +106,23 @@ Feel free to explore the diagram and ask me anything!`;
   return (
     <div className="app">
       <header className="app-header">
-        <h1>InfraSketch</h1>
-        <p>AI-Powered System Design Tool</p>
+        <div>
+          <h1>InfraSketch</h1>
+          <p>AI-Powered System Design Tool</p>
+        </div>
+        {diagram && (
+          <button
+            className="new-design-button"
+            onClick={() => {
+              setDiagram(null);
+              setSessionId(null);
+              setSelectedNode(null);
+              setMessages([]);
+            }}
+          >
+            New Design
+          </button>
+        )}
       </header>
 
       <div className="app-content">
@@ -126,22 +141,6 @@ Feel free to explore the diagram and ask me anything!`;
           />
         )}
       </div>
-
-      {diagram && (
-        <div className="reset-button-container">
-          <button
-            className="reset-button"
-            onClick={() => {
-              setDiagram(null);
-              setSessionId(null);
-              setSelectedNode(null);
-              setMessages([]);
-            }}
-          >
-            New Design
-          </button>
-        </div>
-      )}
     </div>
   );
 }

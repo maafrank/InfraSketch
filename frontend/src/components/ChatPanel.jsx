@@ -9,6 +9,8 @@ export default function ChatPanel({
   diagram,
 }) {
   const [input, setInput] = useState('');
+  const [width, setWidth] = useState(400); // Default width
+  const [isResizing, setIsResizing] = useState(false);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -19,6 +21,34 @@ export default function ChatPanel({
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isResizing) return;
+
+      // Calculate new width based on distance from right edge
+      const newWidth = window.innerWidth - e.clientX;
+
+      // Set min/max constraints
+      if (newWidth >= 300 && newWidth <= 800) {
+        setWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (input.trim()) {
@@ -28,7 +58,11 @@ export default function ChatPanel({
   };
 
   return (
-    <div className="chat-panel">
+    <div className="chat-panel" style={{ width: `${width}px` }}>
+      <div
+        className="resize-handle"
+        onMouseDown={() => setIsResizing(true)}
+      />
       <div className="chat-header">
         <div>
           <h3>System Chat</h3>
