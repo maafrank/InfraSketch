@@ -23,6 +23,9 @@ body {
   color: white;
   padding: 1.5rem 2rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .app-header h1 {
@@ -33,6 +36,25 @@ body {
 .app-header p {
   font-size: 0.9rem;
   opacity: 0.9;
+}
+
+.new-design-button {
+  padding: 0.75rem 1.5rem;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid white;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  backdrop-filter: blur(10px);
+}
+
+.new-design-button:hover {
+  background: white;
+  color: #667eea;
+  transform: translateY(-2px);
 }
 
 .app-content {
@@ -413,34 +435,6 @@ body {
 .chat-input-form button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-/* Reset Button */
-.reset-button-container {
-  position: fixed;
-  bottom: 2rem;
-  left: 2rem;
-  z-index: 100;
-}
-
-.reset-button {
-  padding: 1rem 2rem;
-  background: #ffffff;
-  color: #667eea;
-  border: 2px solid #667eea;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.reset-button:hover {
-  background: #667eea;
-  color: white;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 /* React Flow overrides */
