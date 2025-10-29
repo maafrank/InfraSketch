@@ -49,7 +49,11 @@ export default function DiagramCanvas({ diagram, onNodeClick }) {
       target: edge.target,
       label: edge.label,
       animated: edge.type === 'animated',
-      style: { stroke: '#888' },
+      style: { stroke: '#888', strokeWidth: 2 },
+      markerEnd: {
+        type: 'arrowclosed',
+        color: '#888',
+      },
     }));
 
     console.log('Setting flowNodes:', flowNodes);

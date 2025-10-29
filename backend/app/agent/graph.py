@@ -20,6 +20,7 @@ class AgentState(TypedDict):
     conversation_history: list[dict]
     output: str
     diagram_updated: bool
+    display_text: str  # Text to show in chat (without JSON)
 
 
 def create_llm():
@@ -138,6 +139,7 @@ def chat_node(state: AgentState) -> AgentState:
             state["output"] = content
             state["diagram"] = diagram_json
             state["diagram_updated"] = True
+            state["display_text"] = "*(Graph has been updated)*"
             return state
     except json.JSONDecodeError as e:
         print(f"✗ Not direct JSON: {e}")
@@ -147,10 +149,17 @@ def chat_node(state: AgentState) -> AgentState:
         print(f"Attempting to extract JSON from code block...")
         try:
             if "```json" in content:
-                json_str = content.split("```json")[1].split("```")[0].strip()
+                parts = content.split("```json")
+                text_before = parts[0].strip()
+                remaining = parts[1].split("```")
+                json_str = remaining[0].strip()
+                text_after = remaining[1].strip() if len(remaining) > 1 else ""
                 print(f"Extracted from ```json block")
             else:
-                json_str = content.split("```")[1].split("```")[0].strip()
+                parts = content.split("```")
+                text_before = parts[0].strip()
+                json_str = parts[1].strip()
+                text_after = parts[2].strip() if len(parts) > 2 else ""
                 print(f"Extracted from ``` block")
 
             print(f"Extracted JSON length: {len(json_str)}")
@@ -159,9 +168,19 @@ def chat_node(state: AgentState) -> AgentState:
             diagram_json = json.loads(json_str)
             if "nodes" in diagram_json and "edges" in diagram_json:
                 print(f"✓ Successfully parsed extracted JSON with nodes/edges")
+
+                # Combine non-JSON text
+                display_parts = []
+                if text_before:
+                    display_parts.append(text_before)
+                display_parts.append("*(Graph has been updated)*")
+                if text_after:
+                    display_parts.append(text_after)
+
                 state["output"] = json_str
                 state["diagram"] = diagram_json
                 state["diagram_updated"] = True
+                state["display_text"] = "\n\n".join(display_parts)
                 return state
             else:
                 print(f"✗ Extracted JSON missing nodes or edges")
@@ -195,9 +214,23 @@ def chat_node(state: AgentState) -> AgentState:
                 diagram_json = json.loads(json_str)
                 if "nodes" in diagram_json and "edges" in diagram_json:
                     print(f"✓ Successfully parsed extracted JSON with nodes/edges")
+
+                    # Extract text before and after JSON
+                    text_before = content[:start_idx].strip()
+                    text_after = content[end_idx:].strip()
+
+                    # Combine non-JSON text
+                    display_parts = []
+                    if text_before:
+                        display_parts.append(text_before)
+                    display_parts.append("*(Graph has been updated)*")
+                    if text_after:
+                        display_parts.append(text_after)
+
                     state["output"] = json_str
                     state["diagram"] = diagram_json
                     state["diagram_updated"] = True
+                    state["display_text"] = "\n\n".join(display_parts)
                     return state
                 else:
                     print(f"✗ Extracted JSON missing nodes or edges")
@@ -209,6 +242,7 @@ def chat_node(state: AgentState) -> AgentState:
     print(f"==========================\n")
     state["output"] = content
     state["diagram_updated"] = False
+    state["display_text"] = content
     return state
 
 

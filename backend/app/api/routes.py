@@ -80,6 +80,7 @@ async def chat(request: ChatRequest):
             "conversation_history": conversation_history,
             "output": "",
             "diagram_updated": False,
+            "display_text": "",
         })
 
         # Add user message to history
@@ -90,25 +91,27 @@ async def chat(request: ChatRequest):
 
         # Check if diagram was updated
         response_diagram = None
+        display_message = result.get("display_text", result["output"])
+
         if result["diagram_updated"]:
             diagram_dict = json.loads(result["output"])
             response_diagram = Diagram(**diagram_dict)
             session_manager.update_diagram(request.session_id, response_diagram)
 
-            # Add assistant response about update
+            # Add assistant response with cleaned text
             session_manager.add_message(
                 request.session_id,
-                Message(role="assistant", content="I've updated the diagram based on your request.")
+                Message(role="assistant", content=display_message)
             )
         else:
             # Add assistant text response
             session_manager.add_message(
                 request.session_id,
-                Message(role="assistant", content=result["output"])
+                Message(role="assistant", content=display_message)
             )
 
         return ChatResponse(
-            response=result["output"],
+            response=display_message,
             diagram=response_diagram
         )
 
