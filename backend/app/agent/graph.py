@@ -122,36 +122,91 @@ def chat_node(state: AgentState) -> AgentState:
     response = llm.invoke(messages)
     content = response.content.strip()
 
+    print(f"\n=== CHAT NODE RESPONSE ===")
+    print(f"Content length: {len(content)}")
+    print(f"First 200 chars: {content[:200]}")
+    print(f"Has ```json: {'```json' in content}")
+    print(f"Has ```: {'```' in content}")
+    print(f"Has opening brace: {'{' in content}")
+
     # Check if response is a diagram update (JSON)
     try:
         diagram_json = json.loads(content)
         # Validate it has nodes and edges
         if "nodes" in diagram_json and "edges" in diagram_json:
+            print(f"✓ Successfully parsed as direct JSON with nodes/edges")
             state["output"] = content
             state["diagram"] = diagram_json
             state["diagram_updated"] = True
             return state
-    except json.JSONDecodeError:
-        pass
+    except json.JSONDecodeError as e:
+        print(f"✗ Not direct JSON: {e}")
 
-    # Try to extract JSON if embedded
+    # Try to extract JSON if embedded in code blocks
     if "```json" in content or "```" in content:
+        print(f"Attempting to extract JSON from code block...")
         try:
             if "```json" in content:
                 json_str = content.split("```json")[1].split("```")[0].strip()
+                print(f"Extracted from ```json block")
             else:
                 json_str = content.split("```")[1].split("```")[0].strip()
+                print(f"Extracted from ``` block")
+
+            print(f"Extracted JSON length: {len(json_str)}")
+            print(f"First 200 chars: {json_str[:200]}")
 
             diagram_json = json.loads(json_str)
             if "nodes" in diagram_json and "edges" in diagram_json:
+                print(f"✓ Successfully parsed extracted JSON with nodes/edges")
                 state["output"] = json_str
                 state["diagram"] = diagram_json
                 state["diagram_updated"] = True
                 return state
-        except:
-            pass
+            else:
+                print(f"✗ Extracted JSON missing nodes or edges")
+        except Exception as e:
+            print(f"✗ Failed to parse extracted JSON: {e}")
+
+    # Try to extract JSON that's embedded in text (no code blocks)
+    if "{" in content and "}" in content:
+        print(f"Attempting to extract JSON from text...")
+        try:
+            # Find the JSON object in the text
+            start_idx = content.find("{")
+            # Find matching closing brace
+            brace_count = 0
+            end_idx = -1
+            for i in range(start_idx, len(content)):
+                if content[i] == "{":
+                    brace_count += 1
+                elif content[i] == "}":
+                    brace_count -= 1
+                    if brace_count == 0:
+                        end_idx = i + 1
+                        break
+
+            if end_idx > start_idx:
+                json_str = content[start_idx:end_idx]
+                print(f"Extracted JSON from position {start_idx} to {end_idx}")
+                print(f"Extracted JSON length: {len(json_str)}")
+                print(f"First 200 chars: {json_str[:200]}")
+
+                diagram_json = json.loads(json_str)
+                if "nodes" in diagram_json and "edges" in diagram_json:
+                    print(f"✓ Successfully parsed extracted JSON with nodes/edges")
+                    state["output"] = json_str
+                    state["diagram"] = diagram_json
+                    state["diagram_updated"] = True
+                    return state
+                else:
+                    print(f"✗ Extracted JSON missing nodes or edges")
+        except Exception as e:
+            print(f"✗ Failed to extract JSON from text: {e}")
 
     # Not a diagram update, just a text response
+    print(f"Treating as text response (not diagram update)")
+    print(f"==========================\n")
     state["output"] = content
     state["diagram_updated"] = False
     return state
