@@ -3,7 +3,6 @@ import {
   ReactFlow,
   Background,
   Controls,
-  MiniMap,
   useNodesState,
   useEdgesState,
 } from 'reactflow';
@@ -103,7 +102,6 @@ export default function DiagramCanvas({ diagram, onNodeClick }) {
       >
         <Background />
         <Controls />
-        <MiniMap />
       </ReactFlow>
 
       {hoveredNode && (
