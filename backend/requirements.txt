@@ -7,3 +7,4 @@ langgraph==0.5.1
 langchain-anthropic==0.3.17
 langchain-core==0.3.68
 httpx==0.28.1
+boto3==1.35.0  # Optional: for AWS Secrets Manager support
