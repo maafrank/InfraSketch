@@ -233,12 +233,34 @@ body {
 
 /* Chat Panel */
 .chat-panel {
-  width: 400px;
   background: #ffffff;
   border-left: 1px solid #e0e0e0;
   display: flex;
   flex-direction: column;
   box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  position: relative;
+  min-width: 300px;
+  max-width: 1200px;
+}
+
+.resize-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: col-resize;
+  background: transparent;
+  z-index: 10;
+  transition: background 0.2s;
+}
+
+.resize-handle:hover {
+  background: rgba(102, 126, 234, 0.2);
+}
+
+.resize-handle:active {
+  background: rgba(102, 126, 234, 0.4);
 }
 
 .chat-header {
