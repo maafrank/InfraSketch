@@ -10,6 +10,7 @@ from app.agent.prompts import (
     get_diagram_context,
     get_node_context,
 )
+from app.utils.secrets import get_anthropic_api_key
 
 
 class AgentState(TypedDict):
@@ -25,7 +26,7 @@ class AgentState(TypedDict):
 
 def create_llm():
     """Create Claude LLM instance."""
-    api_key = os.getenv("ANTHROPIC_API_KEY")
+    api_key = get_anthropic_api_key()
     return ChatAnthropic(
         model="claude-3-haiku-20240307",
         api_key=api_key,
