@@ -161,6 +161,17 @@ body {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
+/* Custom Node with Shapes */
+.custom-node-shaped {
+  cursor: pointer;
+  transition: transform 0.2s, filter 0.2s;
+}
+
+.custom-node-shaped:hover {
+  transform: scale(1.05);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.25));
+}
+
 .node-content {
   display: flex;
   flex-direction: column;
