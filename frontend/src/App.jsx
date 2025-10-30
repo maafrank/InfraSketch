@@ -4,7 +4,7 @@ import DiagramCanvas from './components/DiagramCanvas';
 import ChatPanel from './components/ChatPanel';
 import AddNodeModal from './components/AddNodeModal';
 import ExportButton from './components/ExportButton';
-import { generateDiagram, sendChatMessage, addNode, deleteNode, addEdge, deleteEdge } from './api/client';
+import { generateDiagram, sendChatMessage, addNode, deleteNode, updateNode, addEdge, deleteEdge } from './api/client';
 import './App.css';
 
 function App() {
@@ -126,6 +126,25 @@ Feel free to explore the diagram and ask me anything!`;
     }
   };
 
+  const handleUpdateNode = async (updatedNodeData) => {
+    if (!sessionId) return;
+
+    try {
+      const updatedDiagram = await updateNode(sessionId, updatedNodeData.id, updatedNodeData);
+      setDiagram(updatedDiagram);
+
+      // Add system message to chat
+      const systemMessage = {
+        role: 'system',
+        content: `*Updated node: **${updatedNodeData.label}***`,
+      };
+      setMessages((prev) => [...prev, systemMessage]);
+    } catch (error) {
+      console.error('Failed to update node:', error);
+      alert('Failed to update node. Please try again.');
+    }
+  };
+
   const handleDeleteNode = async (nodeId) => {
     if (!sessionId) return;
 
@@ -225,6 +244,7 @@ Feel free to explore the diagram and ask me anything!`;
           <DiagramCanvas
             diagram={diagram}
             onNodeClick={handleNodeClick}
+            onUpdateNode={handleUpdateNode}
             onDeleteNode={handleDeleteNode}
             onAddEdge={handleAddEdge}
             onDeleteEdge={handleDeleteEdge}

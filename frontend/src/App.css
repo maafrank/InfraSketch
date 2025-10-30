@@ -281,7 +281,7 @@ body {
 /* Tooltip */
 .tooltip-container {
   z-index: 1000;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .node-tooltip {
@@ -291,6 +291,8 @@ body {
   padding: 1rem;
   max-width: 300px;
   box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
+  cursor: text;
+  user-select: text;
 }
 
 .node-tooltip h4 {
@@ -327,6 +329,93 @@ body {
   margin-top: 0.75rem;
   border-top: 1px solid #e0e0e0;
   padding-top: 0.5rem;
+}
+
+.tooltip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.tooltip-edit-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 0.25rem;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.tooltip-edit-btn:hover {
+  opacity: 1;
+}
+
+.tooltip-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  font-family: inherit;
+}
+
+.tooltip-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.tooltip-textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.tooltip-textarea:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.tooltip-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.tooltip-save-btn,
+.tooltip-cancel-btn {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tooltip-save-btn {
+  background: #667eea;
+  color: white;
+}
+
+.tooltip-save-btn:hover {
+  background: #5568d3;
+}
+
+.tooltip-cancel-btn {
+  background: #e2e8f0;
+  color: #333;
+}
+
+.tooltip-cancel-btn:hover {
+  background: #cbd5e0;
 }
 
 /* Chat Panel */
