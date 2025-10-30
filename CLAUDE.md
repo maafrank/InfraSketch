@@ -64,16 +64,21 @@ InfraSketch is an AI-powered system design tool with a **React frontend** and **
 **Backend (`backend/app/`)**:
 - `main.py` - FastAPI app with CORS for localhost:5173
 - `models.py` - Pydantic models for Node, Edge, Diagram, SessionState
-- `api/routes.py` - Three endpoints: `/api/generate`, `/api/chat`, `/api/session/{id}`
+- `api/routes.py` - Endpoints for generate, chat, session management, and CRUD operations (add/delete nodes and edges)
 - `session/manager.py` - In-memory dict storing session_id → SessionState
 - `agent/graph.py` - **LangGraph agent** (see below)
 - `agent/prompts.py` - System prompts for Claude
+- `utils/secrets.py` - Helper for retrieving API keys (supports both .env and AWS Secrets Manager)
 
 **Frontend (`frontend/src/`)**:
 - `App.jsx` - Main component managing state (diagram, sessionId, selectedNode, messages)
-- `components/DiagramCanvas.jsx` - React Flow canvas that updates via `useEffect` when diagram prop changes
+- `components/DiagramCanvas.jsx` - React Flow canvas with auto-layout using dagre, supports drag connections between nodes
 - `components/ChatPanel.jsx` - Chat UI for node-focused conversations
 - `components/CustomNode.jsx` - Styled node component with color coding by type
+- `components/InputPanel.jsx` - Initial prompt input for generating diagrams
+- `components/NodeTooltip.jsx` - Hover tooltip showing node details
+- `components/AddNodeModal.jsx` - Modal for manually adding nodes
+- `utils/layout.js` - Auto-layout logic using dagre algorithm
 - `api/client.js` - Axios client for backend API
 
 ### LangGraph Agent Implementation
@@ -89,7 +94,8 @@ The agent (`backend/app/agent/graph.py`) uses LangGraph's `StateGraph` with:
     "node_id": str | None,
     "conversation_history": list[dict],
     "output": str,
-    "diagram_updated": bool
+    "diagram_updated": bool,
+    "display_text": str  # Text to show in chat (without JSON)
 }
 ```
 
@@ -118,6 +124,39 @@ Create `.env` file in root:
 ANTHROPIC_API_KEY=your-api-key-here
 LANGSMITH_TRACING=False  # Optional
 ```
+
+## API Endpoints
+
+The backend exposes these REST endpoints (all under `/api` prefix):
+
+**POST `/api/generate`** - Generate initial diagram from prompt
+- Request: `{ "prompt": string }`
+- Response: `{ "session_id": string, "diagram": Diagram }`
+
+**POST `/api/chat`** - Continue conversation about diagram/node
+- Request: `{ "session_id": string, "message": string, "node_id": string? }`
+- Response: `{ "response": string, "diagram": Diagram? }`
+
+**GET `/api/session/{session_id}`** - Retrieve session state
+- Response: `SessionState` object
+
+**POST `/api/session/{session_id}/nodes`** - Manually add a node
+- Request: `Node` object
+- Response: Updated `Diagram`
+
+**DELETE `/api/session/{session_id}/nodes/{node_id}`** - Delete node and connected edges
+- Response: Updated `Diagram`
+
+**PATCH `/api/session/{session_id}/nodes/{node_id}`** - Update node properties
+- Request: Updated `Node` object
+- Response: Updated `Diagram`
+
+**POST `/api/session/{session_id}/edges`** - Manually add an edge
+- Request: `Edge` object
+- Response: Updated `Diagram`
+
+**DELETE `/api/session/{session_id}/edges/{edge_id}`** - Delete edge
+- Response: Updated `Diagram`
 
 ## Data Models
 
@@ -187,7 +226,17 @@ Sessions are **in-memory only** (not persisted). Restarting backend clears all s
 
 When `diagram` prop changes in `DiagramCanvas.jsx`, the `useEffect` hook:
 1. Transforms backend diagram format to React Flow format
-2. Calls `setNodes()` and `setEdges()` to update canvas
+2. Applies auto-layout using dagre algorithm (hierarchical top-to-bottom layout)
+3. Calls `setNodes()` and `setEdges()` to update canvas
+
+**User Interactions:**
+- Click node → Opens chat panel focused on that node
+- Hover node → Shows tooltip with details
+- Right-click node → Context menu to delete
+- Drag from node handle → Create new connection
+- Right-click edge → Context menu to delete
+- Click "Add Node" button → Opens modal for manual node creation
+- Click "New Design" button → Clears session and starts fresh
 
 ## Debugging
 
@@ -218,4 +267,31 @@ Both servers have auto-reload enabled (`--reload` for backend, Vite HMR for fron
 - Backend: Packages dependencies for Linux, creates Lambda zip, uploads to S3, updates function
 - Frontend: Builds React app, syncs to S3, invalidates CloudFront cache
 
-See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for details.
+## Important Implementation Details
+
+**Auto-Layout Algorithm:**
+- Uses dagre library for hierarchical graph layout
+- Applied automatically on every diagram update in `utils/layout.js`
+- Direction: Top-to-bottom (TB)
+- Node spacing: 150px horizontal, 100px vertical
+
+**CORS Configuration:**
+- Backend allows all origins (`allow_origins=["*"]`)
+- Credentials set to False for compatibility
+- Required for local dev (localhost:5173 → localhost:8000)
+
+**State Synchronization:**
+- Backend is source of truth for diagram data
+- Frontend makes API call for any modification (add/delete node/edge)
+- Agent-generated updates flow through `/api/chat` endpoint
+- Manual updates flow through CRUD endpoints
+
+**Response Handling:**
+- Agent returns `display_text` separate from JSON diagram
+- When diagram updates, frontend shows "*(Graph has been updated)*" message
+- Text before/after JSON in Claude's response is preserved in chat
+
+**Error Recovery:**
+- If JSON parsing fails completely, agent returns empty diagram with error flag
+- Frontend validates nodes/edges arrays exist before rendering
+- Session not found returns 404, triggering user to start new session
