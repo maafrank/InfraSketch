@@ -9,6 +9,7 @@ import {
 import 'reactflow/dist/style.css';
 import NodeTooltip from './NodeTooltip';
 import CustomNode from './CustomNode';
+import { getLayoutedElements } from '../utils/layout';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -31,7 +32,7 @@ export default function DiagramCanvas({ diagram, onNodeClick }) {
     const flowNodes = diagram.nodes.map((node) => ({
       id: node.id,
       type: 'custom',
-      position: node.position,
+      position: node.position || { x: 0, y: 0 }, // Fallback position
       data: {
         label: node.label,
         type: node.type,
@@ -55,10 +56,13 @@ export default function DiagramCanvas({ diagram, onNodeClick }) {
       },
     }));
 
-    console.log('Setting flowNodes:', flowNodes);
+    // Apply auto-layout
+    const layoutedNodes = getLayoutedElements(flowNodes, flowEdges, 'TB');
+
+    console.log('Setting layoutedNodes:', layoutedNodes);
     console.log('Setting flowEdges:', flowEdges);
 
-    setNodes(flowNodes);
+    setNodes(layoutedNodes);
     setEdges(flowEdges);
   }, [diagram, setNodes, setEdges]);
 
