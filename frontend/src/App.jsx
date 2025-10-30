@@ -2,7 +2,8 @@ import { useState } from 'react';
 import InputPanel from './components/InputPanel';
 import DiagramCanvas from './components/DiagramCanvas';
 import ChatPanel from './components/ChatPanel';
-import { generateDiagram, sendChatMessage } from './api/client';
+import AddNodeModal from './components/AddNodeModal';
+import { generateDiagram, sendChatMessage, addNode, deleteNode, addEdge, deleteEdge } from './api/client';
 import './App.css';
 
 function App() {
@@ -12,6 +13,7 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
+  const [showAddNodeModal, setShowAddNodeModal] = useState(false);
 
   const handleGenerate = async (prompt) => {
     setLoading(true);
@@ -103,6 +105,87 @@ Feel free to explore the diagram and ask me anything!`;
     }
   };
 
+  const handleAddNode = async (node) => {
+    if (!sessionId) return;
+
+    try {
+      const updatedDiagram = await addNode(sessionId, node);
+      setDiagram(updatedDiagram);
+
+      // Add system message to chat
+      const systemMessage = {
+        role: 'system',
+        content: `*Added new node: **${node.label}** (${node.type})*`,
+      };
+      setMessages((prev) => [...prev, systemMessage]);
+    } catch (error) {
+      console.error('Failed to add node:', error);
+      alert('Failed to add node. Please try again.');
+    }
+  };
+
+  const handleDeleteNode = async (nodeId) => {
+    if (!sessionId) return;
+
+    try {
+      const updatedDiagram = await deleteNode(sessionId, nodeId);
+      setDiagram(updatedDiagram);
+
+      // Clear selection if deleted node was selected
+      if (selectedNode?.id === nodeId) {
+        setSelectedNode(null);
+      }
+
+      // Add system message to chat
+      const systemMessage = {
+        role: 'system',
+        content: `*Deleted node*`,
+      };
+      setMessages((prev) => [...prev, systemMessage]);
+    } catch (error) {
+      console.error('Failed to delete node:', error);
+      alert('Failed to delete node. Please try again.');
+    }
+  };
+
+  const handleAddEdge = async (edge) => {
+    if (!sessionId) return;
+
+    try {
+      const updatedDiagram = await addEdge(sessionId, edge);
+      setDiagram(updatedDiagram);
+
+      // Add system message to chat
+      const systemMessage = {
+        role: 'system',
+        content: `*Added connection between nodes*`,
+      };
+      setMessages((prev) => [...prev, systemMessage]);
+    } catch (error) {
+      console.error('Failed to add edge:', error);
+      alert('Failed to add connection. Please try again.');
+    }
+  };
+
+  const handleDeleteEdge = async (edgeId) => {
+    if (!sessionId) return;
+
+    try {
+      const updatedDiagram = await deleteEdge(sessionId, edgeId);
+      setDiagram(updatedDiagram);
+
+      // Add system message to chat
+      const systemMessage = {
+        role: 'system',
+        content: `*Deleted connection*`,
+      };
+      setMessages((prev) => [...prev, systemMessage]);
+    } catch (error) {
+      console.error('Failed to delete edge:', error);
+      alert('Failed to delete connection. Please try again.');
+    }
+  };
+
   return (
     <div className="app">
       <header className="app-header">
@@ -111,24 +194,38 @@ Feel free to explore the diagram and ask me anything!`;
           <p>AI-Powered System Design Tool</p>
         </div>
         {diagram && (
-          <button
-            className="new-design-button"
-            onClick={() => {
-              setDiagram(null);
-              setSessionId(null);
-              setSelectedNode(null);
-              setMessages([]);
-            }}
-          >
-            New Design
-          </button>
+          <div className="header-buttons">
+            <button
+              className="add-node-button"
+              onClick={() => setShowAddNodeModal(true)}
+            >
+              + Add Node
+            </button>
+            <button
+              className="new-design-button"
+              onClick={() => {
+                setDiagram(null);
+                setSessionId(null);
+                setSelectedNode(null);
+                setMessages([]);
+              }}
+            >
+              New Design
+            </button>
+          </div>
         )}
       </header>
 
       <div className="app-content">
         <div className="main-area">
           {!diagram && <InputPanel onGenerate={handleGenerate} loading={loading} />}
-          <DiagramCanvas diagram={diagram} onNodeClick={handleNodeClick} />
+          <DiagramCanvas
+            diagram={diagram}
+            onNodeClick={handleNodeClick}
+            onDeleteNode={handleDeleteNode}
+            onAddEdge={handleAddEdge}
+            onDeleteEdge={handleDeleteEdge}
+          />
         </div>
 
         {diagram && (
@@ -141,6 +238,12 @@ Feel free to explore the diagram and ask me anything!`;
           />
         )}
       </div>
+
+      <AddNodeModal
+        isOpen={showAddNodeModal}
+        onClose={() => setShowAddNodeModal(false)}
+        onAdd={handleAddNode}
+      />
     </div>
   );
 }

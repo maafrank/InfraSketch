@@ -63,16 +63,23 @@ Determine if this is a modification request. If yes, output JSON. If no, output 
 def get_diagram_context(diagram: dict) -> str:
     """Format diagram as readable context."""
     nodes_desc = []
+    node_id_to_label = {}
+
     for node in diagram.get("nodes", []):
+        node_id_to_label[node['id']] = node['label']
         nodes_desc.append(
             f"- {node['label']} ({node['type']}): {node['description']}"
         )
 
     edges_desc = []
     for edge in diagram.get("edges", []):
-        edges_desc.append(
-            f"- {edge['source']} → {edge['target']}: {edge.get('label', 'connected')}"
-        )
+        source_label = node_id_to_label.get(edge['source'], edge['source'])
+        target_label = node_id_to_label.get(edge['target'], edge['target'])
+        edge_label = edge.get('label', '')
+        if edge_label:
+            edges_desc.append(f"- {source_label} → {target_label}: {edge_label}")
+        else:
+            edges_desc.append(f"- {source_label} → {target_label}")
 
     return f"""
 Nodes:

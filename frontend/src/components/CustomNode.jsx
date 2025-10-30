@@ -1,4 +1,5 @@
 import { Handle, Position } from 'reactflow';
+import { useState } from 'react';
 
 const getNodeColor = (type) => {
   const colors = {
@@ -16,8 +17,16 @@ const getNodeColor = (type) => {
   return colors[type] || '#888';
 };
 
-export default function CustomNode({ data }) {
+export default function CustomNode({ data, id }) {
+  const [isHovered, setIsHovered] = useState(false);
   const color = getNodeColor(data.type);
+
+  const handleDelete = (e) => {
+    e.stopPropagation();
+    if (data.onDelete) {
+      data.onDelete(id);
+    }
+  };
 
   return (
     <div
@@ -26,6 +35,8 @@ export default function CustomNode({ data }) {
         background: color,
         borderColor: color,
       }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       <Handle type="target" position={Position.Top} />
       <div className="node-content">
@@ -33,6 +44,16 @@ export default function CustomNode({ data }) {
         <div className="node-type-badge">{data.type}</div>
       </div>
       <Handle type="source" position={Position.Bottom} />
+
+      {isHovered && (
+        <button
+          className="node-delete-button"
+          onClick={handleDelete}
+          title="Delete node"
+        >
+          🗑️
+        </button>
+      )}
     </div>
   );
 }

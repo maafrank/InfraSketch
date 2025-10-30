@@ -15,11 +15,13 @@ const nodeTypes = {
   custom: CustomNode,
 };
 
-export default function DiagramCanvas({ diagram, onNodeClick }) {
+export default function DiagramCanvas({ diagram, onNodeClick, onDeleteNode, onAddEdge, onDeleteEdge }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [hoveredNode, setHoveredNode] = useState(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [contextMenu, setContextMenu] = useState(null);
+  const [selectedEdge, setSelectedEdge] = useState(null);
 
   // Update nodes and edges when diagram changes
   useEffect(() => {
@@ -40,6 +42,7 @@ export default function DiagramCanvas({ diagram, onNodeClick }) {
         inputs: node.inputs,
         outputs: node.outputs,
         metadata: node.metadata,
+        onDelete: onDeleteNode,
       },
     }));
 
@@ -49,10 +52,13 @@ export default function DiagramCanvas({ diagram, onNodeClick }) {
       target: edge.target,
       label: edge.label,
       animated: edge.type === 'animated',
-      style: { stroke: '#888', strokeWidth: 2 },
+      style: {
+        stroke: selectedEdge === edge.id ? '#667eea' : '#888',
+        strokeWidth: selectedEdge === edge.id ? 3 : 2,
+      },
       markerEnd: {
         type: 'arrowclosed',
-        color: '#888',
+        color: selectedEdge === edge.id ? '#667eea' : '#888',
       },
     }));
 
@@ -64,7 +70,7 @@ export default function DiagramCanvas({ diagram, onNodeClick }) {
 
     setNodes(layoutedNodes);
     setEdges(flowEdges);
-  }, [diagram, setNodes, setEdges]);
+  }, [diagram, setNodes, setEdges, onDeleteNode, selectedEdge]);
 
   const handleNodeMouseEnter = useCallback((event, node) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -83,6 +89,92 @@ export default function DiagramCanvas({ diagram, onNodeClick }) {
     onNodeClick(node);
   }, [onNodeClick]);
 
+  const handleNodeContextMenu = useCallback((event, node) => {
+    event.preventDefault();
+    setContextMenu({
+      nodeId: node.id,
+      x: event.clientX,
+      y: event.clientY,
+    });
+  }, []);
+
+  const handleDeleteNode = useCallback(() => {
+    if (contextMenu?.nodeId && onDeleteNode) {
+      onDeleteNode(contextMenu.nodeId);
+      setContextMenu(null);
+    }
+  }, [contextMenu, onDeleteNode]);
+
+  const handleDeleteEdgeFromMenu = useCallback(() => {
+    if (contextMenu?.edgeId && onDeleteEdge) {
+      onDeleteEdge(contextMenu.edgeId);
+      setContextMenu(null);
+    }
+  }, [contextMenu, onDeleteEdge]);
+
+  const handlePaneClick = useCallback(() => {
+    setContextMenu(null);
+    setSelectedEdge(null);
+  }, []);
+
+  const handleEdgeClick = useCallback((event, edge) => {
+    event.stopPropagation();
+    setSelectedEdge(edge.id);
+  }, []);
+
+  const handleEdgeContextMenu = useCallback((event, edge) => {
+    event.preventDefault();
+    setContextMenu({
+      edgeId: edge.id,
+      x: event.clientX,
+      y: event.clientY,
+    });
+  }, []);
+
+  const handleConnect = useCallback((connection) => {
+    if (onAddEdge) {
+      // Generate unique edge ID
+      const edgeId = `edge-${connection.source}-${connection.target}-${Date.now()}`;
+
+      const newEdge = {
+        id: edgeId,
+        source: connection.source,
+        target: connection.target,
+        label: null,
+        type: 'default',
+      };
+
+      onAddEdge(newEdge);
+    }
+  }, [onAddEdge]);
+
+  const handleEdgesDelete = useCallback((edgesToDelete) => {
+    if (onDeleteEdge) {
+      edgesToDelete.forEach(edge => {
+        onDeleteEdge(edge.id);
+      });
+    }
+  }, [onDeleteEdge]);
+
+  const handleEdgeUpdate = useCallback((oldEdge, newConnection) => {
+    // When user drags edge to reconnect, delete old and create new
+    if (onDeleteEdge && onAddEdge) {
+      // Delete old edge
+      onDeleteEdge(oldEdge.id);
+
+      // Create new edge with updated connection
+      const newEdge = {
+        id: `edge-${newConnection.source}-${newConnection.target}-${Date.now()}`,
+        source: newConnection.source,
+        target: newConnection.target,
+        label: oldEdge.label || null,
+        type: 'default',
+      };
+
+      onAddEdge(newEdge);
+    }
+  }, [onDeleteEdge, onAddEdge]);
+
   if (!diagram) {
     return (
       <div className="diagram-canvas-empty">
@@ -98,11 +190,21 @@ export default function DiagramCanvas({ diagram, onNodeClick }) {
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onEdgesDelete={handleEdgesDelete}
+        onConnect={handleConnect}
+        onEdgeUpdate={handleEdgeUpdate}
+        onEdgeClick={handleEdgeClick}
+        onEdgeContextMenu={handleEdgeContextMenu}
         onNodeClick={handleNodeClick}
+        onNodeContextMenu={handleNodeContextMenu}
         onNodeMouseEnter={handleNodeMouseEnter}
         onNodeMouseLeave={handleNodeMouseLeave}
+        onPaneClick={handlePaneClick}
         nodeTypes={nodeTypes}
         fitView
+        edgesReconnectable={true}
+        edgesUpdatable={true}
+        edgesFocusable={true}
       >
         <Background />
         <Controls />
@@ -118,6 +220,24 @@ export default function DiagramCanvas({ diagram, onNodeClick }) {
           }}
         >
           <NodeTooltip node={hoveredNode} />
+        </div>
+      )}
+
+      {contextMenu && (
+        <div
+          className="context-menu"
+          style={{
+            position: 'fixed',
+            left: `${contextMenu.x}px`,
+            top: `${contextMenu.y}px`,
+          }}
+        >
+          {contextMenu.nodeId && (
+            <button onClick={handleDeleteNode}>Delete Node</button>
+          )}
+          {contextMenu.edgeId && (
+            <button onClick={handleDeleteEdgeFromMenu}>Delete Connection</button>
+          )}
         </div>
       )}
     </div>
