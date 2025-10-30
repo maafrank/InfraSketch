@@ -136,6 +136,7 @@ celerybeat.pid
 
 # Environments
 .env
+.env.local
 .envrc
 .venv
 env/
@@ -143,6 +144,19 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+
+# Backend deployment artifacts
+backend/package/
+backend/lambda-deployment.zip
+backend/.env
+
+# AWS deployment temp files
+/tmp/s3-bucket-policy.json
 
 # Spyder project settings
 .spyderproject
