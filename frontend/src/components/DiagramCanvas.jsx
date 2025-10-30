@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -17,7 +17,7 @@ const nodeTypes = {
   custom: CustomNode,
 };
 
-function DiagramCanvasInner({ diagram, onNodeClick, onDeleteNode, onAddEdge, onDeleteEdge, onReactFlowInit }) {
+function DiagramCanvasInner({ diagram, onNodeClick, onDeleteNode, onAddEdge, onDeleteEdge, onReactFlowInit, onUpdateNode }) {
   const reactFlowInstance = useReactFlow();
 
   // Pass the React Flow instance to parent
@@ -33,6 +33,8 @@ function DiagramCanvasInner({ diagram, onNodeClick, onDeleteNode, onAddEdge, onD
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [contextMenu, setContextMenu] = useState(null);
   const [selectedEdge, setSelectedEdge] = useState(null);
+  const isTooltipHoveredRef = useRef(false);
+  const hideTooltipTimeoutRef = useRef(null);
 
   // Update nodes and edges when diagram changes
   useEffect(() => {
@@ -84,15 +86,42 @@ function DiagramCanvasInner({ diagram, onNodeClick, onDeleteNode, onAddEdge, onD
   }, [diagram, setNodes, setEdges, onDeleteNode, selectedEdge]);
 
   const handleNodeMouseEnter = useCallback((event, node) => {
+    // Clear any pending hide timeout
+    if (hideTooltipTimeoutRef.current) {
+      clearTimeout(hideTooltipTimeoutRef.current);
+      hideTooltipTimeoutRef.current = null;
+    }
+
     const rect = event.currentTarget.getBoundingClientRect();
     setTooltipPosition({
       x: rect.right + 10,
       y: rect.top,
     });
     setHoveredNode(node);
+    isTooltipHoveredRef.current = false;
   }, []);
 
   const handleNodeMouseLeave = useCallback(() => {
+    // Give user time to move mouse to tooltip
+    hideTooltipTimeoutRef.current = setTimeout(() => {
+      // Check if mouse is now on tooltip using ref (not stale closure)
+      if (!isTooltipHoveredRef.current) {
+        setHoveredNode(null);
+      }
+    }, 200);
+  }, []);
+
+  const handleTooltipMouseEnter = useCallback(() => {
+    // Clear any pending hide timeout
+    if (hideTooltipTimeoutRef.current) {
+      clearTimeout(hideTooltipTimeoutRef.current);
+      hideTooltipTimeoutRef.current = null;
+    }
+    isTooltipHoveredRef.current = true;
+  }, []);
+
+  const handleTooltipMouseLeave = useCallback(() => {
+    isTooltipHoveredRef.current = false;
     setHoveredNode(null);
   }, []);
 
@@ -229,8 +258,10 @@ function DiagramCanvasInner({ diagram, onNodeClick, onDeleteNode, onAddEdge, onD
             left: `${tooltipPosition.x}px`,
             top: `${tooltipPosition.y}px`,
           }}
+          onMouseEnter={handleTooltipMouseEnter}
+          onMouseLeave={handleTooltipMouseLeave}
         >
-          <NodeTooltip node={hoveredNode} />
+          <NodeTooltip node={hoveredNode} onSave={onUpdateNode} />
         </div>
       )}
 
