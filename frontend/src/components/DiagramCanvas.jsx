@@ -1,10 +1,12 @@
 import { useCallback, useState, useEffect } from 'react';
 import {
   ReactFlow,
+  ReactFlowProvider,
   Background,
   Controls,
   useNodesState,
   useEdgesState,
+  useReactFlow,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import NodeTooltip from './NodeTooltip';
@@ -15,7 +17,16 @@ const nodeTypes = {
   custom: CustomNode,
 };
 
-export default function DiagramCanvas({ diagram, onNodeClick, onDeleteNode, onAddEdge, onDeleteEdge }) {
+function DiagramCanvasInner({ diagram, onNodeClick, onDeleteNode, onAddEdge, onDeleteEdge, onReactFlowInit }) {
+  const reactFlowInstance = useReactFlow();
+
+  // Pass the React Flow instance to parent
+  useEffect(() => {
+    if (onReactFlowInit && reactFlowInstance) {
+      onReactFlowInit(reactFlowInstance);
+    }
+  }, [reactFlowInstance, onReactFlowInit]);
+
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [hoveredNode, setHoveredNode] = useState(null);
@@ -241,5 +252,14 @@ export default function DiagramCanvas({ diagram, onNodeClick, onDeleteNode, onAd
         </div>
       )}
     </div>
+  );
+}
+
+// Wrapper component with ReactFlowProvider
+export default function DiagramCanvas(props) {
+  return (
+    <ReactFlowProvider>
+      <DiagramCanvasInner {...props} />
+    </ReactFlowProvider>
   );
 }

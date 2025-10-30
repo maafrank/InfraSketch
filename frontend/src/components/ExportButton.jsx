@@ -2,11 +2,18 @@ import { useState } from 'react';
 import { toPng } from 'html-to-image';
 import { exportDesignDoc } from '../api/client';
 
-export default function ExportButton({ sessionId }) {
+export default function ExportButton({ sessionId, reactFlowInstance }) {
   const [loading, setLoading] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
 
   const captureDiagram = async () => {
+    // Fit the entire graph into view before capturing
+    if (reactFlowInstance) {
+      reactFlowInstance.fitView({ padding: 0.2, duration: 400 });
+      // Wait for fitView animation to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
     // Find the React Flow viewport element
     const viewport = document.querySelector('.react-flow__viewport');
     if (!viewport) {
