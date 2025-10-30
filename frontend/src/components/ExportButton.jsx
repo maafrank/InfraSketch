@@ -7,12 +7,57 @@ export default function ExportButton({ sessionId, reactFlowInstance }) {
   const [showMenu, setShowMenu] = useState(false);
 
   const captureDiagram = async () => {
-    // Fit the entire graph into view before capturing
-    if (reactFlowInstance) {
-      reactFlowInstance.fitView({ padding: 0.2, duration: 400 });
-      // Wait for fitView animation to complete
-      await new Promise(resolve => setTimeout(resolve, 500));
+    if (!reactFlowInstance) {
+      console.error('React Flow instance not available');
+      return null;
     }
+
+    // Get all nodes to calculate bounding box
+    const nodes = reactFlowInstance.getNodes();
+    if (nodes.length === 0) {
+      console.error('No nodes to capture');
+      return null;
+    }
+
+    // Calculate bounding box of all nodes
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    nodes.forEach(node => {
+      const x = node.position.x;
+      const y = node.position.y;
+      const width = node.width || 200; // Default node width
+      const height = node.height || 100; // Default node height
+
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x + width);
+      maxY = Math.max(maxY, y + height);
+    });
+
+    // Add padding
+    const padding = 50;
+    minX -= padding;
+    minY -= padding;
+    maxX += padding;
+    maxY += padding;
+
+    const width = maxX - minX;
+    const height = maxY - minY;
+
+    // Store current viewport
+    const originalViewport = reactFlowInstance.getViewport();
+
+    // Set viewport to capture entire diagram
+    reactFlowInstance.setViewport(
+      {
+        x: -minX,
+        y: -minY,
+        zoom: 1,
+      },
+      { duration: 400 }
+    );
+
+    // Wait for animation
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     // Find the React Flow viewport element
     const viewport = document.querySelector('.react-flow__viewport');
@@ -34,18 +79,22 @@ export default function ExportButton({ sessionId, reactFlowInstance }) {
       // Small delay to ensure labels are hidden before capture
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Capture the diagram as PNG with better quality settings
+      // Capture with calculated dimensions
       const dataUrl = await toPng(viewport, {
         backgroundColor: '#ffffff',
         quality: 0.95,
-        pixelRatio: 2, // Higher resolution for better quality
-        cacheBust: true, // Avoid caching issues
+        pixelRatio: 2,
+        cacheBust: true,
+        width: width,
+        height: height,
         style: {
-          transform: 'none', // Reset any transforms
+          transform: 'none',
+          width: `${width}px`,
+          height: `${height}px`,
         }
       });
 
-      // Convert data URL to base64 string (remove the "data:image/png;base64," prefix)
+      // Convert data URL to base64 string
       const base64 = dataUrl.split(',')[1];
       return base64;
     } catch (error) {
@@ -56,6 +105,9 @@ export default function ExportButton({ sessionId, reactFlowInstance }) {
       edgeLabels.forEach((label, index) => {
         label.style.display = originalDisplayValues[index];
       });
+
+      // Restore original viewport
+      reactFlowInstance.setViewport(originalViewport, { duration: 400 });
     }
   };
 
