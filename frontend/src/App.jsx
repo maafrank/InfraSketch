@@ -3,6 +3,7 @@ import InputPanel from './components/InputPanel';
 import DiagramCanvas from './components/DiagramCanvas';
 import ChatPanel from './components/ChatPanel';
 import AddNodeModal from './components/AddNodeModal';
+import ExportButton from './components/ExportButton';
 import { generateDiagram, sendChatMessage, addNode, deleteNode, addEdge, deleteEdge } from './api/client';
 import './App.css';
 
@@ -195,6 +196,7 @@ Feel free to explore the diagram and ask me anything!`;
         </div>
         {diagram && (
           <div className="header-buttons">
+            <ExportButton sessionId={sessionId} />
             <button
               className="add-node-button"
               onClick={() => setShowAddNodeModal(true)}

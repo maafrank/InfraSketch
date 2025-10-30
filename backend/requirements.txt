@@ -8,3 +8,7 @@ langchain-anthropic==0.3.17
 langchain-core==0.3.68
 httpx==0.28.1
 boto3==1.35.0  # Optional: for AWS Secrets Manager support
+Pillow==10.4.0  # For diagram image generation
+markdown2==2.5.0  # For markdown to HTML conversion
+weasyprint==62.3  # For PDF generation (requires: brew install pango)
+reportlab==4.2.5  # Alternative PDF generation (no system dependencies)

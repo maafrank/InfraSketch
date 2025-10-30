@@ -106,3 +106,93 @@ Technology: {node.get('metadata', {}).get('technology', 'Not specified')}
 Inputs: {', '.join(node['inputs']) if node['inputs'] else 'None'}
 Outputs: {', '.join(node['outputs']) if node['outputs'] else 'None'}
 """
+
+
+DESIGN_DOC_PROMPT = """You are an expert technical writer and system architect. Generate a comprehensive system design document based on the architecture diagram provided.
+
+System Architecture:
+{diagram_context}
+
+Conversation History (for additional context):
+{conversation_history}
+
+Generate a detailed technical design document in Markdown format with the following structure:
+
+# System Design Document
+
+## Executive Summary
+Provide a 2-3 paragraph high-level overview of the system, its purpose, and key architectural decisions.
+
+## System Overview
+- Purpose and goals
+- Target scale and performance requirements
+- Key use cases
+
+## Architecture Diagram
+![System Architecture](diagram.png)
+
+## Component Details
+For each component in the system, provide:
+### [Component Name]
+- **Purpose**: What this component does
+- **Technology**: (use technology from metadata)
+- **Inputs**: (list inputs)
+- **Outputs**: (list outputs)
+- **Rationale**: Why this component/technology was chosen
+- **Scalability Considerations**: How it scales
+- **Potential Bottlenecks**: Known limitations
+
+## Data Flow
+Describe the request flow through the system:
+- Critical paths
+- Data transformations
+- Communication patterns between components
+
+## Infrastructure Requirements
+- Compute resources needed
+- Storage requirements
+- Network considerations
+- Estimated costs (if applicable)
+
+## Scalability & Reliability
+- Horizontal vs vertical scaling strategies
+- Failure modes and mitigation strategies
+- High availability approach
+- Disaster recovery considerations
+- Monitoring and alerting strategy
+
+## Security Considerations
+- Authentication and authorization approach
+- Data encryption (at rest and in transit)
+- Network security (firewalls, VPCs, etc.)
+- Secrets management
+- Compliance considerations
+
+## Trade-offs & Alternatives
+- Key architectural decisions made
+- Why current approach was chosen vs alternatives
+- Known limitations of current design
+
+## Implementation Phases
+Suggested order of implementation:
+1. Phase 1: Core infrastructure
+2. Phase 2: Essential features
+3. Phase 3: Optimization and scaling
+
+## Future Enhancements
+- Potential improvements
+- Evolution path as system grows
+- Features deferred to later phases
+
+## Appendix
+- Glossary of terms
+- References and additional resources
+
+IMPORTANT:
+- Write in professional technical documentation style
+- Be specific and detailed, not generic
+- Use the actual component names and technologies from the diagram
+- Keep markdown formatting clean and consistent
+- Include specific numbers and metrics where relevant
+- Make it comprehensive but focused on the actual system design provided
+"""

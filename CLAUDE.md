@@ -78,6 +78,7 @@ InfraSketch is an AI-powered system design tool with a **React frontend** and **
 - `components/InputPanel.jsx` - Initial prompt input for generating diagrams
 - `components/NodeTooltip.jsx` - Hover tooltip showing node details
 - `components/AddNodeModal.jsx` - Modal for manually adding nodes
+- `components/ExportButton.jsx` - Export dropdown with PNG/PDF/Markdown options, includes screenshot capture
 - `utils/layout.js` - Auto-layout logic using dagre algorithm
 - `api/client.js` - Axios client for backend API
 
@@ -157,6 +158,14 @@ The backend exposes these REST endpoints (all under `/api` prefix):
 
 **DELETE `/api/session/{session_id}/edges/{edge_id}`** - Delete edge
 - Response: Updated `Diagram`
+
+**POST `/api/session/{session_id}/export/design-doc?format={format}`** - Generate comprehensive design document
+- Query params: `format` = "pdf" | "markdown" | "both" (default: "pdf")
+- Request body: `{ "diagram_image": base64_png_string }` (screenshot from frontend)
+- Response: JSON with base64 encoded files: `{ "pdf": { "content": base64, "filename": string }, "markdown": {...}, "diagram_png": {...} }`
+- Uses Claude Haiku (max_tokens: 4096) to generate comprehensive technical documentation
+- Processing time: 10-30 seconds depending on diagram complexity
+- Note: Frontend can also export PNG directly without calling this endpoint
 
 ## Data Models
 
@@ -295,3 +304,74 @@ Both servers have auto-reload enabled (`--reload` for backend, Vite HMR for fron
 - If JSON parsing fails completely, agent returns empty diagram with error flag
 - Frontend validates nodes/edges arrays exist before rendering
 - Session not found returns 404, triggering user to start new session
+
+## Design Document Export Feature
+
+**Overview:**
+The app can generate comprehensive technical design documents from diagrams using a dedicated LLM call, plus direct diagram image export.
+
+**Architecture:**
+- **Standalone endpoint**: `/api/session/{session_id}/export/design-doc`
+- **Separate from chat agent**: Uses dedicated prompt optimized for technical writing
+- **Model**: Claude 3 Haiku (max_tokens: 4096)
+- **Diagram capture**: Frontend screenshots React Flow canvas using `html-to-image`
+
+**Components:**
+- `backend/app/agent/doc_generator.py` - LLM call for document generation
+- `backend/app/agent/prompts.py` - `DESIGN_DOC_PROMPT` with technical writing instructions
+- `backend/app/utils/diagram_export.py` - PDF conversion utilities (with ReportLab fallback)
+- `frontend/src/components/ExportButton.jsx` - Dropdown menu UI component with screenshot capture
+- `frontend/node_modules/html-to-image` - Screenshot library for capturing React Flow diagram
+
+**Document Generation Flow:**
+1. User clicks "Export Design Doc" button → Dropdown menu appears
+2. User selects format (PNG, PDF, Markdown, or Both)
+3. **Frontend captures screenshot**:
+   - Uses `html-to-image` to capture `.react-flow__viewport`
+   - Temporarily hides edge labels (to avoid rendering artifacts)
+   - Captures at 2x pixel ratio for high quality
+   - Converts to base64 PNG
+4. **PNG-only export**: Downloads screenshot directly (instant, no backend call)
+5. **PDF/Markdown export**:
+   - Frontend sends screenshot + session_id to backend
+   - Backend retrieves session (diagram + conversation history)
+   - Calls Claude with specialized technical writer prompt
+   - Embeds frontend screenshot in document (not generated PNG)
+   - Converts markdown to PDF using ReportLab (or WeasyPrint if available)
+   - Returns base64 encoded files
+6. Frontend decodes base64 and triggers browser downloads
+
+**Document Structure:**
+- Executive Summary
+- System Overview
+- Architecture Diagram (embedded screenshot from frontend)
+- Component Details (for each node)
+- Data Flow
+- Infrastructure Requirements
+- Scalability & Reliability
+- Security Considerations
+- Trade-offs & Alternatives
+- Implementation Phases
+- Future Enhancements
+- Appendix
+
+**Dependencies:**
+- **Frontend**: `html-to-image` - Captures React Flow diagram as PNG
+- **Backend**:
+  - `Pillow` - Image processing
+  - `markdown2` - Markdown to HTML conversion
+  - `reportlab` - PDF generation (primary, no system dependencies)
+  - `weasyprint` - PDF generation (fallback, requires: `brew install pango`)
+
+**Export Formats:**
+- **🖼️ PNG**: Just the diagram image (instant, no LLM call)
+- **📕 PDF**: Full design document with embedded diagram
+- **📝 Markdown**: Markdown doc + separate diagram PNG
+- **📦 PDF + Markdown**: Both formats together
+
+**Key Implementation Details:**
+- Edge labels are hidden during screenshot to avoid black bar rendering artifacts
+- Frontend screenshot matches exact React Flow appearance (arrows, layout, colors)
+- ReportLab is used as primary PDF generator (works out-of-box on macOS)
+- WeasyPrint fallback requires system libraries but produces better formatting
+- Screenshot uses 2x pixel ratio for high-resolution export

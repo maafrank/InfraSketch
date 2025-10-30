@@ -54,3 +54,13 @@ export const deleteEdge = async (sessionId, edgeId) => {
   const response = await client.delete(`/session/${sessionId}/edges/${edgeId}`);
   return response.data;
 };
+
+export const exportDesignDoc = async (sessionId, format = 'pdf', diagramImage = null) => {
+  const response = await client.post(
+    `/session/${sessionId}/export/design-doc?format=${format}`,
+    {
+      diagram_image: diagramImage
+    }
+  );
+  return response.data;
+};
