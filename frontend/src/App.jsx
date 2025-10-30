@@ -15,6 +15,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
   const [showAddNodeModal, setShowAddNodeModal] = useState(false);
+  const [reactFlowInstance, setReactFlowInstance] = useState(null);
 
   const handleGenerate = async (prompt) => {
     setLoading(true);
@@ -196,7 +197,7 @@ Feel free to explore the diagram and ask me anything!`;
         </div>
         {diagram && (
           <div className="header-buttons">
-            <ExportButton sessionId={sessionId} />
+            <ExportButton sessionId={sessionId} reactFlowInstance={reactFlowInstance} />
             <button
               className="add-node-button"
               onClick={() => setShowAddNodeModal(true)}
@@ -227,6 +228,7 @@ Feel free to explore the diagram and ask me anything!`;
             onDeleteNode={handleDeleteNode}
             onAddEdge={handleAddEdge}
             onDeleteEdge={handleDeleteEdge}
+            onReactFlowInit={setReactFlowInstance}
           />
         </div>
 
