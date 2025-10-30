@@ -29,6 +29,11 @@ npm run preview       # Preview production build
 
 # Backend - no test suite currently implemented
 pip install -r backend/requirements.txt  # Install dependencies
+
+# Deployment (requires AWS CLI configured)
+./deploy-all.sh        # Deploy both frontend and backend
+./deploy-backend.sh    # Backend only
+./deploy-frontend.sh   # Frontend only
 ```
 
 ## Architecture Overview
@@ -197,3 +202,20 @@ When `diagram` prop changes in `DiagramCanvas.jsx`, the `useEffect` hook:
 - "DiagramCanvas received diagram" - what canvas is rendering
 
 Both servers have auto-reload enabled (`--reload` for backend, Vite HMR for frontend).
+
+## Deployment
+
+**Production URLs:**
+- Frontend: https://dr6smezctn6x0.cloudfront.net
+- API: https://b31htlojb0.execute-api.us-east-1.amazonaws.com/prod
+
+**Infrastructure:**
+- Backend: AWS Lambda + API Gateway
+- Frontend: S3 + CloudFront
+- Secrets: AWS Secrets Manager (ANTHROPIC_API_KEY)
+
+**Deployment scripts** (`./deploy-*.sh`):
+- Backend: Packages dependencies for Linux, creates Lambda zip, uploads to S3, updates function
+- Frontend: Builds React app, syncs to S3, invalidates CloudFront cache
+
+See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for details.
