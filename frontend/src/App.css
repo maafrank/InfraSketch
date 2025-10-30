@@ -38,6 +38,13 @@ body {
   opacity: 0.9;
 }
 
+.header-buttons {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.add-node-button,
 .new-design-button {
   padding: 0.75rem 1.5rem;
   background: rgba(255, 255, 255, 0.2);
@@ -51,6 +58,7 @@ body {
   backdrop-filter: blur(10px);
 }
 
+.add-node-button:hover,
 .new-design-button:hover {
   background: white;
   color: #667eea;
@@ -154,11 +162,40 @@ body {
   min-width: 150px;
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.12);
   transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
 }
 
 .custom-node:hover {
   transform: scale(1.05);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.node-delete-button {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: #e53e3e;
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s;
+  z-index: 10;
+  padding: 0;
+  line-height: 1;
+}
+
+.node-delete-button:hover {
+  background: #c53030;
+  transform: scale(1.1);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
 }
 
 /* Custom Node with Shapes */
@@ -472,6 +509,33 @@ body {
 .chat-input-form button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Context Menu */
+.context-menu {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.context-menu button {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: white;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  color: #e53e3e;
+  transition: background 0.2s;
+}
+
+.context-menu button:hover {
+  background: #fff5f5;
 }
 
 /* React Flow overrides */

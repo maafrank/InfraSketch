@@ -29,3 +29,28 @@ export const getSession = async (sessionId) => {
   const response = await client.get(`/session/${sessionId}`);
   return response.data;
 };
+
+export const addNode = async (sessionId, node) => {
+  const response = await client.post(`/session/${sessionId}/nodes`, node);
+  return response.data;
+};
+
+export const deleteNode = async (sessionId, nodeId) => {
+  const response = await client.delete(`/session/${sessionId}/nodes/${nodeId}`);
+  return response.data;
+};
+
+export const updateNode = async (sessionId, nodeId, node) => {
+  const response = await client.patch(`/session/${sessionId}/nodes/${nodeId}`, node);
+  return response.data;
+};
+
+export const addEdge = async (sessionId, edge) => {
+  const response = await client.post(`/session/${sessionId}/edges`, edge);
+  return response.data;
+};
+
+export const deleteEdge = async (sessionId, edgeId) => {
+  const response = await client.delete(`/session/${sessionId}/edges/${edgeId}`);
+  return response.data;
+};

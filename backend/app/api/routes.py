@@ -7,6 +7,8 @@ from app.models import (
     SessionState,
     Diagram,
     Message,
+    Node,
+    Edge,
 )
 from app.session.manager import session_manager
 from app.agent.graph import agent_graph
@@ -128,3 +130,109 @@ async def get_session(session_id: str):
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     return session
+
+
+@router.post("/session/{session_id}/nodes", response_model=Diagram)
+async def add_node(session_id: str, node: Node):
+    """Add a new node to the diagram."""
+    session = session_manager.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Check for duplicate node ID
+    if any(n.id == node.id for n in session.diagram.nodes):
+        raise HTTPException(status_code=400, detail=f"Node with id '{node.id}' already exists")
+
+    # Add node to diagram
+    session.diagram.nodes.append(node)
+
+    return session.diagram
+
+
+@router.delete("/session/{session_id}/nodes/{node_id}", response_model=Diagram)
+async def delete_node(session_id: str, node_id: str):
+    """Delete a node and its connected edges from the diagram."""
+    session = session_manager.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Find and remove node
+    original_count = len(session.diagram.nodes)
+    session.diagram.nodes = [n for n in session.diagram.nodes if n.id != node_id]
+
+    if len(session.diagram.nodes) == original_count:
+        raise HTTPException(status_code=404, detail=f"Node '{node_id}' not found")
+
+    # Remove edges connected to this node
+    session.diagram.edges = [
+        e for e in session.diagram.edges
+        if e.source != node_id and e.target != node_id
+    ]
+
+    return session.diagram
+
+
+@router.patch("/session/{session_id}/nodes/{node_id}", response_model=Diagram)
+async def update_node(session_id: str, node_id: str, updated_node: Node):
+    """Update an existing node's properties."""
+    session = session_manager.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Ensure IDs match
+    if updated_node.id != node_id:
+        raise HTTPException(status_code=400, detail="Node ID in body must match URL parameter")
+
+    # Find and update node
+    node_found = False
+    for i, node in enumerate(session.diagram.nodes):
+        if node.id == node_id:
+            session.diagram.nodes[i] = updated_node
+            node_found = True
+            break
+
+    if not node_found:
+        raise HTTPException(status_code=404, detail=f"Node '{node_id}' not found")
+
+    return session.diagram
+
+
+@router.post("/session/{session_id}/edges", response_model=Diagram)
+async def add_edge(session_id: str, edge: Edge):
+    """Add a new edge to the diagram."""
+    session = session_manager.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Validate source and target nodes exist
+    node_ids = {n.id for n in session.diagram.nodes}
+    if edge.source not in node_ids:
+        raise HTTPException(status_code=400, detail=f"Source node '{edge.source}' does not exist")
+    if edge.target not in node_ids:
+        raise HTTPException(status_code=400, detail=f"Target node '{edge.target}' does not exist")
+
+    # Check for duplicate edge ID
+    if any(e.id == edge.id for e in session.diagram.edges):
+        raise HTTPException(status_code=400, detail=f"Edge with id '{edge.id}' already exists")
+
+    # Add edge to diagram
+    session.diagram.edges.append(edge)
+
+    return session.diagram
+
+
+@router.delete("/session/{session_id}/edges/{edge_id}", response_model=Diagram)
+async def delete_edge(session_id: str, edge_id: str):
+    """Delete an edge from the diagram."""
+    session = session_manager.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Find and remove edge
+    original_count = len(session.diagram.edges)
+    session.diagram.edges = [e for e in session.diagram.edges if e.id != edge_id]
+
+    if len(session.diagram.edges) == original_count:
+        raise HTTPException(status_code=404, detail=f"Edge '{edge_id}' not found")
+
+    return session.diagram
