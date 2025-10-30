@@ -1,4 +1,6 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import Response, JSONResponse
+from pydantic import BaseModel
 from app.models import (
     GenerateRequest,
     GenerateResponse,
@@ -12,9 +14,16 @@ from app.models import (
 )
 from app.session.manager import session_manager
 from app.agent.graph import agent_graph
+from app.agent.doc_generator import generate_design_document
+from app.utils.diagram_export import generate_diagram_png, convert_markdown_to_pdf
 import json
+import base64
 
 router = APIRouter()
+
+
+class ExportRequest(BaseModel):
+    diagram_image: str | None = None  # Base64 encoded PNG from frontend
 
 
 @router.post("/generate", response_model=GenerateResponse)
@@ -236,3 +245,91 @@ async def delete_edge(session_id: str, edge_id: str):
         raise HTTPException(status_code=404, detail=f"Edge '{edge_id}' not found")
 
     return session.diagram
+
+
+@router.post("/session/{session_id}/export/design-doc")
+async def export_design_doc(session_id: str, request: ExportRequest, format: str = "pdf"):
+    """
+    Generate and export a comprehensive design document.
+
+    Args:
+        session_id: The session ID
+        request: Request body with optional diagram_image
+        format: Export format - 'markdown', 'pdf', or 'both' (default: 'pdf')
+
+    Returns:
+        JSON with base64 encoded files
+    """
+    try:
+        # Get session
+        session = session_manager.get_session(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        # Get conversation history
+        conversation_history = [
+            {"role": msg.role, "content": msg.content}
+            for msg in session.messages
+        ]
+
+        print(f"\n=== EXPORT DESIGN DOC ===")
+        print(f"Session ID: {session_id}")
+        print(f"Format requested: {format}")
+        print(f"Nodes: {len(session.diagram.nodes)}")
+        print(f"Edges: {len(session.diagram.edges)}")
+        print(f"Has custom diagram image: {request.diagram_image is not None}")
+
+        # Generate markdown document using LLM
+        markdown_content = generate_design_document(
+            session.diagram.model_dump(),
+            conversation_history
+        )
+
+        # Use provided diagram image or generate one
+        if request.diagram_image:
+            # Use the screenshot from frontend
+            diagram_png = base64.b64decode(request.diagram_image)
+            print("Using frontend screenshot for diagram")
+        else:
+            # Fallback to generated diagram
+            diagram_png = generate_diagram_png(session.diagram.model_dump())
+            print("Generated diagram using Pillow")
+
+        result = {}
+
+        # Return markdown if requested
+        if format in ["markdown", "both"]:
+            result["markdown"] = {
+                "content": markdown_content,
+                "filename": "design_document.md"
+            }
+            result["diagram_png"] = {
+                "content": base64.b64encode(diagram_png).decode('utf-8'),
+                "filename": "diagram.png"
+            }
+
+        # Return PDF if requested
+        if format in ["pdf", "both"]:
+            pdf_bytes = convert_markdown_to_pdf(markdown_content, diagram_png)
+            result["pdf"] = {
+                "content": base64.b64encode(pdf_bytes).decode('utf-8'),
+                "filename": "design_document.pdf"
+            }
+
+        print(f"Generated documents successfully")
+        print(f"========================\n")
+
+        return JSONResponse(content=result)
+
+    except ImportError as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"PDF generation dependencies not installed: {str(e)}"
+        )
+    except Exception as e:
+        import traceback
+        print(f"Error generating design doc: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to generate design document: {str(e)}")

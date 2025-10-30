@@ -45,7 +45,8 @@ body {
 }
 
 .add-node-button,
-.new-design-button {
+.new-design-button,
+.export-button {
   padding: 0.75rem 1.5rem;
   background: rgba(255, 255, 255, 0.2);
   color: white;
@@ -59,10 +60,58 @@ body {
 }
 
 .add-node-button:hover,
-.new-design-button:hover {
+.new-design-button:hover,
+.export-button:hover {
   background: white;
   color: #667eea;
   transform: translateY(-2px);
+}
+
+.export-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Export button container and menu */
+.export-button-container {
+  position: relative;
+}
+
+.export-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.5rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  z-index: 1000;
+  min-width: 200px;
+}
+
+.export-menu button {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: white;
+  color: #333;
+  border: none;
+  border-bottom: 1px solid #e0e0e0;
+  text-align: left;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.export-menu button:last-child {
+  border-bottom: none;
+}
+
+.export-menu button:hover {
+  background: #f5f5f5;
+  color: #667eea;
 }
 
 .app-content {
@@ -549,4 +598,13 @@ body {
 
 .react-flow__edge-text {
   font-size: 12px;
+}
+
+.react-flow__edge-textbg {
+  fill: white !important;
+  fill-opacity: 0.9 !important;
+}
+
+.react-flow__edge-text {
+  fill: #333 !important;
 }
