@@ -30,11 +30,22 @@ When generating a system diagram, you must output ONLY valid JSON in the followi
 }
 
 IMPORTANT RULES:
-1. Position nodes intelligently: spread them out (use x: 0-1000, y: 0-800)
-2. Create meaningful connections between nodes (edges)
-3. Use appropriate node types
-4. Keep descriptions concise but informative
-5. Output ONLY the JSON, no explanations or markdown
+1. ALWAYS include a clear entry point/starting point for the system (e.g., user client, mobile app, web browser, API gateway, load balancer, etc.)
+2. The entry point should be the first node in the data flow - where requests/users enter the system
+3. Include data persistence layers - show where data is stored (databases, object storage, caches)
+4. Add caching layers between APIs and databases for realistic performance
+5. Include load balancers before application servers for scalability
+6. For async workflows, include message queues between components
+7. Add monitoring/logging components for production-ready systems
+8. Show authentication/security components when handling user data
+9. Edge labels should describe what data/requests flow between components (not just "connects to")
+10. Use specific technologies in metadata (e.g., "PostgreSQL" not just "SQL database", "Redis" not just "cache")
+11. For web applications, include both frontend (user-facing) and backend components
+12. Include external dependencies like third-party APIs, CDNs, or external services
+13. Position nodes intelligently: spread them out (use x: 0-1000, y: 0-800)
+14. Use appropriate node types from the available options
+15. Keep descriptions concise but informative
+16. Output ONLY the JSON, no explanations or markdown
 """
 
 
