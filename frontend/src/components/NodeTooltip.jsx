@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
-export default function NodeTooltip({ node, onSave }) {
+export default function NodeTooltip({ node, onSave, edges = [], nodes = [] }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState({
     label: node.data.label,
@@ -11,6 +11,27 @@ export default function NodeTooltip({ node, onSave }) {
   });
 
   if (!node) return null;
+
+  // Calculate connected nodes
+  const connectedNodes = useMemo(() => {
+    const inputNodeIds = edges
+      .filter(edge => edge.target === node.id)
+      .map(edge => edge.source);
+
+    const outputNodeIds = edges
+      .filter(edge => edge.source === node.id)
+      .map(edge => edge.target);
+
+    const inputNodes = nodes
+      .filter(n => inputNodeIds.includes(n.id))
+      .map(n => n.data.label);
+
+    const outputNodes = nodes
+      .filter(n => outputNodeIds.includes(n.id))
+      .map(n => n.data.label);
+
+    return { inputNodes, outputNodes };
+  }, [node.id, edges, nodes]);
 
   const handleSave = () => {
     // Convert comma-separated strings back to arrays
@@ -93,6 +114,21 @@ export default function NodeTooltip({ node, onSave }) {
           {node.data.outputs && node.data.outputs.length > 0 && (
             <div className="node-io">
               <strong>Outputs:</strong> {node.data.outputs.join(', ')}
+            </div>
+          )}
+
+          {(connectedNodes.inputNodes.length > 0 || connectedNodes.outputNodes.length > 0) && (
+            <div className="node-connections">
+              {connectedNodes.inputNodes.length > 0 && (
+                <div className="node-io">
+                  <strong>Input Nodes ←</strong> {connectedNodes.inputNodes.join(', ')}
+                </div>
+              )}
+              {connectedNodes.outputNodes.length > 0 && (
+                <div className="node-io">
+                  <strong>Output Nodes →</strong> {connectedNodes.outputNodes.join(', ')}
+                </div>
+              )}
             </div>
           )}
         </>
