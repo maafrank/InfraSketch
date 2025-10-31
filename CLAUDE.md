@@ -102,7 +102,7 @@ The agent (`backend/app/agent/graph.py`) uses LangGraph's `StateGraph` with:
 
 **Graph Structure**:
 - Entry point → `route_intent()` → routes to "generate" or "chat" node
-- Both nodes call `create_llm()` which returns Claude 3 Haiku with `max_tokens=4096`
+- Both nodes call `create_llm()` which returns Claude Haiku 4.5 with `max_tokens=32768`
 - Both nodes end execution (no loops)
 
 **Critical: JSON Extraction Logic**
@@ -163,7 +163,7 @@ The backend exposes these REST endpoints (all under `/api` prefix):
 - Query params: `format` = "pdf" | "markdown" | "both" (default: "pdf")
 - Request body: `{ "diagram_image": base64_png_string }` (screenshot from frontend)
 - Response: JSON with base64 encoded files: `{ "pdf": { "content": base64, "filename": string }, "markdown": {...}, "diagram_png": {...} }`
-- Uses Claude Haiku (max_tokens: 4096) to generate comprehensive technical documentation
+- Uses Claude Haiku 4.5 (max_tokens: 32768) to generate comprehensive technical documentation
 - Processing time: 10-30 seconds depending on diagram complexity
 - Note: Frontend can also export PNG directly without calling this endpoint
 
@@ -206,14 +206,16 @@ The backend exposes these REST endpoints (all under `/api` prefix):
 
 ### Issue: Token limit error
 **Cause**: Claude's response was cut off mid-JSON
-**Solution**: `max_tokens=4096` in `create_llm()` should prevent this. If still occurring, increase further.
+**Solution**: `max_tokens=32768` in `create_llm()` should prevent this. Haiku 4.5 supports up to 64k output tokens.
 
 ## Model Configuration
 
-Current model: **Claude 3 Haiku** (`claude-3-haiku-20240307`)
-- Cost: $0.25 input / $1.25 output per million tokens (cheapest)
+Current model: **Claude Haiku 4.5** (`claude-haiku-4-5-20251001`)
+- Cost: $1 input / $5 output per million tokens
+- Speed: 2x faster than Sonnet 4
+- Max output: 64k tokens (configured to 32k)
 - To upgrade: Change model name in `backend/app/agent/graph.py` → `create_llm()`
-- Available models: claude-3-5-sonnet-20241022 (more expensive but better quality)
+- Available models: claude-4-1-sonnet-20250514 (more expensive but better quality)
 
 ## Session Management
 
@@ -313,7 +315,7 @@ The app can generate comprehensive technical design documents from diagrams usin
 **Architecture:**
 - **Standalone endpoint**: `/api/session/{session_id}/export/design-doc`
 - **Separate from chat agent**: Uses dedicated prompt optimized for technical writing
-- **Model**: Claude 3 Haiku (max_tokens: 4096)
+- **Model**: Claude Haiku 4.5 (max_tokens: 32768)
 - **Diagram capture**: Frontend screenshots React Flow canvas using `html-to-image`
 
 **Components:**
