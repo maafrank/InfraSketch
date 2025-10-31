@@ -32,9 +32,9 @@ export default function LoadingAnimation() {
         }
       }
 
-      // Loop back if we exceed total duration
+      // Stay on the last step if we exceed total duration
       if (elapsedTime >= totalDuration) {
-        elapsedTime = 0;
+        nextStep = steps.length - 1;
       }
 
       setCurrentStep(nextStep);
