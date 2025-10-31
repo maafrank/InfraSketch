@@ -46,7 +46,10 @@ ${nodeTypes.map(type => `- **${type}**`).join('\n')}
 
 Feel free to explore the diagram and ask me anything!`;
 
-      setMessages([{ role: 'assistant', content: summary }]);
+      setMessages([
+        { role: 'user', content: prompt },
+        { role: 'assistant', content: summary }
+      ]);
     } catch (error) {
       console.error('Failed to generate diagram:', error);
       alert('Failed to generate diagram. Please try again.');
