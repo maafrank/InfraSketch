@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import LoadingAnimation from './LoadingAnimation';
 
 export default function InputPanel({ onGenerate, loading }) {
   const [prompt, setPrompt] = useState('');
@@ -9,6 +10,10 @@ export default function InputPanel({ onGenerate, loading }) {
       onGenerate(prompt);
     }
   };
+
+  if (loading) {
+    return <LoadingAnimation />;
+  }
 
   return (
     <div className="input-panel">
