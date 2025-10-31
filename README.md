@@ -17,7 +17,7 @@ An AI-powered system design tool that generates interactive architecture diagram
 ### Backend
 - **FastAPI** - Python web framework
 - **LangGraph** - Agent orchestration
-- **Claude 3 Haiku** - Anthropic's cost-effective LLM ($0.25/$1.25 per million tokens)
+- **Claude Haiku 4.5** - Anthropic's fast LLM ($1/$5 per million tokens)
 - **Pydantic** - Data validation
 
 ### Frontend
@@ -186,12 +186,13 @@ Sessions are stored **in-memory** (not persisted to database).
 
 ## Model Information
 
-**Current Model**: Claude 3 Haiku
-- **Cost**: $0.25 input / $1.25 output per million tokens (cheapest Claude model)
-- **Speed**: Fast response times
-- **Quality**: Suitable for diagram generation and conversational AI
+**Current Model**: Claude Haiku 4.5 (`claude-haiku-4-5-20251001`)
+- **Cost**: $1 input / $5 output per million tokens
+- **Speed**: 2x faster than Sonnet 4
+- **Output Limit**: Up to 64k tokens (configured to 32k)
+- **Quality**: Excellent for diagram generation and conversational AI
 
-To upgrade to a more powerful model (e.g., Claude 3.5 Sonnet), edit `backend/app/agent/graph.py` and change the model name in the `create_llm()` function.
+To upgrade to a more powerful model (e.g., Claude 4.1 Sonnet), edit `backend/app/agent/graph.py` and change the model name in the `create_llm()` function.
 
 ## Contributing
 

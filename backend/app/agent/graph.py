@@ -28,10 +28,10 @@ def create_llm():
     """Create Claude LLM instance."""
     api_key = get_anthropic_api_key()
     return ChatAnthropic(
-        model="claude-3-haiku-20240307",
+        model="claude-haiku-4-5-20251001",
         api_key=api_key,
         temperature=0.7,
-        max_tokens=4096,  # Increase to allow longer responses
+        max_tokens=32768,  # Haiku 4.5 supports up to 64k output tokens
     )
 
 
