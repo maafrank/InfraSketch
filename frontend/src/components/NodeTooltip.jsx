@@ -140,8 +140,6 @@ export default function NodeTooltip({ node, onSave }) {
           </div>
         </>
       )}
-
-      {!isEditing && <p className="tooltip-hint">Click to chat about this component</p>}
     </div>
   );
 }
