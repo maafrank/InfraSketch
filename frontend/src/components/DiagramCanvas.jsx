@@ -261,7 +261,12 @@ function DiagramCanvasInner({ diagram, onNodeClick, onDeleteNode, onAddEdge, onD
           onMouseEnter={handleTooltipMouseEnter}
           onMouseLeave={handleTooltipMouseLeave}
         >
-          <NodeTooltip node={hoveredNode} onSave={onUpdateNode} />
+          <NodeTooltip
+            node={hoveredNode}
+            onSave={onUpdateNode}
+            edges={edges}
+            nodes={nodes}
+          />
         </div>
       )}
 
