@@ -210,10 +210,21 @@ Feel free to explore the diagram and ask me anything!`;
     }
   };
 
+  const handleNewDesign = () => {
+    setDiagram(null);
+    setSessionId(null);
+    setSelectedNode(null);
+    setMessages([]);
+  };
+
   return (
     <div className="app">
       <header className="app-header">
-        <div>
+        <div
+          className="app-title"
+          onClick={diagram ? handleNewDesign : undefined}
+          style={{ cursor: diagram ? 'pointer' : 'default' }}
+        >
           <h1>InfraSketch</h1>
           <p>AI-Powered System Design Tool</p>
         </div>
@@ -228,12 +239,7 @@ Feel free to explore the diagram and ask me anything!`;
             </button>
             <button
               className="new-design-button"
-              onClick={() => {
-                setDiagram(null);
-                setSessionId(null);
-                setSelectedNode(null);
-                setMessages([]);
-              }}
+              onClick={handleNewDesign}
             >
               New Design
             </button>

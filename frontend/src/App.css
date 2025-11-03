@@ -28,6 +28,14 @@ body {
   align-items: center;
 }
 
+.app-title {
+  transition: opacity 0.2s;
+}
+
+.app-title:hover {
+  opacity: 0.8;
+}
+
 .app-header h1 {
   font-size: 2rem;
   margin-bottom: 0.25rem;
