@@ -12,6 +12,13 @@ class NodeMetadata(BaseModel):
     notes: Optional[str] = None
 
 
+class CodeSkeleton(BaseModel):
+    language: str  # "python", "javascript", "go", "java", etc.
+    code: str  # Full boilerplate code
+    classes: List[str] = Field(default_factory=list)  # ["UserService", "UserRepository"]
+    functions: List[str] = Field(default_factory=list)  # ["authenticate", "validateToken"]
+
+
 class Node(BaseModel):
     id: str
     type: str  # cache, database, api, server, loadbalancer, queue, cdn, etc.
@@ -21,6 +28,7 @@ class Node(BaseModel):
     outputs: List[str] = Field(default_factory=list)
     metadata: NodeMetadata = Field(default_factory=NodeMetadata)
     position: NodePosition
+    skeleton: Optional[CodeSkeleton] = None  # Code skeleton for this component
 
 
 class Edge(BaseModel):

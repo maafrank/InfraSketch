@@ -54,7 +54,8 @@ body {
 
 .add-node-button,
 .new-design-button,
-.export-button {
+.export-button,
+.generate-skeletons-button {
   padding: 0.75rem 1.5rem;
   background: rgba(255, 255, 255, 0.2);
   color: white;
@@ -69,13 +70,15 @@ body {
 
 .add-node-button:hover,
 .new-design-button:hover,
-.export-button:hover {
+.export-button:hover,
+.generate-skeletons-button:hover:not(:disabled) {
   background: white;
   color: #667eea;
   transform: translateY(-2px);
 }
 
-.export-button:disabled {
+.export-button:disabled,
+.generate-skeletons-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
@@ -622,6 +625,14 @@ body {
   font-size: 0.8rem;
   color: #667eea;
   font-weight: 600;
+}
+
+.code-section {
+  padding: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fafafa;
+  max-height: 500px;
+  overflow-y: auto;
 }
 
 .chat-messages {

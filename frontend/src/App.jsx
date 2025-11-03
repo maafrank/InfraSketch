@@ -4,7 +4,7 @@ import DiagramCanvas from './components/DiagramCanvas';
 import ChatPanel from './components/ChatPanel';
 import AddNodeModal from './components/AddNodeModal';
 import ExportButton from './components/ExportButton';
-import { generateDiagram, sendChatMessage, addNode, deleteNode, updateNode, addEdge, deleteEdge } from './api/client';
+import { generateDiagram, sendChatMessage, addNode, deleteNode, updateNode, addEdge, deleteEdge, generateSkeletons } from './api/client';
 import './App.css';
 
 function App() {
@@ -16,6 +16,7 @@ function App() {
   const [chatLoading, setChatLoading] = useState(false);
   const [showAddNodeModal, setShowAddNodeModal] = useState(false);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
+  const [skeletonsLoading, setSkeletonsLoading] = useState(false);
 
   const handleGenerate = async (prompt) => {
     setLoading(true);
@@ -210,6 +211,29 @@ Feel free to explore the diagram and ask me anything!`;
     }
   };
 
+  const handleGenerateSkeletons = async () => {
+    if (!sessionId) return;
+
+    setSkeletonsLoading(true);
+    try {
+      const updatedDiagram = await generateSkeletons(sessionId);
+      setDiagram(updatedDiagram);
+
+      // Add system message to chat
+      const nodeCount = updatedDiagram.nodes.filter(n => n.skeleton).length;
+      const systemMessage = {
+        role: 'system',
+        content: `*Generated code skeletons for ${nodeCount} component${nodeCount !== 1 ? 's' : ''}. Click any node to view the generated code.*`,
+      };
+      setMessages((prev) => [...prev, systemMessage]);
+    } catch (error) {
+      console.error('Failed to generate skeletons:', error);
+      alert('Failed to generate code skeletons. Please try again.');
+    } finally {
+      setSkeletonsLoading(false);
+    }
+  };
+
   const handleNewDesign = () => {
     setDiagram(null);
     setSessionId(null);
@@ -231,6 +255,13 @@ Feel free to explore the diagram and ask me anything!`;
         {diagram && (
           <div className="header-buttons">
             <ExportButton sessionId={sessionId} reactFlowInstance={reactFlowInstance} />
+            <button
+              className="generate-skeletons-button"
+              onClick={handleGenerateSkeletons}
+              disabled={skeletonsLoading}
+            >
+              {skeletonsLoading ? '⏳ Generating...' : '💻 Generate Code'}
+            </button>
             <button
               className="add-node-button"
               onClick={() => setShowAddNodeModal(true)}

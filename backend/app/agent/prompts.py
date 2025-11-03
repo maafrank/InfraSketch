@@ -15,7 +15,13 @@ When generating a system diagram, you must output ONLY valid JSON in the followi
         "technology": "Specific tech like Redis, PostgreSQL, etc",
         "notes": "Additional implementation details"
       },
-      "position": {"x": 100, "y": 200}
+      "position": {"x": 100, "y": 200},
+      "skeleton": {
+        "language": "python|javascript|go|java|sql|yaml|etc",
+        "code": "Full boilerplate code with classes/functions",
+        "classes": ["ClassName1", "ClassName2"],
+        "functions": ["functionName1", "functionName2"]
+      }
     }
   ],
   "edges": [
@@ -28,6 +34,8 @@ When generating a system diagram, you must output ONLY valid JSON in the followi
     }
   ]
 }
+
+NOTE: The "skeleton" field is optional and only present if code skeletons have been generated for the components.
 
 IMPORTANT RULES:
 1. ALWAYS include a clear entry point/starting point for the system (e.g., user client, mobile app, web browser, API gateway, load balancer, etc.)
@@ -63,11 +71,22 @@ User's question: {user_message}
 
 Instructions:
 - Answer the user's question clearly and concisely
-- If the user asks to modify the system, output the FULL UPDATED diagram in JSON format (same schema as before)
+- If the user asks to modify the system (nodes, edges, descriptions, or CODE SKELETONS), output the FULL UPDATED diagram in JSON format (same schema as before)
 - If just answering a question, respond naturally in plain text
 - If modifying, output ONLY the JSON with ALL nodes and edges (including unchanged ones)
 
-Determine if this is a modification request. If yes, output JSON. If no, output plain text response.
+IMPORTANT: You can modify node skeleton code in the same way you modify other node properties:
+- "Add error handling to the UserService code" → Update the node's skeleton.code field
+- "Make the API Gateway use async/await" → Update the skeleton.code with async patterns
+- "Add a login() method to AuthService" → Add the method to skeleton.code and skeleton.functions
+
+When modifying skeleton code:
+1. Keep the existing skeleton.language unless the user requests a language change
+2. Preserve skeleton.classes and skeleton.functions lists (update them if adding/removing)
+3. Make sure the code is valid boilerplate in the chosen language
+4. Include the FULL updated code in skeleton.code, not just the changes
+
+Determine if this is a modification request (including code changes). If yes, output JSON. If no, output plain text response.
 """
 
 
@@ -110,13 +129,27 @@ def get_node_context(diagram: dict, node_id: str) -> str:
     if not node:
         return ""
 
-    return f"""
+    context = f"""
 Currently Focused Node: {node['label']} ({node['type']})
 Description: {node['description']}
 Technology: {node.get('metadata', {}).get('technology', 'Not specified')}
 Inputs: {', '.join(node['inputs']) if node['inputs'] else 'None'}
-Outputs: {', '.join(node['outputs']) if node['outputs'] else 'None'}
-"""
+Outputs: {', '.join(node['outputs']) if node['outputs'] else 'None'}"""
+
+    # Include skeleton info if it exists
+    skeleton = node.get('skeleton')
+    if skeleton:
+        context += f"""
+Code Skeleton:
+Language: {skeleton.get('language', 'Not specified')}
+Classes: {', '.join(skeleton.get('classes', [])) if skeleton.get('classes') else 'None'}
+Functions: {', '.join(skeleton.get('functions', [])) if skeleton.get('functions') else 'None'}
+Code:
+```{skeleton.get('language', '')}
+{skeleton.get('code', 'No code available')}
+```"""
+
+    return context
 
 
 DESIGN_DOC_PROMPT = """You are an expert technical writer and system architect. Generate a comprehensive system design document based on the architecture diagram provided.

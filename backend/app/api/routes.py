@@ -247,6 +247,44 @@ async def delete_edge(session_id: str, edge_id: str):
     return session.diagram
 
 
+@router.post("/session/{session_id}/generate-skeletons", response_model=Diagram)
+async def generate_skeletons(session_id: str):
+    """Generate code skeletons for all nodes in the diagram."""
+    try:
+        # Get session
+        session = session_manager.get_session(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        # Run agent with generate_skeletons intent
+        result = agent_graph.invoke({
+            "intent": "generate_skeletons",
+            "user_message": "",
+            "diagram": session.diagram.model_dump(),
+            "node_id": None,
+            "conversation_history": [],
+            "output": "",
+            "diagram_updated": False,
+            "display_text": "",
+        })
+
+        # Update session with skeleton-enriched diagram
+        if result["diagram_updated"]:
+            diagram_dict = json.loads(result["output"])
+            updated_diagram = Diagram(**diagram_dict)
+            session_manager.update_diagram(session_id, updated_diagram)
+            return updated_diagram
+        else:
+            raise HTTPException(status_code=500, detail="Failed to generate skeletons")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to generate skeletons: {str(e)}")
+
+
 @router.post("/session/{session_id}/export/design-doc")
 async def export_design_doc(session_id: str, request: ExportRequest, format: str = "pdf"):
     """

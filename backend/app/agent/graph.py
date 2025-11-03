@@ -10,11 +10,13 @@ from app.agent.prompts import (
     get_diagram_context,
     get_node_context,
 )
+from app.agent.skeleton_generator import generate_code_skeletons
+from app.models import Diagram
 from app.utils.secrets import get_anthropic_api_key
 
 
 class AgentState(TypedDict):
-    intent: Literal["generate", "chat"]
+    intent: Literal["generate", "chat", "generate_skeletons"]
     user_message: str
     diagram: dict | None
     node_id: str | None
@@ -247,10 +249,41 @@ def chat_node(state: AgentState) -> AgentState:
     return state
 
 
+def generate_skeletons_node(state: AgentState) -> AgentState:
+    """Generate code skeletons for all nodes in the diagram."""
+    print(f"\n=== GENERATING SKELETONS ===")
+
+    # Convert diagram dict to Diagram model
+    diagram = Diagram(**state["diagram"])
+
+    # Generate skeletons
+    skeletons = generate_code_skeletons(diagram)
+
+    # Update nodes with skeleton data
+    for node in diagram.nodes:
+        if node.id in skeletons:
+            node.skeleton = skeletons[node.id]
+            print(f"✓ Added skeleton to node: {node.id}")
+
+    # Convert back to dict
+    updated_diagram = diagram.model_dump()
+
+    state["output"] = json.dumps(updated_diagram)
+    state["diagram"] = updated_diagram
+    state["diagram_updated"] = True
+    state["display_text"] = f"Successfully generated code skeletons for {len(skeletons)} components."
+
+    print(f"=== SKELETON GENERATION COMPLETE ===\n")
+
+    return state
+
+
 def route_intent(state: AgentState) -> str:
     """Route based on intent."""
     if state["intent"] == "generate":
         return "generate"
+    elif state["intent"] == "generate_skeletons":
+        return "generate_skeletons"
     else:
         return "chat"
 
@@ -263,6 +296,7 @@ def create_agent_graph():
     # Add nodes
     workflow.add_node("generate", generate_diagram_node)
     workflow.add_node("chat", chat_node)
+    workflow.add_node("generate_skeletons", generate_skeletons_node)
 
     # Add conditional entry
     workflow.set_conditional_entry_point(
@@ -270,12 +304,14 @@ def create_agent_graph():
         {
             "generate": "generate",
             "chat": "chat",
+            "generate_skeletons": "generate_skeletons",
         }
     )
 
-    # Both nodes end after execution
+    # All nodes end after execution
     workflow.add_edge("generate", END)
     workflow.add_edge("chat", END)
+    workflow.add_edge("generate_skeletons", END)
 
     return workflow.compile()
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
+import CodeViewer from './CodeViewer';
 
 export default function ChatPanel({
   selectedNode,
@@ -73,6 +74,12 @@ export default function ChatPanel({
           )}
         </div>
       </div>
+
+      {selectedNode?.data?.skeleton && (
+        <div className="code-section">
+          <CodeViewer skeleton={selectedNode.data.skeleton} />
+        </div>
+      )}
 
       <div className="chat-messages">
         {messages.map((msg, idx) => (

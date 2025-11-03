@@ -55,6 +55,11 @@ export const deleteEdge = async (sessionId, edgeId) => {
   return response.data;
 };
 
+export const generateSkeletons = async (sessionId) => {
+  const response = await client.post(`/session/${sessionId}/generate-skeletons`);
+  return response.data;
+};
+
 export const exportDesignDoc = async (sessionId, format = 'pdf', diagramImage = null) => {
   const response = await client.post(
     `/session/${sessionId}/export/design-doc?format=${format}`,
