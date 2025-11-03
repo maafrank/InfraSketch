@@ -252,6 +252,7 @@ Feel free to explore the diagram and ask me anything!`;
           {!diagram && <InputPanel onGenerate={handleGenerate} loading={loading} />}
           <DiagramCanvas
             diagram={diagram}
+            loading={loading}
             onNodeClick={handleNodeClick}
             onUpdateNode={handleUpdateNode}
             onDeleteNode={handleDeleteNode}

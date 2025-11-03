@@ -17,7 +17,7 @@ const nodeTypes = {
   custom: CustomNode,
 };
 
-function DiagramCanvasInner({ diagram, onNodeClick, onDeleteNode, onAddEdge, onDeleteEdge, onReactFlowInit, onUpdateNode }) {
+function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAddEdge, onDeleteEdge, onReactFlowInit, onUpdateNode }) {
   const reactFlowInstance = useReactFlow();
 
   // Pass the React Flow instance to parent
@@ -215,12 +215,16 @@ function DiagramCanvasInner({ diagram, onNodeClick, onDeleteNode, onAddEdge, onD
     }
   }, [onDeleteEdge, onAddEdge]);
 
-  if (!diagram) {
+  if (!diagram && !loading) {
     return (
       <div className="diagram-canvas-empty">
         <p>Enter a system description to generate a diagram</p>
       </div>
     );
+  }
+
+  if (!diagram && loading) {
+    return null; // Loading animation is shown by InputPanel
   }
 
   return (
