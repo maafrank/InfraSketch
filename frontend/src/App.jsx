@@ -225,8 +225,13 @@ Feel free to explore the diagram and ask me anything!`;
           onClick={diagram ? handleNewDesign : undefined}
           style={{ cursor: diagram ? 'pointer' : 'default' }}
         >
-          <h1>InfraSketch</h1>
-          <p>AI-Powered System Design Tool</p>
+          <div className="title-with-logo">
+            <img src="/InfraSketchLogoTransparent_01.png" alt="InfraSketch Logo" className="app-logo" />
+            <div className="title-text">
+              <h1>InfraSketch</h1>
+              <p>AI-Powered System Design Tool</p>
+            </div>
+          </div>
         </div>
         {diagram && (
           <div className="header-buttons">

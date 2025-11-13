@@ -36,6 +36,23 @@ body {
   opacity: 0.8;
 }
 
+.title-with-logo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.app-logo {
+  height: 60px;
+  width: auto;
+  object-fit: contain;
+}
+
+.title-text {
+  display: flex;
+  flex-direction: column;
+}
+
 .app-header h1 {
   font-size: 2rem;
   margin-bottom: 0.25rem;
