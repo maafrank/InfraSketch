@@ -7,17 +7,41 @@ import os
 load_dotenv()
 
 from app.api.routes import router
+from app.middleware.rate_limit import RateLimitMiddleware
+from app.middleware.auth import APIKeyMiddleware
 
 app = FastAPI(title="InfraSketch API", version="1.0.0")
 
-# CORS middleware for frontend
+# CORS middleware for frontend - restrict to known origins
+ALLOWED_ORIGINS = [
+    "https://dr6smezctn6x0.cloudfront.net",  # Production frontend
+    "http://localhost:5173",  # Local development
+    "http://127.0.0.1:5173",  # Alternative local dev
+]
+
+# Allow environment variable override for additional origins
+extra_origins = os.getenv("EXTRA_ALLOWED_ORIGINS", "").split(",")
+if extra_origins and extra_origins[0]:  # Check if not empty
+    ALLOWED_ORIGINS.extend([origin.strip() for origin in extra_origins])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins (can restrict to specific domains later)
-    allow_credentials=False,  # Must be False when using allow_origins=["*"]
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,  # Now safe with specific origins
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add rate limiting middleware (60 requests per minute per IP)
+app.add_middleware(
+    RateLimitMiddleware,
+    requests_per_minute=int(os.getenv("RATE_LIMIT_PER_MINUTE", "60")),
+    burst_size=int(os.getenv("RATE_LIMIT_BURST", "10")),
+)
+
+# Add optional API key authentication
+# Enable by setting REQUIRE_API_KEY=true in environment
+app.add_middleware(APIKeyMiddleware)
 
 # Include API routes
 app.include_router(router, prefix="/api")
