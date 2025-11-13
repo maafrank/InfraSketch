@@ -158,6 +158,9 @@ backend/.env
 # AWS deployment temp files
 /tmp/s3-bucket-policy.json
 
+# Infrastructure scripts with sensitive IDs
+setup-api-rate-limiting.sh
+
 # Spyder project settings
 .spyderproject
 .spyproject
