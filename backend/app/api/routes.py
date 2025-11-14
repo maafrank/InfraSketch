@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response, JSONResponse
 from pydantic import BaseModel
 from app.models import (
@@ -16,8 +16,17 @@ from app.session.manager import session_manager
 from app.agent.graph import agent_graph
 from app.agent.doc_generator import generate_design_document
 from app.utils.diagram_export import generate_diagram_png, convert_markdown_to_pdf
+from app.utils.logger import (
+    log_diagram_generation,
+    log_chat_interaction,
+    log_export,
+    log_event,
+    log_error,
+    EventType,
+)
 import json
 import base64
+import time
 
 router = APIRouter()
 
@@ -27,8 +36,11 @@ class ExportRequest(BaseModel):
 
 
 @router.post("/generate", response_model=GenerateResponse)
-async def generate_diagram(request: GenerateRequest):
+async def generate_diagram(request: GenerateRequest, http_request: Request):
     """Generate initial system diagram from user prompt."""
+    start_time = time.time()
+    user_ip = http_request.client.host if http_request.client else None
+
     try:
         # Run agent
         result = agent_graph.invoke({
@@ -54,18 +66,37 @@ async def generate_diagram(request: GenerateRequest):
             Message(role="user", content=request.prompt)
         )
 
+        # Log diagram generation event
+        duration_ms = (time.time() - start_time) * 1000
+        log_diagram_generation(
+            session_id=session_id,
+            node_count=len(diagram.nodes),
+            edge_count=len(diagram.edges),
+            prompt_length=len(request.prompt),
+            duration_ms=duration_ms,
+            user_ip=user_ip,
+        )
+
         return GenerateResponse(
             session_id=session_id,
             diagram=diagram
         )
 
     except Exception as e:
+        log_error(
+            error_type="diagram_generation_failed",
+            error_message=str(e),
+            user_ip=user_ip,
+        )
         raise HTTPException(status_code=500, detail=f"Failed to generate diagram: {str(e)}")
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
+async def chat(request: ChatRequest, http_request: Request):
     """Continue conversation about diagram/node."""
+    start_time = time.time()
+    user_ip = http_request.client.host if http_request.client else None
+
     try:
         # Get session
         session = session_manager.get_session(request.session_id)
@@ -121,6 +152,17 @@ async def chat(request: ChatRequest):
                 Message(role="assistant", content=display_message)
             )
 
+        # Log chat interaction
+        duration_ms = (time.time() - start_time) * 1000
+        log_chat_interaction(
+            session_id=request.session_id,
+            message_length=len(request.message),
+            node_id=request.node_id,
+            diagram_updated=result["diagram_updated"],
+            duration_ms=duration_ms,
+            user_ip=user_ip,
+        )
+
         return ChatResponse(
             response=display_message,
             diagram=response_diagram
@@ -129,6 +171,12 @@ async def chat(request: ChatRequest):
     except HTTPException:
         raise
     except Exception as e:
+        log_error(
+            error_type="chat_failed",
+            error_message=str(e),
+            session_id=request.session_id,
+            user_ip=user_ip,
+        )
         raise HTTPException(status_code=500, detail=f"Chat failed: {str(e)}")
 
 
@@ -142,7 +190,7 @@ async def get_session(session_id: str):
 
 
 @router.post("/session/{session_id}/nodes", response_model=Diagram)
-async def add_node(session_id: str, node: Node):
+async def add_node(session_id: str, node: Node, http_request: Request):
     """Add a new node to the diagram."""
     session = session_manager.get_session(session_id)
     if not session:
@@ -155,11 +203,20 @@ async def add_node(session_id: str, node: Node):
     # Add node to diagram
     session.diagram.nodes.append(node)
 
+    # Log event
+    user_ip = http_request.client.host if http_request.client else None
+    log_event(
+        EventType.NODE_ADDED,
+        session_id=session_id,
+        user_ip=user_ip,
+        metadata={"node_id": node.id, "node_type": node.type},
+    )
+
     return session.diagram
 
 
 @router.delete("/session/{session_id}/nodes/{node_id}", response_model=Diagram)
-async def delete_node(session_id: str, node_id: str):
+async def delete_node(session_id: str, node_id: str, http_request: Request):
     """Delete a node and its connected edges from the diagram."""
     session = session_manager.get_session(session_id)
     if not session:
@@ -173,10 +230,20 @@ async def delete_node(session_id: str, node_id: str):
         raise HTTPException(status_code=404, detail=f"Node '{node_id}' not found")
 
     # Remove edges connected to this node
+    edges_removed = len([e for e in session.diagram.edges if e.source == node_id or e.target == node_id])
     session.diagram.edges = [
         e for e in session.diagram.edges
         if e.source != node_id and e.target != node_id
     ]
+
+    # Log event
+    user_ip = http_request.client.host if http_request.client else None
+    log_event(
+        EventType.NODE_DELETED,
+        session_id=session_id,
+        user_ip=user_ip,
+        metadata={"node_id": node_id, "edges_removed": edges_removed},
+    )
 
     return session.diagram
 
@@ -248,7 +315,7 @@ async def delete_edge(session_id: str, edge_id: str):
 
 
 @router.post("/session/{session_id}/export/design-doc")
-async def export_design_doc(session_id: str, request: ExportRequest, format: str = "pdf"):
+async def export_design_doc(session_id: str, request: ExportRequest, format: str = "pdf", http_request: Request = None):
     """
     Generate and export a comprehensive design document.
 
@@ -260,6 +327,9 @@ async def export_design_doc(session_id: str, request: ExportRequest, format: str
     Returns:
         JSON with base64 encoded files
     """
+    start_time = time.time()
+    user_ip = http_request.client.host if http_request and http_request.client else None
+
     try:
         # Get session
         session = session_manager.get_session(session_id)
@@ -319,11 +389,29 @@ async def export_design_doc(session_id: str, request: ExportRequest, format: str
         print(f"Generated documents successfully")
         print(f"========================\n")
 
+        # Log export event
+        duration_ms = (time.time() - start_time) * 1000
+        log_export(
+            session_id=session_id,
+            format=format,
+            duration_ms=duration_ms,
+            user_ip=user_ip,
+            success=True,
+        )
+
         return JSONResponse(content=result)
 
     except ImportError as e:
         import traceback
         traceback.print_exc()
+        duration_ms = (time.time() - start_time) * 1000
+        log_export(
+            session_id=session_id,
+            format=format,
+            duration_ms=duration_ms,
+            user_ip=user_ip,
+            success=False,
+        )
         raise HTTPException(
             status_code=500,
             detail=f"PDF generation dependencies not installed: {str(e)}"
@@ -332,4 +420,12 @@ async def export_design_doc(session_id: str, request: ExportRequest, format: str
         import traceback
         print(f"Error generating design doc: {str(e)}")
         traceback.print_exc()
+        duration_ms = (time.time() - start_time) * 1000
+        log_export(
+            session_id=session_id,
+            format=format,
+            duration_ms=duration_ms,
+            user_ip=user_ip,
+            success=False,
+        )
         raise HTTPException(status_code=500, detail=f"Failed to generate design document: {str(e)}")
