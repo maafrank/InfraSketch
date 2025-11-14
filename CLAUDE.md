@@ -79,14 +79,15 @@ InfraSketch is an AI-powered system design tool with a **React frontend** and **
 - `utils/diagram_export.py` - PDF/image generation utilities
 
 **Frontend (`frontend/src/`)**:
-- `App.jsx` - Main component managing state (diagram, sessionId, selectedNode, messages, designDoc, designDocLoading)
+- `App.jsx` - Main component managing state (diagram, sessionId, selectedNode, messages, designDoc, designDocLoading, chatPanelWidth)
 - `components/DiagramCanvas.jsx` - React Flow canvas with auto-layout using dagre, supports drag connections between nodes
-- `components/ChatPanel.jsx` - Chat UI for node-focused conversations
-- `components/DesignDocPanel.jsx` - Editable design doc panel with TipTap editor, shows loading overlay during generation
+- `components/ChatPanel.jsx` - Chat UI for node-focused conversations, resizable with width tracking
+- `components/DesignDocPanel.jsx` - Editable design doc panel with TipTap editor, shows loading overlay during generation, resizable with width tracking
+- `components/NodePalette.jsx` - Bottom toolbar for adding nodes, slides up from bottom, resizable vertically, adapts to both side panels
 - `components/CustomNode.jsx` - Styled node component with color coding by type
 - `components/InputPanel.jsx` - Initial prompt input for generating diagrams
 - `components/NodeTooltip.jsx` - Hover tooltip showing node details
-- `components/AddNodeModal.jsx` - Modal for manually adding nodes
+- `components/AddNodeModal.jsx` - Modal for manually adding nodes (opened from NodePalette or header button)
 - `components/ExportButton.jsx` - Export dropdown with PNG/PDF/Markdown options, includes screenshot capture
 - `utils/layout.js` - Auto-layout logic using dagre algorithm
 - `api/client.js` - Axios client for backend API, includes `pollDesignDocStatus()` for async generation
@@ -332,9 +333,14 @@ When `diagram` prop changes in `DiagramCanvas.jsx`, the `useEffect` hook:
 - Right-click node → Context menu to delete
 - Drag from node handle → Create new connection
 - Right-click edge → Context menu to delete
-- Click "Add Node" button → Opens modal for manual node creation
+- Click floating pencil button → Opens NodePalette toolbar from bottom
+- Click node type in palette → Opens AddNodeModal with pre-selected type
+- Click "Add Node" button (header) → Opens modal for manual node creation
 - Click "Create Design Doc" button → Starts async generation, opens panel with loading overlay
 - Click "New Design" button → Clears session and starts fresh
+- Drag palette top edge → Resize palette height (min: 60px, max: 800px)
+- Drag chat panel left edge → Resize chat panel width
+- Drag design doc panel right edge → Resize design doc panel width
 
 ## Debugging
 
@@ -380,6 +386,23 @@ Both servers have auto-reload enabled (`--reload` for backend, Vite HMR for fron
 - Dashboard: `InfraSketch-Overview` - Real-time metrics and usage analytics
 
 ## Important Implementation Details
+
+**Panel Resizing Architecture:**
+All resizable panels (DesignDocPanel, ChatPanel, NodePalette) use a consistent performance-optimized pattern:
+- **requestAnimationFrame (RAF) throttling**: Mouse move events throttled to 60fps for smooth resizing
+- **Width/Height tracking**: Panels notify parent component of size changes via `onWidthChange` callback
+- **Throttled parent notifications**: Parent updates throttled to 16ms (60fps) to prevent excessive re-renders
+- **useCallback optimization**: All handler functions wrapped in useCallback to prevent unnecessary re-renders
+- **CSS will-change**: GPU acceleration enabled on resizing elements
+- **Dynamic positioning**: NodePalette adjusts left/right edges based on actual panel widths (not hardcoded)
+
+**NodePalette Specific Behavior:**
+- Slides up from bottom (not left/right, to avoid conflict with side panels)
+- Visibility controlled by `chatPanelOpen={!!diagram}` not `!!selectedNode` (ChatPanel always rendered when diagram exists)
+- Acts as persistent toolbar (stays open until X button clicked)
+- Default height: 120px, Min: 60px, Max: 800px
+- Compact design: 70px min card width, 11px font size, 8px gaps
+- Color-coded cards matching node type colors with hover tooltips
 
 **Auto-Layout Algorithm:**
 - Uses dagre library for hierarchical graph layout

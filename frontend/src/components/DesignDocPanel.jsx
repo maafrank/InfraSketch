@@ -24,6 +24,7 @@ export default function DesignDocPanel({
   sessionId,
   onExport,
   isGenerating = false,
+  onWidthChange,
 }) {
   const [width, setWidth] = useState(400); // Default width
   const [isResizing, setIsResizing] = useState(false);
@@ -73,8 +74,24 @@ export default function DesignDocPanel({
     };
   }, [saveTimer]);
 
+  // Notify parent when width changes (throttled to reduce re-renders)
+  useEffect(() => {
+    if (onWidthChange) {
+      // Throttle parent notifications to every 16ms (60fps) to match RAF updates
+      // This syncs with the panel's 60fps resize for smooth movement
+      const timerId = setTimeout(() => {
+        onWidthChange(width);
+      }, 16);
+
+      return () => clearTimeout(timerId);
+    }
+  }, [width, onWidthChange]);
+
   // Handle resize
   useEffect(() => {
+    let rafId = null;
+    let pendingWidth = null;
+
     const handleMouseMove = (e) => {
       if (!isResizing) return;
 
@@ -87,7 +104,18 @@ export default function DesignDocPanel({
 
       // Set min/max constraints
       if (newWidth >= 300 && newWidth <= 1200) {
-        setWidth(newWidth);
+        pendingWidth = newWidth;
+
+        // Throttle updates using requestAnimationFrame for smooth 60fps
+        if (!rafId) {
+          rafId = requestAnimationFrame(() => {
+            if (pendingWidth !== null) {
+              setWidth(pendingWidth);
+              pendingWidth = null;
+            }
+            rafId = null;
+          });
+        }
       }
     };
 
@@ -95,6 +123,12 @@ export default function DesignDocPanel({
       setIsResizing(false);
       // Re-enable text selection
       document.body.style.userSelect = '';
+
+      // Cancel any pending animation frame
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
     };
 
     if (isResizing) {
@@ -109,6 +143,11 @@ export default function DesignDocPanel({
       document.removeEventListener('mouseup', handleMouseUp);
       // Ensure text selection is re-enabled on cleanup
       document.body.style.userSelect = '';
+
+      // Cancel any pending animation frame on cleanup
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+      }
     };
   }, [isResizing]);
 

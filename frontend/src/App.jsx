@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import InputPanel from './components/InputPanel';
 import DiagramCanvas from './components/DiagramCanvas';
 import ChatPanel from './components/ChatPanel';
@@ -27,12 +27,17 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
   const [showAddNodeModal, setShowAddNodeModal] = useState(false);
+  const [preSelectedNodeType, setPreSelectedNodeType] = useState(null);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
 
   // Design doc state
   const [designDoc, setDesignDoc] = useState(null);
   const [designDocOpen, setDesignDocOpen] = useState(false);
   const [designDocLoading, setDesignDocLoading] = useState(false);
+  const [designDocWidth, setDesignDocWidth] = useState(400);
+
+  // Chat panel state
+  const [chatPanelWidth, setChatPanelWidth] = useState(400);
 
   const handleGenerate = async (prompt) => {
     setLoading(true);
@@ -75,7 +80,7 @@ Feel free to explore the diagram and ask me anything!`;
     }
   };
 
-  const handleNodeClick = (node) => {
+  const handleNodeClick = useCallback((node) => {
     // Only add context message if selecting a different node
     if (selectedNode?.id !== node.id) {
       const contextMessage = {
@@ -85,7 +90,7 @@ Feel free to explore the diagram and ask me anything!`;
       setMessages((prev) => [...prev, contextMessage]);
     }
     setSelectedNode(node);
-  };
+  }, [selectedNode]);
 
   const handleSendMessage = async (message) => {
     if (!sessionId) return;
@@ -152,7 +157,7 @@ Feel free to explore the diagram and ask me anything!`;
     }
   };
 
-  const handleUpdateNode = async (updatedNodeData) => {
+  const handleUpdateNode = useCallback(async (updatedNodeData) => {
     if (!sessionId) return;
 
     try {
@@ -169,9 +174,9 @@ Feel free to explore the diagram and ask me anything!`;
       console.error('Failed to update node:', error);
       alert('Failed to update node. Please try again.');
     }
-  };
+  }, [sessionId]);
 
-  const handleDeleteNode = async (nodeId) => {
+  const handleDeleteNode = useCallback(async (nodeId) => {
     if (!sessionId) return;
 
     try {
@@ -193,9 +198,9 @@ Feel free to explore the diagram and ask me anything!`;
       console.error('Failed to delete node:', error);
       alert('Failed to delete node. Please try again.');
     }
-  };
+  }, [sessionId, selectedNode]);
 
-  const handleAddEdge = async (edge) => {
+  const handleAddEdge = useCallback(async (edge) => {
     if (!sessionId) return;
 
     try {
@@ -212,9 +217,9 @@ Feel free to explore the diagram and ask me anything!`;
       console.error('Failed to add edge:', error);
       alert('Failed to add connection. Please try again.');
     }
-  };
+  }, [sessionId]);
 
-  const handleDeleteEdge = async (edgeId) => {
+  const handleDeleteEdge = useCallback(async (edgeId) => {
     if (!sessionId) return;
 
     try {
@@ -231,7 +236,7 @@ Feel free to explore the diagram and ask me anything!`;
       console.error('Failed to delete edge:', error);
       alert('Failed to delete connection. Please try again.');
     }
-  };
+  }, [sessionId]);
 
   const handleNewDesign = () => {
     setDiagram(null);
@@ -328,6 +333,21 @@ Feel free to explore the diagram and ask me anything!`;
     setDesignDocOpen(false);
   };
 
+  const handleOpenNodePalette = (nodeType) => {
+    setPreSelectedNodeType(nodeType);
+    setShowAddNodeModal(true);
+  };
+
+  // Wrap setDesignDocWidth in useCallback to prevent unnecessary re-renders
+  const handleDesignDocWidthChange = useCallback((width) => {
+    setDesignDocWidth(width);
+  }, []);
+
+  // Wrap setChatPanelWidth in useCallback to prevent unnecessary re-renders
+  const handleChatPanelWidthChange = useCallback((width) => {
+    setChatPanelWidth(width);
+  }, []);
+
   // Helper function to convert base64 to blob
   const base64ToBlob = (base64, mimeType) => {
     const byteCharacters = atob(base64);
@@ -401,10 +421,16 @@ Feel free to explore the diagram and ask me anything!`;
             sessionId={sessionId}
             onExport={handleExportDesignDoc}
             isGenerating={designDocLoading}
+            onWidthChange={handleDesignDocWidthChange}
           />
         )}
 
-        <div className="main-area">
+        <div
+          className="main-area"
+          style={{
+            marginLeft: designDocOpen ? `${designDocWidth}px` : '0px'
+          }}
+        >
           {!diagram && <InputPanel onGenerate={handleGenerate} loading={loading} />}
           <DiagramCanvas
             diagram={diagram}
@@ -415,6 +441,11 @@ Feel free to explore the diagram and ask me anything!`;
             onAddEdge={handleAddEdge}
             onDeleteEdge={handleDeleteEdge}
             onReactFlowInit={setReactFlowInstance}
+            onOpenNodePalette={handleOpenNodePalette}
+            designDocOpen={designDocOpen}
+            designDocWidth={designDocWidth}
+            chatPanelOpen={!!diagram}
+            chatPanelWidth={chatPanelWidth}
           />
         </div>
 
@@ -425,14 +456,19 @@ Feel free to explore the diagram and ask me anything!`;
             onSendMessage={handleSendMessage}
             loading={chatLoading}
             diagram={diagram}
+            onWidthChange={handleChatPanelWidthChange}
           />
         )}
       </div>
 
       <AddNodeModal
         isOpen={showAddNodeModal}
-        onClose={() => setShowAddNodeModal(false)}
+        onClose={() => {
+          setShowAddNodeModal(false);
+          setPreSelectedNodeType(null);
+        }}
         onAdd={handleAddNode}
+        preSelectedType={preSelectedNodeType}
       />
     </div>
   );

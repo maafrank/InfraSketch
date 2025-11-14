@@ -7,6 +7,7 @@ export default function ChatPanel({
   onSendMessage,
   loading,
   diagram,
+  onWidthChange,
 }) {
   const [input, setInput] = useState('');
   const [width, setWidth] = useState(400); // Default width
@@ -22,6 +23,9 @@ export default function ChatPanel({
   }, [messages]);
 
   useEffect(() => {
+    let rafId = null;
+    let pendingWidth = null;
+
     const handleMouseMove = (e) => {
       if (!isResizing) return;
 
@@ -30,12 +34,29 @@ export default function ChatPanel({
 
       // Set min/max constraints
       if (newWidth >= 300 && newWidth <= 1200) {
-        setWidth(newWidth);
+        pendingWidth = newWidth;
+
+        // Throttle updates using requestAnimationFrame for smooth 60fps
+        if (!rafId) {
+          rafId = requestAnimationFrame(() => {
+            if (pendingWidth !== null) {
+              setWidth(pendingWidth);
+              pendingWidth = null;
+            }
+            rafId = null;
+          });
+        }
       }
     };
 
     const handleMouseUp = () => {
       setIsResizing(false);
+
+      // Cancel any pending animation frame
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
     };
 
     if (isResizing) {
@@ -46,8 +67,25 @@ export default function ChatPanel({
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+
+      // Cancel any pending animation frame on cleanup
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+      }
     };
   }, [isResizing]);
+
+  // Notify parent when width changes (throttled to reduce re-renders)
+  useEffect(() => {
+    if (onWidthChange) {
+      // Throttle parent notifications to every 16ms (60fps) to match RAF updates
+      const timerId = setTimeout(() => {
+        onWidthChange(width);
+      }, 16);
+
+      return () => clearTimeout(timerId);
+    }
+  }, [width, onWidthChange]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
