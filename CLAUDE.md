@@ -62,13 +62,19 @@ InfraSketch is an AI-powered system design tool with a **React frontend** and **
 ### Key Components
 
 **Backend (`backend/app/`)**:
-- `main.py` - FastAPI app with CORS for localhost:5173
+- `main.py` - FastAPI app with CORS, rate limiting, optional auth, and request logging middleware
 - `models.py` - Pydantic models for Node, Edge, Diagram, SessionState
-- `api/routes.py` - Endpoints for generate, chat, session management, and CRUD operations (add/delete nodes and edges)
+- `api/routes.py` - Endpoints for generate, chat, session management, CRUD operations, with structured event logging
 - `session/manager.py` - In-memory dict storing session_id → SessionState
 - `agent/graph.py` - **LangGraph agent** (see below)
 - `agent/prompts.py` - System prompts for Claude
+- `agent/doc_generator.py` - Standalone LLM call for design document generation
+- `middleware/rate_limit.py` - Token bucket rate limiter (60 req/min default, configurable via env)
+- `middleware/auth.py` - Optional API key auth (enable via REQUIRE_API_KEY=true)
+- `middleware/logging.py` - Request/response logging middleware
 - `utils/secrets.py` - Helper for retrieving API keys (supports both .env and AWS Secrets Manager)
+- `utils/logger.py` - Structured JSON logging for CloudWatch (tracks events, errors, performance)
+- `utils/diagram_export.py` - PDF/image generation utilities
 
 **Frontend (`frontend/src/`)**:
 - `App.jsx` - Main component managing state (diagram, sessionId, selectedNode, messages)
@@ -266,17 +272,26 @@ Both servers have auto-reload enabled (`--reload` for backend, Vite HMR for fron
 ## Deployment
 
 **Production URLs:**
-- Frontend: https://dr6smezctn6x0.cloudfront.net
+- Frontend: https://infrasketch.net (also available at legacy URL: https://dr6smezctn6x0.cloudfront.net)
 - API: https://b31htlojb0.execute-api.us-east-1.amazonaws.com/prod
 
 **Infrastructure:**
-- Backend: AWS Lambda + API Gateway
-- Frontend: S3 + CloudFront
+- Backend: AWS Lambda + API Gateway (with execution logging enabled)
+- Frontend: S3 + CloudFront (with access logging to S3)
 - Secrets: AWS Secrets Manager (ANTHROPIC_API_KEY)
+- Monitoring: CloudWatch Logs, Metrics, and Dashboard
+- Weekly Reports: Lambda function triggered by EventBridge (Mondays 9 AM PST)
 
 **Deployment scripts** (`./deploy-*.sh`):
 - Backend: Packages dependencies for Linux, creates Lambda zip, uploads to S3, updates function
 - Frontend: Builds React app, syncs to S3, invalidates CloudFront cache
+
+**Logging Resources:**
+- CloudWatch Log Groups:
+  - `/aws/lambda/infrasketch-backend` - Application logs with structured JSON events
+  - `/aws/apigateway/infrasketch-api` - API Gateway execution logs
+- S3 Bucket: `infrasketch-cloudfront-logs-059409992371` - CloudFront access logs
+- Dashboard: `InfraSketch-Overview` - Real-time metrics and usage analytics
 
 ## Important Implementation Details
 
@@ -287,9 +302,10 @@ Both servers have auto-reload enabled (`--reload` for backend, Vite HMR for fron
 - Node spacing: 150px horizontal, 100px vertical
 
 **CORS Configuration:**
-- Backend allows all origins (`allow_origins=["*"]`)
-- Credentials set to False for compatibility
-- Required for local dev (localhost:5173 → localhost:8000)
+- Backend allows specific origins in production: CloudFront URL, localhost:5173
+- Extra origins can be added via `EXTRA_ALLOWED_ORIGINS` env var (comma-separated)
+- Credentials enabled for specific origins
+- See `main.py` ALLOWED_ORIGINS list
 
 **State Synchronization:**
 - Backend is source of truth for diagram data
@@ -377,3 +393,128 @@ The app can generate comprehensive technical design documents from diagrams usin
 - ReportLab is used as primary PDF generator (works out-of-box on macOS)
 - WeasyPrint fallback requires system libraries but produces better formatting
 - Screenshot uses 2x pixel ratio for high-resolution export
+
+## Middleware Architecture
+
+The backend uses a layered middleware approach (order matters):
+
+1. **CORS** - Restricts origins to CloudFront + localhost
+2. **Rate Limiting** (`RateLimitMiddleware`) - Token bucket algorithm, 60 req/min per IP by default
+   - Configure via env: `RATE_LIMIT_PER_MINUTE`, `RATE_LIMIT_BURST`
+   - In-memory only (resets on restart)
+   - Skips `/health` and `/` endpoints
+3. **API Key Auth** (`APIKeyMiddleware`) - Optional authentication (disabled by default)
+   - Enable via `REQUIRE_API_KEY=true`
+   - Provide keys via `VALID_API_KEYS=key1,key2,key3`
+   - Accepts keys in: `X-API-Key` header, `Authorization: Bearer` header, or `api_key` query param
+4. **Request Logging** (`RequestLoggingMiddleware`) - Logs all requests with timing
+   - Should be last middleware to capture complete request lifecycle
+   - Skips `/health`, `/`, `/favicon.ico` to reduce noise
+
+## Logging & Monitoring
+
+**Structured Application Logging** (`utils/logger.py`):
+
+All events are logged as JSON to CloudWatch for easy querying:
+
+```python
+{
+  "timestamp": "2025-11-14T00:30:00.123456",
+  "event_type": "diagram_generated",  # See EventType enum
+  "session_id": "uuid",
+  "user_ip": "192.168.1.0",  # Anonymized (last octet zeroed)
+  "metadata": {
+    "node_count": 12,
+    "edge_count": 15,
+    "duration_ms": 3245.67
+  }
+}
+```
+
+**Event Types Tracked:**
+- `diagram_generated` - User creates a diagram (tracks nodes, edges, prompt length, duration)
+- `chat_message` - User interacts with chat (tracks message length, node focus, diagram updates)
+- `export_design_doc` - User exports document (tracks format, duration, success/failure)
+- `node_added/deleted/updated` - Manual node operations
+- `edge_added/deleted` - Manual edge operations
+- `api_request` - Every API call (method, path, status, duration, user IP)
+- `api_error` - Errors with full context
+- `rate_limit_exceeded` - When users hit rate limits
+
+**Viewing Logs:**
+```bash
+# Recent application events
+aws logs tail /aws/lambda/infrasketch-backend --since 24h --follow
+
+# Filter for specific events
+aws logs tail /aws/lambda/infrasketch-backend --since 7d --filter-pattern '{ $.event_type = "diagram_generated" }'
+
+# CloudWatch Insights queries (in AWS Console or CLI)
+# Example: Count diagrams per day
+fields @timestamp, metadata.node_count, metadata.edge_count
+| filter event_type = "diagram_generated"
+| stats count() as total by bin(@timestamp, 1d)
+```
+
+**CloudWatch Dashboard:**
+Access at: https://console.aws.amazon.com/cloudwatch/home?region=us-east-1#dashboards/dashboard/InfraSketch-Overview
+
+Widgets include:
+- Frontend traffic (CloudFront requests)
+- Backend metrics (Lambda invocations, errors, duration)
+- API Gateway metrics (requests, 4XX/5XX errors)
+- Diagrams created over time
+- Document exports
+- Estimated daily active users
+- Average diagram generation time
+- Top 10 active sessions
+
+**Weekly Email Reports:**
+
+Automated reports sent every Monday at 9 AM PST to mattafrank2439@gmail.com
+
+Report includes:
+- User engagement (unique users, sessions, diagrams created)
+- Activity breakdown (diagrams, chat interactions, exports)
+- Diagram complexity metrics
+- Performance stats (response time, error rate)
+- Top errors (if any)
+
+Manual report generation:
+```bash
+aws lambda invoke \
+  --function-name infrasketch-weekly-report \
+  --payload '{}' \
+  /tmp/report.json
+```
+
+**Monitoring Resources:**
+- CloudFront logs: Check `s3://infrasketch-cloudfront-logs-059409992371/cloudfront/`
+  - Contains: IP addresses, edge locations, user agents, HTTP methods, status codes
+  - Useful for geographic analysis and traffic patterns
+  - Logs appear 1-2 hours after traffic occurs
+- API Gateway logs: CloudWatch Logs Insights on `/aws/apigateway/infrasketch-api`
+- Lambda logs: CloudWatch Logs on `/aws/lambda/infrasketch-backend`
+
+## Security Features
+
+**Rate Limiting:**
+- Default: 60 requests per minute per IP
+- Burst allowance: 10 requests
+- Configurable via environment variables
+- Returns HTTP 429 with `Retry-After` header when exceeded
+
+**API Key Authentication (Optional):**
+- Disabled by default for public access
+- Enable by setting `REQUIRE_API_KEY=true` in Lambda environment
+- Provide comma-separated keys in `VALID_API_KEYS`
+- Public endpoints exempt: `/`, `/health`, `/docs`, `/openapi.json`, `/redoc`
+
+**IP Anonymization:**
+- All logged IP addresses have last octet zeroed for privacy
+- Example: `192.168.1.100` → `192.168.1.0`
+
+**CORS Security:**
+- Production only allows CloudFront distribution domain
+- Local development allows localhost:5173
+- No wildcard origins in production
