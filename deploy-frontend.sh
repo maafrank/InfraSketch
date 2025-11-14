@@ -25,7 +25,7 @@ aws cloudfront create-invalidation \
     --no-cli-pager
 
 echo "✅ Frontend deployment complete!"
-echo "🔗 CloudFront URL: https://dr6smezctn6x0.cloudfront.net"
+echo "🔗 Application URL: https://infrasketch.net"
 echo "⏳ Cache invalidation in progress (1-2 minutes)..."
 
 # Navigate back to root

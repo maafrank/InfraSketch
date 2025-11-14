@@ -15,7 +15,9 @@ app = FastAPI(title="InfraSketch API", version="1.0.0")
 
 # CORS middleware for frontend - restrict to known origins
 ALLOWED_ORIGINS = [
-    "https://dr6smezctn6x0.cloudfront.net",  # Production frontend
+    "https://dr6smezctn6x0.cloudfront.net",  # Production frontend (legacy)
+    "https://infrasketch.net",  # Production frontend (custom domain)
+    "https://www.infrasketch.net",  # Production frontend (www subdomain)
     "http://localhost:5173",  # Local development
     "http://127.0.0.1:5173",  # Alternative local dev
 ]

@@ -2,7 +2,7 @@
 
 An AI-powered system design tool that generates interactive architecture diagrams from natural language prompts. Built with React, FastAPI, LangGraph, and Claude AI.
 
-🚀 **[Live Demo](https://dr6smezctn6x0.cloudfront.net)**
+🚀 **[Live Demo](https://infrasketch.net)**
 
 ## Features
 
