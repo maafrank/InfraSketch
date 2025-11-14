@@ -11,13 +11,14 @@ import {
 import 'reactflow/dist/style.css';
 import NodeTooltip from './NodeTooltip';
 import CustomNode from './CustomNode';
+import NodePalette from './NodePalette';
 import { getLayoutedElements } from '../utils/layout';
 
 const nodeTypes = {
   custom: CustomNode,
 };
 
-function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAddEdge, onDeleteEdge, onReactFlowInit, onUpdateNode }) {
+function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAddEdge, onDeleteEdge, onReactFlowInit, onUpdateNode, onOpenNodePalette, designDocOpen, designDocWidth, chatPanelOpen, chatPanelWidth }) {
   const reactFlowInstance = useReactFlow();
 
   // Pass the React Flow instance to parent
@@ -33,6 +34,7 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [contextMenu, setContextMenu] = useState(null);
   const [selectedEdge, setSelectedEdge] = useState(null);
+  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const isTooltipHoveredRef = useRef(false);
   const hideTooltipTimeoutRef = useRef(null);
 
@@ -215,6 +217,13 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
     }
   }, [onDeleteEdge, onAddEdge]);
 
+  const handleSelectNodeType = useCallback((nodeType) => {
+    // Keep palette open - only close when user clicks X or backdrop
+    if (onOpenNodePalette) {
+      onOpenNodePalette(nodeType);
+    }
+  }, [onOpenNodePalette]);
+
   if (!diagram && !loading) {
     return (
       <div className="diagram-canvas-empty">
@@ -253,6 +262,38 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
         <Background />
         <Controls />
       </ReactFlow>
+
+      {/* Floating edit button */}
+      <button
+        className="floating-edit-button"
+        onClick={() => setIsPaletteOpen(true)}
+        title="Add component"
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+        </svg>
+      </button>
+
+      {/* Node palette */}
+      <NodePalette
+        isOpen={isPaletteOpen}
+        onClose={() => setIsPaletteOpen(false)}
+        onSelectType={handleSelectNodeType}
+        designDocOpen={designDocOpen}
+        designDocWidth={designDocWidth}
+        chatPanelOpen={chatPanelOpen}
+        chatPanelWidth={chatPanelWidth}
+      />
 
       {hoveredNode && (
         <div

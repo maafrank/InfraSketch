@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './AddNodeModal.css';
 
 const NODE_TYPES = [
@@ -14,14 +14,21 @@ const NODE_TYPES = [
   { value: 'service', label: 'Service' },
 ];
 
-export default function AddNodeModal({ isOpen, onClose, onAdd }) {
+export default function AddNodeModal({ isOpen, onClose, onAdd, preSelectedType = null }) {
   const [formData, setFormData] = useState({
-    type: 'api',
+    type: preSelectedType || 'api',
     label: '',
     description: '',
     technology: '',
     notes: '',
   });
+
+  // Update type when preSelectedType changes
+  useEffect(() => {
+    if (preSelectedType) {
+      setFormData((prev) => ({ ...prev, type: preSelectedType }));
+    }
+  }, [preSelectedType]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
