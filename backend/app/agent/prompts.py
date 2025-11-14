@@ -49,12 +49,14 @@ IMPORTANT RULES:
 """
 
 
-CONVERSATION_PROMPT = """You are discussing a system architecture diagram with a user.
+CONVERSATION_PROMPT = """You are discussing a system architecture diagram with a user. You can also help them maintain and update a comprehensive design document.
 
 Current System Context:
 {diagram_context}
 
 {node_context}
+
+{design_doc_context}
 
 Conversation History:
 {conversation_history}
@@ -63,11 +65,28 @@ User's question: {user_message}
 
 Instructions:
 - Answer the user's question clearly and concisely
-- If the user asks to modify the system, output the FULL UPDATED diagram in JSON format (same schema as before)
-- If just answering a question, respond naturally in plain text
-- If modifying, output ONLY the JSON with ALL nodes and edges (including unchanged ones)
+- If the user asks to modify the **diagram**, output the FULL UPDATED diagram in JSON format (same schema as before)
+- If the user asks to modify the **design document**, you have TWO options:
 
-Determine if this is a modification request. If yes, output JSON. If no, output plain text response.
+  Option 1 - For small, targeted changes (recommended):
+  Just describe the changes in your response and the user can edit the document themselves.
+  Example: "I would add a new section on Security Considerations between Infrastructure and Scalability sections. It should cover authentication, authorization, and data encryption."
+
+  Option 2 - For major rewrites or regeneration:
+  Output the updated design document using this format:
+
+  DESIGN_DOC_UPDATE:
+  ```markdown
+  [Your updated markdown content here - COMPLETE document with ALL sections]
+  ```
+
+- If just answering a question, respond naturally in plain text
+- You can update the diagram, design doc, both, or neither based on the user's request
+- Use your judgment to determine what needs updating
+- When updating the diagram, output ONLY the JSON with ALL nodes and edges (including unchanged ones)
+- **IMPORTANT for design doc updates**: Prefer Option 1 (describing changes) over Option 2 (full regeneration) unless the user explicitly asks to "regenerate" or "rewrite" the entire document
+
+Determine if this is a modification request for the diagram, design doc, or just a question. Respond accordingly.
 """
 
 
@@ -116,6 +135,21 @@ Description: {node['description']}
 Technology: {node.get('metadata', {}).get('technology', 'Not specified')}
 Inputs: {', '.join(node['inputs']) if node['inputs'] else 'None'}
 Outputs: {', '.join(node['outputs']) if node['outputs'] else 'None'}
+"""
+
+
+def get_design_doc_context(design_doc: str | None) -> str:
+    """Format design doc context."""
+    if not design_doc:
+        return "Design Document: Not yet created"
+
+    # Show first 1000 chars of design doc
+    preview = design_doc[:1000] + "..." if len(design_doc) > 1000 else design_doc
+    return f"""
+Current Design Document:
+{preview}
+
+(Full document length: {len(design_doc)} characters)
 """
 
 

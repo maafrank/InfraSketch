@@ -20,6 +20,8 @@ ALLOWED_ORIGINS = [
     "https://www.infrasketch.net",  # Production frontend (www subdomain)
     "http://localhost:5173",  # Local development
     "http://127.0.0.1:5173",  # Alternative local dev
+    "http://localhost:5174",  # Local development (alternate port)
+    "http://127.0.0.1:5174",  # Alternative local dev (alternate port)
 ]
 
 # Allow environment variable override for additional origins

@@ -338,6 +338,25 @@ def _convert_markdown_to_pdf_reportlab(markdown_content: str, diagram_png_bytes:
         spaceBefore=15,
     )
 
+    heading3_style = ParagraphStyle(
+        'CustomHeading3',
+        parent=styles['Heading2'],
+        fontSize=12,
+        textColor=HexColor('#666'),
+        spaceAfter=8,
+        spaceBefore=12,
+    )
+
+    heading4_style = ParagraphStyle(
+        'CustomHeading4',
+        parent=styles['Heading2'],
+        fontSize=11,
+        textColor=HexColor('#777'),
+        fontWeight='bold',
+        spaceAfter=6,
+        spaceBefore=10,
+    )
+
     body_style = ParagraphStyle(
         'CustomBody',
         parent=styles['BodyText'],
@@ -369,33 +388,51 @@ def _convert_markdown_to_pdf_reportlab(markdown_content: str, diagram_png_bytes:
                 print(f"Error adding image: {e}")
             continue
 
-        # Handle headings
-        if line.startswith('# '):
-            text = line[2:].strip()
-            story.append(Paragraph(text, title_style))
+        # Handle headings (check longest patterns first)
+        if line.startswith('##### '):
+            text = line[6:].strip()
+            story.append(Paragraph(text, heading4_style))  # H5 uses H4 style
+        elif line.startswith('#### '):
+            text = line[5:].strip()
+            story.append(Paragraph(text, heading4_style))
+        elif line.startswith('### '):
+            text = line[4:].strip()
+            story.append(Paragraph(text, heading3_style))
         elif line.startswith('## '):
             text = line[3:].strip()
             story.append(Paragraph(text, heading1_style))
-        elif line.startswith('### '):
-            text = line[4:].strip()
-            story.append(Paragraph(text, heading2_style))
+        elif line.startswith('# '):
+            text = line[2:].strip()
+            story.append(Paragraph(text, title_style))
 
-        # Handle lists
-        elif line.startswith('- '):
+        # Handle lists (both - and * bullets)
+        elif line.startswith('- ') or line.startswith('* '):
             text = '• ' + line[2:].strip()
+            # Remove markdown escape characters (backslashes before special chars)
+            text = re.sub(r'\\([\\`*_{}\[\]()#+\-.!])', r'\1', text)
             # Handle bold **text**
             text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
             story.append(Paragraph(text, body_style))
-        elif line.startswith('1. ') or line.startswith('2. ') or line.startswith('3. '):
-            text = line[3:].strip()
+        elif re.match(r'^\d+\.\s', line) or re.match(r'^\d+\\\.\s', line):  # Numbered lists (1. or 1\. )
+            # Handle both "1. " and "1\. " formats
+            if '\\.' in line:
+                # Escaped period format: "1\. Item"
+                text = line.split('\\.', 1)[1].strip()
+            else:
+                # Normal period format: "1. Item"
+                text = line[line.index('.') + 1:].strip()
+            # Remove markdown escape characters (backslashes before special chars)
+            text = re.sub(r'\\([\\`*_{}\[\]()#+\-.!])', r'\1', text)
             # Handle bold **text**
             text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
             story.append(Paragraph(text, body_style))
 
         # Regular paragraphs
         else:
+            # Remove markdown escape characters (backslashes before special chars)
+            text = re.sub(r'\\([\\`*_{}\[\]()#+\-.!])', r'\1', line)
             # Handle bold **text**
-            text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', line)
+            text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
             # Handle italic *text*
             text = re.sub(r'\*(.*?)\*', r'<i>\1</i>', text)
             story.append(Paragraph(text, body_style))

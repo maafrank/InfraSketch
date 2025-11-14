@@ -1,0 +1,332 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import { toPng } from 'html-to-image';
+import { marked } from 'marked';
+import TurndownService from 'turndown';
+
+// Initialize markdown-to-HTML converter
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+});
+
+// Initialize HTML-to-markdown converter
+const turndownService = new TurndownService({
+  headingStyle: 'atx',
+  codeBlockStyle: 'fenced',
+});
+
+export default function DesignDocPanel({
+  designDoc,
+  onSave,
+  onClose,
+  sessionId,
+  onExport,
+  isGenerating = false,
+}) {
+  const [width, setWidth] = useState(500); // Default width
+  const [isResizing, setIsResizing] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('saved'); // 'saving', 'saved', 'error'
+  const [saveTimer, setSaveTimer] = useState(null);
+  const [exportLoading, setExportLoading] = useState(false);
+
+  // Initialize Tiptap editor
+  const editor = useEditor({
+    extensions: [StarterKit],
+    content: designDoc ? marked.parse(designDoc) : '',
+    onUpdate: ({ editor }) => {
+      // Debounced auto-save
+      if (saveTimer) {
+        clearTimeout(saveTimer);
+      }
+
+      setSaveStatus('editing');
+
+      const timer = setTimeout(() => {
+        handleSave(editor.getHTML());
+      }, 3000); // 3 second debounce
+
+      setSaveTimer(timer);
+    },
+  });
+
+  // Update editor content when designDoc prop changes (from chat updates)
+  useEffect(() => {
+    if (editor && designDoc) {
+      // Convert markdown to HTML for Tiptap
+      const htmlContent = marked.parse(designDoc);
+
+      // Only update if content is different (avoid infinite loops)
+      if (editor.getHTML() !== htmlContent) {
+        editor.commands.setContent(htmlContent);
+      }
+    }
+  }, [designDoc, editor]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimer) {
+        clearTimeout(saveTimer);
+      }
+    };
+  }, [saveTimer]);
+
+  // Handle resize
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isResizing) return;
+
+      // Prevent text selection during resize
+      e.preventDefault();
+
+      // Calculate new width based on mouse X position
+      // Since panel is on the left side, width = mouse X position
+      const newWidth = e.clientX;
+
+      // Set min/max constraints
+      if (newWidth >= 300 && newWidth <= 1200) {
+        setWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      // Re-enable text selection
+      document.body.style.userSelect = '';
+    };
+
+    if (isResizing) {
+      // Disable text selection on body during resize
+      document.body.style.userSelect = 'none';
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      // Ensure text selection is re-enabled on cleanup
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing]);
+
+  const handleSave = async (htmlContent) => {
+    setSaveStatus('saving');
+    try {
+      // Convert HTML back to markdown for backend storage
+      const markdownContent = turndownService.turndown(htmlContent);
+      await onSave(markdownContent);
+      setSaveStatus('saved');
+    } catch (error) {
+      console.error('Failed to save design doc:', error);
+      setSaveStatus('error');
+    }
+  };
+
+  const captureDiagramScreenshot = useCallback(async () => {
+    const diagramElement = document.querySelector('.react-flow__viewport');
+    if (!diagramElement) {
+      console.error('Diagram element not found');
+      return null;
+    }
+
+    try {
+      // Temporarily hide edge labels to avoid rendering artifacts
+      const edgeLabels = document.querySelectorAll('.react-flow__edge-text');
+      edgeLabels.forEach((label) => {
+        label.style.display = 'none';
+      });
+
+      const dataUrl = await toPng(diagramElement, {
+        quality: 1.0,
+        pixelRatio: 2,
+      });
+
+      // Restore edge labels
+      edgeLabels.forEach((label) => {
+        label.style.display = '';
+      });
+
+      // Convert data URL to base64 (remove "data:image/png;base64," prefix)
+      return dataUrl.split(',')[1];
+    } catch (error) {
+      console.error('Failed to capture diagram:', error);
+      return null;
+    }
+  }, []);
+
+  const handleExport = async (format) => {
+    setExportLoading(true);
+    try {
+      const diagramImage = await captureDiagramScreenshot();
+
+      // PNG export: Just download the diagram screenshot (no backend call)
+      if (format === 'png') {
+        if (diagramImage) {
+          // Convert base64 to blob and download
+          const byteCharacters = atob(diagramImage);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: 'image/png' });
+
+          // Download
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = 'diagram.png';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }
+      } else {
+        // PDF or Markdown: Call backend
+        await onExport(format, diagramImage);
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Failed to export design document. Please try again.');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const getSaveStatusText = () => {
+    switch (saveStatus) {
+      case 'saving':
+        return '● Saving...';
+      case 'saved':
+        return '✓ Saved';
+      case 'error':
+        return '✗ Failed to save';
+      case 'editing':
+        return '● Editing...';
+      default:
+        return '';
+    }
+  };
+
+  const getSaveStatusClass = () => {
+    switch (saveStatus) {
+      case 'saving':
+      case 'editing':
+        return 'save-status saving';
+      case 'saved':
+        return 'save-status saved';
+      case 'error':
+        return 'save-status error';
+      default:
+        return 'save-status';
+    }
+  };
+
+  const handleResizeStart = () => {
+    setIsResizing(true);
+  };
+
+  return (
+    <div className="design-doc-panel" style={{ width: `${width}px` }}>
+      <div
+        className="resize-handle-right"
+        onMouseDown={handleResizeStart}
+      />
+      <div className="design-doc-header">
+        <div>
+          <h3>Design Document</h3>
+        </div>
+        <button className="close-button" onClick={onClose} title="Close">
+          ✕
+        </button>
+      </div>
+
+      <div className="design-doc-toolbar">
+        {editor && (
+          <>
+            <button
+              onClick={() => editor.chain().focus().toggleBold().run()}
+              className={editor.isActive('bold') ? 'is-active' : ''}
+              title="Bold"
+            >
+              <strong>B</strong>
+            </button>
+            <button
+              onClick={() => editor.chain().focus().toggleItalic().run()}
+              className={editor.isActive('italic') ? 'is-active' : ''}
+              title="Italic"
+            >
+              <em>I</em>
+            </button>
+            <button
+              onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+              className={editor.isActive('heading', { level: 1 }) ? 'is-active' : ''}
+              title="Heading 1"
+            >
+              H1
+            </button>
+            <button
+              onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+              className={editor.isActive('heading', { level: 2 }) ? 'is-active' : ''}
+              title="Heading 2"
+            >
+              H2
+            </button>
+            <button
+              onClick={() => editor.chain().focus().toggleBulletList().run()}
+              className={editor.isActive('bulletList') ? 'is-active' : ''}
+              title="Bullet List"
+            >
+              •••
+            </button>
+            <button
+              onClick={() => editor.chain().focus().toggleOrderedList().run()}
+              className={editor.isActive('orderedList') ? 'is-active' : ''}
+              title="Numbered List"
+            >
+              123
+            </button>
+          </>
+        )}
+      </div>
+
+      <div className="design-doc-editor">
+        {isGenerating ? (
+          <div className="generating-overlay">
+            <div className="generating-spinner"></div>
+            <h3>Generating Design Document...</h3>
+            <p>This may take 1-2 minutes. Claude is analyzing your system architecture and creating a comprehensive design document.</p>
+          </div>
+        ) : (
+          <EditorContent editor={editor} />
+        )}
+      </div>
+
+      <div className="design-doc-footer">
+        <div className={getSaveStatusClass()}>
+          {getSaveStatusText()}
+        </div>
+        <div className="export-buttons">
+          <select
+            onChange={(e) => {
+              if (e.target.value) {
+                handleExport(e.target.value);
+                e.target.value = ''; // Reset dropdown
+              }
+            }}
+            disabled={exportLoading}
+            className="export-dropdown"
+          >
+            <option value="">Export ▼</option>
+            <option value="pdf">📕 PDF</option>
+            <option value="markdown">📝 Markdown</option>
+            <option value="png">🖼️ PNG</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  );
+}
