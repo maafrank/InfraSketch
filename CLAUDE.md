@@ -462,6 +462,22 @@ The app generates comprehensive technical design documents from diagrams using *
    - Auto-saves edits after 3 seconds (debounced)
    - Export to PDF, Markdown, or PNG via dropdown
    - Continue chatting while all this happens (non-blocking!)
+   - **Ask the chat bot to make edits** to the design document
+
+**Design Document Chat Editing:**
+Users can ask the chat bot to modify the design document. The bot is instructed to:
+- **Make surgical, targeted edits**: Only modify the specific parts requested
+- **Preserve all unchanged content exactly**: Copy unchanged sections word-for-word from the current document
+- **Avoid rewriting or "improving" other sections**: This prevents unwanted changes to parts the user didn't ask to modify
+- **Return the full updated document**: While only the requested parts should change, the bot must return the complete document
+
+The bot receives the **full design document** in its context (not just a preview), enabling it to accurately preserve unchanged sections. This approach minimizes token usage and prevents accidental rewrites of unrelated content.
+
+**Example interactions:**
+- ✅ "Change Redis to Memcached in the caching section" → Bot changes only that technology name
+- ✅ "Add a bullet point about rate limiting to the Security section" → Bot adds only that point
+- ✅ "Fix the typo in the Executive Summary" → Bot fixes only that typo
+- ❌ "Improve the document" → Bot suggests improvements instead of making changes (subjective)
 
 **Export Flow (After Generation):**
 1. User selects format from export dropdown (PNG, PDF, Markdown, or Both)

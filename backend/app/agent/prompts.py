@@ -66,13 +66,14 @@ User's question: {user_message}
 Instructions:
 - Answer the user's question clearly and concisely
 - If the user asks to modify the **diagram**, output the FULL UPDATED diagram in JSON format (same schema as before)
-- If the user asks to modify the **design document**, you have TWO options:
+- If the user asks to modify the **design document**:
 
-  Option 1 - For small, targeted changes (recommended):
-  Just describe the changes in your response and the user can edit the document themselves.
-  Example: "I would add a new section on Security Considerations between Infrastructure and Scalability sections. It should cover authentication, authorization, and data encryption."
+  **When to make the edit yourself (Option 1):**
+  - User explicitly asks you to make a change ("change X to Y", "update the section", "make the change yourself")
+  - Small, targeted edits like changing a name, adding a bullet point, fixing a typo
+  - The user is asking for your help to modify something specific
 
-  Option 2 - For major rewrites or regeneration:
+  **Format for making edits:**
   Output the updated design document using this format:
 
   DESIGN_DOC_UPDATE:
@@ -80,11 +81,26 @@ Instructions:
   [Your updated markdown content here - COMPLETE document with ALL sections]
   ```
 
+  **CRITICAL INSTRUCTIONS FOR EDITS:**
+  - **PRESERVE UNCHANGED CONTENT EXACTLY**: Copy all sections that aren't being modified word-for-word from the current design doc
+  - **ONLY modify the specific parts requested**: If user asks to change one paragraph, ONLY change that paragraph
+  - **DO NOT rewrite, rephrase, or "improve" unchanged sections** - this is extremely important!
+  - **Think of it as copy-paste with surgical edits**: Take the existing document, find the part to change, change ONLY that part, keep everything else identical
+  - For example: If user says "change Redis to Memcached in the caching section", only change that one word in that one section - leave all other sections untouched
+  - Avoid the temptation to improve or enhance other parts of the document while making the requested edit
+
+  **When to just describe changes (Option 2):**
+  - User asks for suggestions or advice ("what should I add?", "how can I improve?")
+  - User is brainstorming and wants your input before deciding
+  - The change requires subjective judgment or user preferences
+
+  Example of suggesting: "I would recommend adding a new section on Security Considerations between Infrastructure and Scalability sections. Would you like me to add that for you?"
+
 - If just answering a question, respond naturally in plain text
 - You can update the diagram, design doc, both, or neither based on the user's request
 - Use your judgment to determine what needs updating
 - When updating the diagram, output ONLY the JSON with ALL nodes and edges (including unchanged ones)
-- **IMPORTANT for design doc updates**: Prefer Option 1 (describing changes) over Option 2 (full regeneration) unless the user explicitly asks to "regenerate" or "rewrite" the entire document
+- **IMPORTANT**: When the user asks you to make a change, DO IT - don't just describe it. They're asking for your help!
 
 Determine if this is a modification request for the diagram, design doc, or just a question. Respond accordingly.
 """
@@ -143,13 +159,13 @@ def get_design_doc_context(design_doc: str | None) -> str:
     if not design_doc:
         return "Design Document: Not yet created"
 
-    # Show first 1000 chars of design doc
-    preview = design_doc[:1000] + "..." if len(design_doc) > 1000 else design_doc
+    # Provide the FULL design doc so Claude can preserve unchanged sections
+    # Design docs are typically 5k-15k characters, well within Claude's context window
     return f"""
-Current Design Document:
-{preview}
+Current Design Document (Full Content):
+{design_doc}
 
-(Full document length: {len(design_doc)} characters)
+(Document length: {len(design_doc)} characters)
 """
 
 
@@ -233,11 +249,31 @@ Suggested order of implementation:
 - Glossary of terms
 - References and additional resources
 
+FORMATTING RULES:
+- Use ## for major sections (the 11 sections listed above)
+- Use ### only for component names under "Component Details"
+- Use bullet lists (-) for all subsections and details
+- Bold (**) for field labels like **Purpose**, **Technology**, **Inputs**, etc.
+- NO tables (they are harder to edit in the TipTap editor)
+- Code blocks only for actual code/config examples, NOT for general text
+- Keep paragraphs under 4 sentences for readability
+- Use specific numbers wherever possible (e.g., "handles 10,000 requests/sec" not "high throughput")
+
+QUALITY CHECKLIST (verify before returning):
+✓ Every component from the diagram is documented in Component Details section
+✓ Data Flow section mentions each connection/edge shown in the diagram
+✓ At least 3 specific failure modes identified in Scalability & Reliability section
+✓ Security section addresses BOTH authentication AND authorization explicitly
+✓ Trade-offs section explains at least 2 architectural decisions with specific alternatives considered
+✓ No generic phrases like "industry standard" or "well-known technology" without specifics
+✓ Implementation phases are realistic and actionable (not just "build everything")
+✓ Include specific numbers: latency targets, throughput estimates, storage sizes where relevant
+✓ Each component's **Rationale** explains WHY it was chosen, not just WHAT it does
+
 IMPORTANT:
 - Write in professional technical documentation style
 - Be specific and detailed, not generic
 - Use the actual component names and technologies from the diagram
 - Keep markdown formatting clean and consistent
-- Include specific numbers and metrics where relevant
 - Make it comprehensive but focused on the actual system design provided
 """

@@ -25,7 +25,7 @@ export default function DesignDocPanel({
   onExport,
   isGenerating = false,
 }) {
-  const [width, setWidth] = useState(500); // Default width
+  const [width, setWidth] = useState(400); // Default width
   const [isResizing, setIsResizing] = useState(false);
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saving', 'saved', 'error'
   const [saveTimer, setSaveTimer] = useState(null);

@@ -632,7 +632,7 @@ body {
 .chat-header h3 {
   font-size: 1.1rem;
   color: #333;
-  margin-bottom: 0.25rem;
+  margin: 0 0 0.25rem 0;
 }
 
 .chat-context {
@@ -910,40 +910,38 @@ body {
 }
 
 .design-doc-header {
-  padding: 1.5rem;
+  padding: 1rem;
   border-bottom: 1px solid #e2e8f0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: #f7fafc;
 }
 
 .design-doc-header h3 {
+  font-size: 1.1rem;
+  color: #333;
   margin: 0;
-  font-size: 1.25rem;
 }
 
 .close-button {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 2px solid white;
-  border-radius: 50%;
+  background: transparent;
+  color: #999;
+  border: none;
   width: 32px;
   height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 1.2rem;
-  font-weight: bold;
+  font-size: 1.5rem;
+  font-weight: normal;
   transition: all 0.2s;
 }
 
 .close-button:hover {
-  background: white;
   color: #667eea;
-  transform: rotate(90deg);
+  transform: scale(1.1);
 }
 
 .design-doc-toolbar {
