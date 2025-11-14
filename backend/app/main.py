@@ -9,6 +9,7 @@ load_dotenv()
 from app.api.routes import router
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.auth import APIKeyMiddleware
+from app.middleware.logging import RequestLoggingMiddleware
 
 app = FastAPI(title="InfraSketch API", version="1.0.0")
 
@@ -42,6 +43,9 @@ app.add_middleware(
 # Add optional API key authentication
 # Enable by setting REQUIRE_API_KEY=true in environment
 app.add_middleware(APIKeyMiddleware)
+
+# Add request logging middleware (should be last to capture all requests)
+app.add_middleware(RequestLoggingMiddleware)
 
 # Include API routes
 app.include_router(router, prefix="/api")
