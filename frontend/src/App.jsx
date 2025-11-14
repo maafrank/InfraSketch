@@ -2,9 +2,21 @@ import { useState } from 'react';
 import InputPanel from './components/InputPanel';
 import DiagramCanvas from './components/DiagramCanvas';
 import ChatPanel from './components/ChatPanel';
+import DesignDocPanel from './components/DesignDocPanel';
 import AddNodeModal from './components/AddNodeModal';
-import ExportButton from './components/ExportButton';
-import { generateDiagram, sendChatMessage, addNode, deleteNode, updateNode, addEdge, deleteEdge } from './api/client';
+import {
+  generateDiagram,
+  sendChatMessage,
+  addNode,
+  deleteNode,
+  updateNode,
+  addEdge,
+  deleteEdge,
+  generateDesignDoc,
+  pollDesignDocStatus,
+  updateDesignDoc,
+  exportDesignDoc
+} from './api/client';
 import './App.css';
 
 function App() {
@@ -16,6 +28,11 @@ function App() {
   const [chatLoading, setChatLoading] = useState(false);
   const [showAddNodeModal, setShowAddNodeModal] = useState(false);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
+
+  // Design doc state
+  const [designDoc, setDesignDoc] = useState(null);
+  const [designDocOpen, setDesignDocOpen] = useState(false);
+  const [designDocLoading, setDesignDocLoading] = useState(false);
 
   const handleGenerate = async (prompt) => {
     setLoading(true);
@@ -97,6 +114,12 @@ Feel free to explore the diagram and ask me anything!`;
       if (response.diagram) {
         console.log('Updating diagram with new data');
         setDiagram(response.diagram);
+      }
+
+      // Update design doc if modified
+      if (response.design_doc) {
+        console.log('Updating design doc with new data');
+        setDesignDoc(response.design_doc);
       }
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -215,6 +238,117 @@ Feel free to explore the diagram and ask me anything!`;
     setSessionId(null);
     setSelectedNode(null);
     setMessages([]);
+    setDesignDoc(null);
+    setDesignDocOpen(false);
+  };
+
+  const handleCreateDesignDoc = async () => {
+    if (!sessionId) return;
+
+    // If design doc already exists, just reopen the panel
+    if (designDoc) {
+      setDesignDocOpen(true);
+      return;
+    }
+
+    // Otherwise, generate a new design doc
+    setDesignDocLoading(true);
+    setDesignDocOpen(true); // Open panel immediately to show loading state
+
+    try {
+      // Start background generation
+      const startResponse = await generateDesignDoc(sessionId);
+      console.log('Design doc generation started:', startResponse);
+
+      // Poll for completion with progress updates
+      const result = await pollDesignDocStatus(
+        sessionId,
+        (status) => {
+          // Progress callback - could update UI with elapsed time
+          console.log('Generation status:', status.status,
+                     `(${status.elapsed_seconds?.toFixed(0) || 0}s elapsed)`);
+        }
+      );
+
+      if (result.success) {
+        console.log('Design doc generated successfully in', result.duration?.toFixed(1), 'seconds');
+        setDesignDoc(result.design_doc);
+      } else {
+        throw new Error(result.error || 'Failed to generate design document');
+      }
+    } catch (error) {
+      console.error('Failed to generate design doc:', error);
+      alert('Failed to generate design document. Please try again.');
+      setDesignDocOpen(false); // Close panel on error
+    } finally {
+      setDesignDocLoading(false);
+    }
+  };
+
+  const handleSaveDesignDoc = async (content) => {
+    if (!sessionId) return;
+
+    try {
+      await updateDesignDoc(sessionId, content);
+      setDesignDoc(content);
+    } catch (error) {
+      console.error('Failed to save design doc:', error);
+      throw error; // Re-throw so DesignDocPanel can handle it
+    }
+  };
+
+  const handleExportDesignDoc = async (format, diagramImage) => {
+    if (!sessionId) return;
+
+    try {
+      const response = await exportDesignDoc(sessionId, format, diagramImage);
+
+      // Download files
+      if (response.pdf) {
+        const pdfBlob = base64ToBlob(response.pdf.content, 'application/pdf');
+        downloadBlob(pdfBlob, response.pdf.filename);
+      }
+
+      if (response.markdown) {
+        const mdBlob = new Blob([response.markdown.content], { type: 'text/markdown' });
+        downloadBlob(mdBlob, response.markdown.filename);
+      }
+
+      if (response.diagram_png) {
+        const pngBlob = base64ToBlob(response.diagram_png.content, 'image/png');
+        downloadBlob(pngBlob, response.diagram_png.filename);
+      }
+    } catch (error) {
+      console.error('Failed to export design doc:', error);
+      throw error; // Re-throw so DesignDocPanel can handle it
+    }
+  };
+
+  const handleCloseDesignDoc = () => {
+    setDesignDocOpen(false);
+  };
+
+  // Helper function to convert base64 to blob
+  const base64ToBlob = (base64, mimeType) => {
+    const byteCharacters = atob(base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: mimeType });
+  };
+
+  // Helper function to download blob
+  const downloadBlob = (blob, filename) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -235,7 +369,13 @@ Feel free to explore the diagram and ask me anything!`;
         </div>
         {diagram && (
           <div className="header-buttons">
-            <ExportButton sessionId={sessionId} reactFlowInstance={reactFlowInstance} />
+            <button
+              className="create-design-doc-button"
+              onClick={handleCreateDesignDoc}
+              disabled={designDocLoading}
+            >
+              {designDocLoading ? 'Generating...' : (designDoc && !designDocOpen ? 'Open Design Doc' : 'Create Design Doc')}
+            </button>
             <button
               className="add-node-button"
               onClick={() => setShowAddNodeModal(true)}
@@ -253,6 +393,17 @@ Feel free to explore the diagram and ask me anything!`;
       </header>
 
       <div className="app-content">
+        {designDocOpen && (
+          <DesignDocPanel
+            designDoc={designDoc}
+            onSave={handleSaveDesignDoc}
+            onClose={handleCloseDesignDoc}
+            sessionId={sessionId}
+            onExport={handleExportDesignDoc}
+            isGenerating={designDocLoading}
+          />
+        )}
+
         <div className="main-area">
           {!diagram && <InputPanel onGenerate={handleGenerate} loading={loading} />}
           <DiagramCanvas

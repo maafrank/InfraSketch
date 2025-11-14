@@ -67,6 +67,10 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
         if not self.enabled:
             return await call_next(request)
 
+        # Allow OPTIONS requests (CORS preflight)
+        if request.method == "OPTIONS":
+            return await call_next(request)
+
         # Allow public paths
         if request.url.path in self.public_paths:
             return await call_next(request)

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
 from fastapi.responses import Response, JSONResponse
 from pydantic import BaseModel
 from app.models import (
@@ -123,6 +123,8 @@ async def chat(request: ChatRequest, http_request: Request):
             "output": "",
             "diagram_updated": False,
             "display_text": "",
+            "design_doc": session.design_doc,
+            "design_doc_updated": False,
         })
 
         # Add user message to history
@@ -152,6 +154,15 @@ async def chat(request: ChatRequest, http_request: Request):
                 Message(role="assistant", content=display_message)
             )
 
+        # Check if design doc was updated
+        response_design_doc = None
+        if result.get("design_doc_updated"):
+            updated_design_doc = result.get("design_doc")
+            if updated_design_doc:
+                session_manager.update_design_doc(request.session_id, updated_design_doc)
+                response_design_doc = updated_design_doc
+                print(f"Design doc updated via chat ({len(updated_design_doc)} chars)")
+
         # Log chat interaction
         duration_ms = (time.time() - start_time) * 1000
         log_chat_interaction(
@@ -165,7 +176,8 @@ async def chat(request: ChatRequest, http_request: Request):
 
         return ChatResponse(
             response=display_message,
-            diagram=response_diagram
+            diagram=response_diagram,
+            design_doc=response_design_doc
         )
 
     except HTTPException:
@@ -373,10 +385,12 @@ async def export_design_doc(session_id: str, request: ExportRequest, format: str
                 "content": markdown_content,
                 "filename": "design_document.md"
             }
-            result["diagram_png"] = {
-                "content": base64.b64encode(diagram_png).decode('utf-8'),
-                "filename": "diagram.png"
-            }
+            # Only include diagram PNG for "both" format, not for "markdown" alone
+            if format == "both":
+                result["diagram_png"] = {
+                    "content": base64.b64encode(diagram_png).decode('utf-8'),
+                    "filename": "diagram.png"
+                }
 
         # Return PDF if requested
         if format in ["pdf", "both"]:
@@ -429,3 +443,362 @@ async def export_design_doc(session_id: str, request: ExportRequest, format: str
             success=False,
         )
         raise HTTPException(status_code=500, detail=f"Failed to generate design document: {str(e)}")
+
+
+def _generate_design_doc_background(session_id: str, user_ip: str):
+    """Background task to generate design document."""
+    start_time = time.time()
+
+    try:
+        # Get session
+        session = session_manager.get_session(session_id)
+        if not session:
+            print(f"Session {session_id} not found in background task")
+            return
+
+        # Get conversation history
+        conversation_history = [
+            {"role": msg.role, "content": msg.content}
+            for msg in session.messages
+        ]
+
+        print(f"\n=== BACKGROUND: GENERATE DESIGN DOC ===")
+        print(f"Session ID: {session_id}")
+        print(f"Nodes: {len(session.diagram.nodes)}")
+        print(f"Edges: {len(session.diagram.edges)}")
+
+        # Generate markdown document using LLM
+        markdown_content = generate_design_document(
+            session.diagram.model_dump(),
+            conversation_history
+        )
+
+        # Store in session state
+        session_manager.update_design_doc(session_id, markdown_content)
+        session_manager.set_design_doc_status(session_id, "completed")
+
+        print(f"Generated and stored design doc ({len(markdown_content)} chars)")
+        print(f"========================================\n")
+
+        # Log event
+        duration_ms = (time.time() - start_time) * 1000
+        log_event(
+            EventType.EXPORT_DESIGN_DOC,
+            session_id=session_id,
+            user_ip=user_ip,
+            metadata={"format": "generate", "duration_ms": duration_ms, "success": True},
+        )
+
+    except Exception as e:
+        import traceback
+        print(f"Error generating design doc in background: {str(e)}")
+        traceback.print_exc()
+
+        # Mark as failed
+        session_manager.set_design_doc_status(session_id, "failed", error=str(e))
+
+        duration_ms = (time.time() - start_time) * 1000
+        log_event(
+            EventType.EXPORT_DESIGN_DOC,
+            session_id=session_id,
+            user_ip=user_ip,
+            metadata={"format": "generate", "duration_ms": duration_ms, "success": False, "error": str(e)},
+        )
+
+
+@router.post("/session/{session_id}/design-doc/generate")
+async def generate_design_doc(session_id: str, request: ExportRequest, background_tasks: BackgroundTasks, http_request: Request):
+    """
+    Start design document generation.
+
+    In local development: Uses background tasks for true async operation.
+    In AWS Lambda: Runs synchronously but sets status immediately for polling compatibility.
+
+    Args:
+        session_id: The session ID
+        request: Request body with optional diagram_image
+        background_tasks: FastAPI background tasks
+
+    Returns:
+        JSON with status: "started"
+    """
+    import os
+    user_ip = http_request.client.host if http_request.client else None
+
+    try:
+        # Get session
+        session = session_manager.get_session(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        # Check if already generating
+        if session.design_doc_status.status == "generating":
+            return JSONResponse(content={
+                "status": "already_generating",
+                "message": "Design document generation already in progress"
+            })
+
+        # Set status to generating
+        session_manager.set_design_doc_status(session_id, "generating")
+
+        # Check if running in Lambda (AWS_LAMBDA_FUNCTION_NAME env var is set)
+        is_lambda = os.environ.get('AWS_LAMBDA_FUNCTION_NAME') is not None
+
+        if is_lambda:
+            # In Lambda: Use async invocation to avoid API Gateway 30s timeout
+            # API Gateway has a 30s timeout, but generation takes 30-150s
+            # Solution: Invoke Lambda asynchronously for the actual generation
+            import boto3
+            import json as json_lib
+
+            print(f"Lambda environment detected - triggering async invocation for session {session_id}")
+
+            try:
+                lambda_client = boto3.client('lambda')
+                function_name = os.environ.get('AWS_LAMBDA_FUNCTION_NAME')
+
+                # Invoke this same Lambda function asynchronously with a special event
+                # that will trigger the generation without going through API Gateway
+                payload = {
+                    "async_task": "generate_design_doc",
+                    "session_id": session_id,
+                    "user_ip": user_ip
+                }
+
+                lambda_client.invoke(
+                    FunctionName=function_name,
+                    InvocationType='Event',  # Async invocation
+                    Payload=json_lib.dumps(payload)
+                )
+
+                print(f"Async Lambda invocation triggered for session {session_id}")
+            except Exception as e:
+                print(f"Failed to trigger async invocation: {e}")
+                # Fall back to inline execution (will timeout after 30s but generation continues)
+                background_tasks.add_task(_generate_design_doc_background, session_id, user_ip)
+        else:
+            # Local development: Use true background tasks (non-blocking)
+            print(f"Local environment - starting background generation for session {session_id}")
+            background_tasks.add_task(_generate_design_doc_background, session_id, user_ip)
+
+        return JSONResponse(content={
+            "status": "started",
+            "message": "Design document generation started"
+        })
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"Error starting design doc generation: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to start design document generation: {str(e)}")
+
+
+@router.get("/session/{session_id}/design-doc/status")
+async def get_design_doc_status(session_id: str):
+    """
+    Get the current status of design document generation.
+
+    Args:
+        session_id: The session ID
+
+    Returns:
+        JSON with status information
+    """
+    session = session_manager.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    status = session.design_doc_status
+
+    response = {
+        "status": status.status,
+        "error": status.error,
+        "started_at": status.started_at,
+        "completed_at": status.completed_at,
+    }
+
+    # Include the document if completed
+    if status.status == "completed" and session.design_doc:
+        response["design_doc"] = session.design_doc
+        response["design_doc_length"] = len(session.design_doc)
+
+    # Calculate duration if applicable
+    if status.started_at:
+        if status.completed_at:
+            response["duration_seconds"] = status.completed_at - status.started_at
+        else:
+            # Still generating
+            response["elapsed_seconds"] = time.time() - status.started_at
+
+    return JSONResponse(content=response)
+
+
+class DesignDocUpdateRequest(BaseModel):
+    content: str
+
+
+@router.patch("/session/{session_id}/design-doc")
+async def update_design_doc(session_id: str, request: DesignDocUpdateRequest, http_request: Request):
+    """
+    Update design document content in session state.
+
+    Args:
+        session_id: The session ID
+        request: Request body with updated content
+
+    Returns:
+        JSON with updated design_doc content
+    """
+    user_ip = http_request.client.host if http_request.client else None
+
+    try:
+        # Get session
+        session = session_manager.get_session(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        # Validate content size (limit to 1MB)
+        if len(request.content) > 1_000_000:
+            raise HTTPException(status_code=400, detail="Design doc content too large (max 1MB)")
+
+        # Update session state
+        session_manager.update_design_doc(session_id, request.content)
+
+        print(f"Updated design doc for session {session_id} ({len(request.content)} chars)")
+
+        # Log event
+        log_event(
+            EventType.EXPORT_DESIGN_DOC,
+            session_id=session_id,
+            user_ip=user_ip,
+            metadata={"action": "update", "content_length": len(request.content)},
+        )
+
+        return JSONResponse(content={"design_doc": request.content})
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        log_error(
+            error_type="design_doc_update_failed",
+            error_message=str(e),
+            session_id=session_id,
+            user_ip=user_ip,
+        )
+        raise HTTPException(status_code=500, detail=f"Failed to update design document: {str(e)}")
+
+
+@router.post("/session/{session_id}/design-doc/export")
+async def export_design_doc_from_session(session_id: str, request: ExportRequest, format: str = "pdf", http_request: Request = None):
+    """
+    Export design document from session state (uses stored content, not regenerated).
+
+    Args:
+        session_id: The session ID
+        request: Request body with optional diagram_image
+        format: Export format - 'markdown', 'pdf', or 'both' (default: 'pdf')
+
+    Returns:
+        JSON with base64 encoded files
+    """
+    start_time = time.time()
+    user_ip = http_request.client.host if http_request and http_request.client else None
+
+    try:
+        # Get session
+        session = session_manager.get_session(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        # Check if design doc exists
+        if not session.design_doc:
+            raise HTTPException(status_code=404, detail="Design document not found. Generate one first.")
+
+        print(f"\n=== EXPORT DESIGN DOC FROM SESSION ===")
+        print(f"Session ID: {session_id}")
+        print(f"Format requested: {format}")
+        print(f"Design doc length: {len(session.design_doc)} chars")
+        print(f"Has custom diagram image: {request.diagram_image is not None}")
+
+        markdown_content = session.design_doc
+
+        # Use provided diagram image or generate one
+        if request.diagram_image:
+            # Use the screenshot from frontend
+            diagram_png = base64.b64decode(request.diagram_image)
+            print("Using frontend screenshot for diagram")
+        else:
+            # Fallback to generated diagram
+            diagram_png = generate_diagram_png(session.diagram.model_dump())
+            print("Generated diagram using Pillow")
+
+        result = {}
+
+        # Return markdown if requested
+        if format in ["markdown", "both"]:
+            result["markdown"] = {
+                "content": markdown_content,
+                "filename": "design_document.md"
+            }
+            # Only include diagram PNG for "both" format, not for "markdown" alone
+            if format == "both":
+                result["diagram_png"] = {
+                    "content": base64.b64encode(diagram_png).decode('utf-8'),
+                    "filename": "diagram.png"
+                }
+
+        # Return PDF if requested
+        if format in ["pdf", "both"]:
+            pdf_bytes = convert_markdown_to_pdf(markdown_content, diagram_png)
+            result["pdf"] = {
+                "content": base64.b64encode(pdf_bytes).decode('utf-8'),
+                "filename": "design_document.pdf"
+            }
+
+        print(f"Exported documents successfully")
+        print(f"======================================\n")
+
+        # Log export event
+        duration_ms = (time.time() - start_time) * 1000
+        log_export(
+            session_id=session_id,
+            format=format,
+            duration_ms=duration_ms,
+            user_ip=user_ip,
+            success=True,
+        )
+
+        return JSONResponse(content=result)
+
+    except HTTPException:
+        raise
+    except ImportError as e:
+        import traceback
+        traceback.print_exc()
+        duration_ms = (time.time() - start_time) * 1000
+        log_export(
+            session_id=session_id,
+            format=format,
+            duration_ms=duration_ms,
+            user_ip=user_ip,
+            success=False,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"PDF generation dependencies not installed: {str(e)}"
+        )
+    except Exception as e:
+        import traceback
+        print(f"Error exporting design doc: {str(e)}")
+        traceback.print_exc()
+        duration_ms = (time.time() - start_time) * 1000
+        log_export(
+            session_id=session_id,
+            format=format,
+            duration_ms=duration_ms,
+            user_ip=user_ip,
+            success=False,
+        )
+        raise HTTPException(status_code=500, detail=f"Failed to export design document: {str(e)}")

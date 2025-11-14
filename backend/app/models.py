@@ -41,11 +41,21 @@ class Message(BaseModel):
     content: str
 
 
+class DesignDocStatus(BaseModel):
+    """Status of design document generation."""
+    status: Literal["not_started", "generating", "completed", "failed"] = "not_started"
+    error: Optional[str] = None
+    started_at: Optional[float] = None  # Unix timestamp
+    completed_at: Optional[float] = None  # Unix timestamp
+
+
 class SessionState(BaseModel):
     session_id: str
     diagram: Diagram
     messages: List[Message] = Field(default_factory=list)
     current_node: Optional[str] = None
+    design_doc: Optional[str] = None  # Markdown content for design document
+    design_doc_status: DesignDocStatus = Field(default_factory=DesignDocStatus)
 
 
 class GenerateRequest(BaseModel):
@@ -66,3 +76,4 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     response: str
     diagram: Optional[Diagram] = None
+    design_doc: Optional[str] = None  # Updated design document content

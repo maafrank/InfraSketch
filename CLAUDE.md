@@ -65,11 +65,13 @@ InfraSketch is an AI-powered system design tool with a **React frontend** and **
 - `main.py` - FastAPI app with CORS, rate limiting, optional auth, and request logging middleware
 - `models.py` - Pydantic models for Node, Edge, Diagram, SessionState
 - `api/routes.py` - Endpoints for generate, chat, session management, CRUD operations, with structured event logging
-- `session/manager.py` - In-memory dict storing session_id → SessionState
+- `session/manager.py` - **Hybrid session storage** (in-memory for local, DynamoDB for Lambda)
+- `session/dynamodb_storage.py` - DynamoDB-backed persistent session storage
+- `lambda_handler.py` - Lambda entry point that routes API Gateway requests and async task invocations
 - `agent/graph.py` - **LangGraph agent** (see below)
 - `agent/prompts.py` - System prompts for Claude
 - `agent/doc_generator.py` - Standalone LLM call for design document generation
-- `middleware/rate_limit.py` - Token bucket rate limiter (60 req/min default, configurable via env)
+- `middleware/rate_limit.py` - Token bucket algorithm, 60 req/min per IP by default
 - `middleware/auth.py` - Optional API key auth (enable via REQUIRE_API_KEY=true)
 - `middleware/logging.py` - Request/response logging middleware
 - `utils/secrets.py` - Helper for retrieving API keys (supports both .env and AWS Secrets Manager)
@@ -77,16 +79,17 @@ InfraSketch is an AI-powered system design tool with a **React frontend** and **
 - `utils/diagram_export.py` - PDF/image generation utilities
 
 **Frontend (`frontend/src/`)**:
-- `App.jsx` - Main component managing state (diagram, sessionId, selectedNode, messages)
+- `App.jsx` - Main component managing state (diagram, sessionId, selectedNode, messages, designDoc, designDocLoading)
 - `components/DiagramCanvas.jsx` - React Flow canvas with auto-layout using dagre, supports drag connections between nodes
 - `components/ChatPanel.jsx` - Chat UI for node-focused conversations
+- `components/DesignDocPanel.jsx` - Editable design doc panel with TipTap editor, shows loading overlay during generation
 - `components/CustomNode.jsx` - Styled node component with color coding by type
 - `components/InputPanel.jsx` - Initial prompt input for generating diagrams
 - `components/NodeTooltip.jsx` - Hover tooltip showing node details
 - `components/AddNodeModal.jsx` - Modal for manually adding nodes
 - `components/ExportButton.jsx` - Export dropdown with PNG/PDF/Markdown options, includes screenshot capture
 - `utils/layout.js` - Auto-layout logic using dagre algorithm
-- `api/client.js` - Axios client for backend API
+- `api/client.js` - Axios client for backend API, includes `pollDesignDocStatus()` for async generation
 
 ### LangGraph Agent Implementation
 
@@ -165,13 +168,31 @@ The backend exposes these REST endpoints (all under `/api` prefix):
 **DELETE `/api/session/{session_id}/edges/{edge_id}`** - Delete edge
 - Response: Updated `Diagram`
 
-**POST `/api/session/{session_id}/export/design-doc?format={format}`** - Generate comprehensive design document
+**POST `/api/session/{session_id}/design-doc/generate`** - Start background design document generation
+- Request body: `{ "diagram_image": base64_png_string? }` (optional screenshot)
+- Response: `{ "status": "started", "message": "..." }` (returns immediately)
+- Starts generation in background using FastAPI BackgroundTasks
+- Non-blocking: Chat and other operations work while generating
+
+**GET `/api/session/{session_id}/design-doc/status`** - Poll design document generation status
+- Response: `{ "status": "not_started" | "generating" | "completed" | "failed", "elapsed_seconds": float?, "design_doc": string?, "error": string? }`
+- Frontend polls every 2 seconds until complete
+- Returns generated document when `status === "completed"`
+
+**PATCH `/api/session/{session_id}/design-doc`** - Update design document content
+- Request body: `{ "content": string }`
+- Used for manual edits in the design doc panel
+
+**POST `/api/session/{session_id}/design-doc/export?format={format}`** - Export stored design document
 - Query params: `format` = "pdf" | "markdown" | "both" (default: "pdf")
 - Request body: `{ "diagram_image": base64_png_string }` (screenshot from frontend)
 - Response: JSON with base64 encoded files: `{ "pdf": { "content": base64, "filename": string }, "markdown": {...}, "diagram_png": {...} }`
-- Uses Claude Haiku 4.5 (max_tokens: 32768) to generate comprehensive technical documentation
-- Processing time: 10-30 seconds depending on diagram complexity
+- Fast: Uses already-generated document from session state
 - Note: Frontend can also export PNG directly without calling this endpoint
+
+**POST `/api/session/{session_id}/export/design-doc?format={format}`** - DEPRECATED: Generate and export in one call
+- Legacy endpoint that blocks for 30-150 seconds
+- Use the new generate → poll → export flow instead
 
 ## Data Models
 
@@ -200,6 +221,28 @@ The backend exposes these REST endpoints (all under `/api` prefix):
 }
 ```
 
+**DesignDocStatus** (for async generation tracking):
+```python
+{
+    "status": "not_started" | "generating" | "completed" | "failed",
+    "error": Optional[str],
+    "started_at": Optional[float],  # Unix timestamp
+    "completed_at": Optional[float]  # Unix timestamp
+}
+```
+
+**SessionState** (includes design doc state):
+```python
+{
+    "session_id": str,
+    "diagram": Diagram,
+    "messages": List[Message],
+    "current_node": Optional[str],
+    "design_doc": Optional[str],  # Generated markdown content
+    "design_doc_status": DesignDocStatus  # Generation status tracking
+}
+```
+
 ## Common Issues & Solutions
 
 ### Issue: Diagram not updating after chat request
@@ -214,6 +257,27 @@ The backend exposes these REST endpoints (all under `/api` prefix):
 **Cause**: Claude's response was cut off mid-JSON
 **Solution**: `max_tokens=32768` in `create_llm()` should prevent this. Haiku 4.5 supports up to 64k output tokens.
 
+### Issue: Design doc generation stuck or not updating
+**Cause**: Frontend not polling correctly or backend task failed
+**Solution**:
+1. Check backend logs for "=== BACKGROUND: GENERATE DESIGN DOC ===" and completion message
+2. Check browser console for polling logs: "Generation status: generating (Xs elapsed)"
+3. Call `/design-doc/status` endpoint directly to check status
+4. If `status === "failed"`, check the `error` field for details
+5. Verify session exists and has diagram data
+
+### Issue: Session not found (404) after generating diagram
+**Cause**: DynamoDB save failed due to float/Decimal conversion issue
+**Solution**: Check Lambda logs for "Error saving session". The `dynamodb_storage.py` has `convert_floats_to_decimals()` function that recursively converts all floats to Decimals before saving. If this fails, sessions won't persist.
+
+### Issue: Lambda crashes on startup in production
+**Cause**: Missing IAM permissions or DynamoDB table creation timeout
+**Solution**:
+1. Verify IAM role has all required DynamoDB permissions (including `TagResource`)
+2. Check if `infrasketch-sessions` table exists: `aws dynamodb describe-table --table-name infrasketch-sessions`
+3. First Lambda cold start may take 20+ seconds due to table creation
+4. Check logs for "Creating DynamoDB table" or "DynamoDB table exists"
+
 ## Model Configuration
 
 Current model: **Claude Haiku 4.5** (`claude-haiku-4-5-20251001`)
@@ -225,13 +289,26 @@ Current model: **Claude Haiku 4.5** (`claude-haiku-4-5-20251001`)
 
 ## Session Management
 
-Sessions are **in-memory only** (not persisted). Restarting backend clears all sessions.
+**Hybrid Storage Architecture:**
+- **Local development**: In-memory dict (`session_id → SessionState`)
+- **AWS Lambda**: DynamoDB persistent storage (`infrasketch-sessions` table)
+- Auto-detects environment via `AWS_LAMBDA_FUNCTION_NAME` env variable
 
 `SessionManager` (backend/app/session/manager.py):
-- Stores dict of `session_id: SessionState`
-- `create_session()` - generates UUID, stores diagram
-- `add_message()` - appends to conversation history
-- `update_diagram()` - replaces diagram when modified
+- `create_session()` - generates UUID, stores diagram (saves to DynamoDB in Lambda)
+- `get_session()` - retrieves session from appropriate storage backend
+- `update_diagram()` - replaces diagram when modified (persists to DynamoDB in Lambda)
+- `add_message()` - appends to conversation history (persists to DynamoDB in Lambda)
+- `update_design_doc()` - stores generated or edited design document
+- `set_design_doc_status()` - updates generation status with automatic timestamp tracking
+- `get_design_doc_status()` - retrieves current generation status
+
+**DynamoDB Implementation** (`session/dynamodb_storage.py`):
+- Table: `infrasketch-sessions` (pay-per-request billing)
+- TTL: Sessions expire after 24 hours
+- **Critical**: Converts Python `float` to `Decimal` before saving (DynamoDB requirement)
+- Shares sessions across all Lambda instances for async operations
+- Auto-creates table on first run if it doesn't exist
 
 ## Frontend State Management
 
@@ -240,6 +317,9 @@ Sessions are **in-memory only** (not persisted). Restarting backend clears all s
 - `sessionId` - backend session ID
 - `selectedNode` - currently clicked node (opens ChatPanel)
 - `messages` - conversation history for ChatPanel
+- `designDoc` - generated design document markdown content
+- `designDocOpen` - whether design doc panel is visible
+- `designDocLoading` - whether design doc is currently being generated (shows loading overlay)
 
 When `diagram` prop changes in `DiagramCanvas.jsx`, the `useEffect` hook:
 1. Transforms backend diagram format to React Flow format
@@ -253,6 +333,7 @@ When `diagram` prop changes in `DiagramCanvas.jsx`, the `useEffect` hook:
 - Drag from node handle → Create new connection
 - Right-click edge → Context menu to delete
 - Click "Add Node" button → Opens modal for manual node creation
+- Click "Create Design Doc" button → Starts async generation, opens panel with loading overlay
 - Click "New Design" button → Clears session and starts fresh
 
 ## Debugging
@@ -277,6 +358,11 @@ Both servers have auto-reload enabled (`--reload` for backend, Vite HMR for fron
 
 **Infrastructure:**
 - Backend: AWS Lambda + API Gateway (with execution logging enabled)
+  - Timeout: 300 seconds (5 minutes) for design doc generation
+  - Memory: 512 MB
+  - Runtime: Python 3.11
+  - IAM permissions: DynamoDB (GetItem, PutItem, UpdateItem, DeleteItem, CreateTable, TagResource), Lambda (InvokeFunction for self-invocation), Secrets Manager
+- Session Storage: DynamoDB table `infrasketch-sessions` (pay-per-request, 24hr TTL)
 - Frontend: S3 + CloudFront (with access logging to S3)
 - Secrets: AWS Secrets Manager (ANTHROPIC_API_KEY)
 - Monitoring: CloudWatch Logs, Metrics, and Dashboard
@@ -323,41 +409,75 @@ Both servers have auto-reload enabled (`--reload` for backend, Vite HMR for fron
 - Frontend validates nodes/edges arrays exist before rendering
 - Session not found returns 404, triggering user to start new session
 
-## Design Document Export Feature
+## Design Document Feature
 
 **Overview:**
-The app can generate comprehensive technical design documents from diagrams using a dedicated LLM call, plus direct diagram image export.
+The app generates comprehensive technical design documents from diagrams using **asynchronous background generation** with polling, allowing users to continue chatting while the document is being created.
 
 **Architecture:**
-- **Standalone endpoint**: `/api/session/{session_id}/export/design-doc`
+- **Asynchronous generation**:
+  - **Local**: Uses FastAPI BackgroundTasks
+  - **Lambda**: Uses async self-invocation (`InvocationType='Event'`) to bypass API Gateway 30s timeout
+- **Lambda async flow**:
+  1. `/design-doc/generate` endpoint triggers Lambda async invocation with `boto3`
+  2. `lambda_handler.py` detects `async_task` payload and routes to background function
+  3. Background function runs in separate Lambda instance (up to 5 minutes)
+  4. Updates session status in DynamoDB (shared across instances)
+  5. Frontend polls `/design-doc/status` every 2 seconds until complete
+- **Status tracking**: `DesignDocStatus` model tracks `not_started`, `generating`, `completed`, `failed`
 - **Separate from chat agent**: Uses dedicated prompt optimized for technical writing
 - **Model**: Claude Haiku 4.5 (max_tokens: 32768)
+- **Generation time**: 30-150 seconds depending on diagram complexity
 - **Diagram capture**: Frontend screenshots React Flow canvas using `html-to-image`
 
 **Components:**
+- `backend/app/models.py` - `DesignDocStatus` model for status tracking
+- `backend/app/session/manager.py` - Status management methods (`set_design_doc_status`, `get_design_doc_status`)
 - `backend/app/agent/doc_generator.py` - LLM call for document generation
 - `backend/app/agent/prompts.py` - `DESIGN_DOC_PROMPT` with technical writing instructions
 - `backend/app/utils/diagram_export.py` - PDF conversion utilities (with ReportLab fallback)
-- `frontend/src/components/ExportButton.jsx` - Dropdown menu UI component with screenshot capture
+- `backend/app/api/routes.py` - Background task function `_generate_design_doc_background()`
+- `frontend/src/components/DesignDocPanel.jsx` - Editable design doc panel with TipTap editor
+- `frontend/src/api/client.js` - `pollDesignDocStatus()` function for status polling
 - `frontend/node_modules/html-to-image` - Screenshot library for capturing React Flow diagram
 
 **Document Generation Flow:**
-1. User clicks "Export Design Doc" button → Dropdown menu appears
-2. User selects format (PNG, PDF, Markdown, or Both)
-3. **Frontend captures screenshot**:
+1. User clicks "Create Design Doc" button
+2. **Frontend immediately**:
+   - Opens design doc panel with loading overlay ("Generating... may take 1-2 minutes")
+   - Calls `/design-doc/generate` endpoint (returns immediately with `status: "started"`)
+   - Starts polling `/design-doc/status` every 2 seconds
+   - Console logs show progress: "Generation status: generating (23s elapsed)"
+3. **Backend background task**:
+   - Retrieves session (diagram + conversation history)
+   - Calls Claude with specialized technical writer prompt
+   - Stores generated markdown in session state
+   - Updates status to `completed` or `failed`
+4. **Frontend polling detects completion**:
+   - Receives generated document from status endpoint
+   - Updates panel with editable document content
+   - Loading overlay disappears, showing TipTap editor
+5. **User can**:
+   - Edit document inline with formatting toolbar
+   - Auto-saves edits after 3 seconds (debounced)
+   - Export to PDF, Markdown, or PNG via dropdown
+   - Continue chatting while all this happens (non-blocking!)
+
+**Export Flow (After Generation):**
+1. User selects format from export dropdown (PNG, PDF, Markdown, or Both)
+2. **Frontend captures screenshot**:
    - Uses `html-to-image` to capture `.react-flow__viewport`
    - Temporarily hides edge labels (to avoid rendering artifacts)
    - Captures at 2x pixel ratio for high quality
    - Converts to base64 PNG
-4. **PNG-only export**: Downloads screenshot directly (instant, no backend call)
-5. **PDF/Markdown export**:
-   - Frontend sends screenshot + session_id to backend
-   - Backend retrieves session (diagram + conversation history)
-   - Calls Claude with specialized technical writer prompt
-   - Embeds frontend screenshot in document (not generated PNG)
+3. **PNG-only export**: Downloads screenshot directly (instant, no backend call)
+4. **PDF/Markdown export**:
+   - Frontend sends screenshot + session_id to `/design-doc/export` endpoint
+   - Backend retrieves stored document from session state (fast, no LLM call)
+   - Embeds frontend screenshot in document
    - Converts markdown to PDF using ReportLab (or WeasyPrint if available)
    - Returns base64 encoded files
-6. Frontend decodes base64 and triggers browser downloads
+5. Frontend decodes base64 and triggers browser downloads
 
 **Document Structure:**
 - Executive Summary

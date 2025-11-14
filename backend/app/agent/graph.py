@@ -9,6 +9,7 @@ from app.agent.prompts import (
     CONVERSATION_PROMPT,
     get_diagram_context,
     get_node_context,
+    get_design_doc_context,
 )
 from app.utils.secrets import get_anthropic_api_key
 
@@ -22,6 +23,8 @@ class AgentState(TypedDict):
     output: str
     diagram_updated: bool
     display_text: str  # Text to show in chat (without JSON)
+    design_doc: str | None  # Current design document content (markdown)
+    design_doc_updated: bool  # Whether design doc was updated in this interaction
 
 
 def create_llm():
@@ -101,6 +104,7 @@ def chat_node(state: AgentState) -> AgentState:
         state["diagram"] or {},
         state.get("node_id")
     ) if state.get("node_id") else ""
+    design_doc_context = get_design_doc_context(state.get("design_doc"))
 
     # Format conversation history
     history_str = "\n".join([
@@ -112,6 +116,7 @@ def chat_node(state: AgentState) -> AgentState:
     prompt = CONVERSATION_PROMPT.format(
         diagram_context=diagram_context,
         node_context=node_context,
+        design_doc_context=design_doc_context,
         conversation_history=history_str,
         user_message=state["user_message"]
     )
@@ -238,11 +243,53 @@ def chat_node(state: AgentState) -> AgentState:
         except Exception as e:
             print(f"✗ Failed to extract JSON from text: {e}")
 
-    # Not a diagram update, just a text response
-    print(f"Treating as text response (not diagram update)")
+    # Check for design doc update
+    if "DESIGN_DOC_UPDATE:" in content:
+        print(f"Found DESIGN_DOC_UPDATE marker, extracting...")
+        try:
+            parts = content.split("DESIGN_DOC_UPDATE:")
+            text_before_marker = parts[0].strip()
+            remaining = parts[1]
+
+            # Extract markdown from code block if present
+            if "```markdown" in remaining:
+                markdown_parts = remaining.split("```markdown")
+                markdown_content = markdown_parts[1].split("```")[0].strip()
+                text_after_marker = markdown_parts[1].split("```")[1].strip() if "```" in markdown_parts[1] else ""
+            elif "```" in remaining:
+                code_parts = remaining.split("```")
+                markdown_content = code_parts[1].strip()
+                text_after_marker = code_parts[2].strip() if len(code_parts) > 2 else ""
+            else:
+                # No code block, use rest of content
+                markdown_content = remaining.strip()
+                text_after_marker = ""
+
+            print(f"✓ Extracted design doc update ({len(markdown_content)} chars)")
+
+            # Build display text
+            display_parts = []
+            if text_before_marker:
+                display_parts.append(text_before_marker)
+            display_parts.append("*(Design document has been updated)*")
+            if text_after_marker:
+                display_parts.append(text_after_marker)
+
+            state["design_doc"] = markdown_content
+            state["design_doc_updated"] = True
+            state["display_text"] = "\n\n".join(display_parts)
+            state["diagram_updated"] = False  # Design doc update only
+            print(f"==========================\n")
+            return state
+        except Exception as e:
+            print(f"✗ Failed to extract design doc update: {e}")
+
+    # Not a diagram update or design doc update, just a text response
+    print(f"Treating as text response (no updates)")
     print(f"==========================\n")
     state["output"] = content
     state["diagram_updated"] = False
+    state["design_doc_updated"] = False
     state["display_text"] = content
     return state
 
