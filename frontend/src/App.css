@@ -154,7 +154,344 @@ body {
   will-change: margin-left;
 }
 
-/* Input Panel */
+/* Landing Page */
+.landing-page {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  background: linear-gradient(135deg, #f0f4f8 0%, #e6eef5 100%);
+}
+
+/* Hero Section */
+.hero-section {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.hero-content {
+  margin-bottom: 2.5rem;
+}
+
+.hero-title {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-subtitle {
+  font-size: 1.25rem;
+  color: #4a5568;
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+.hero-cta {
+  font-size: 1rem;
+  color: #718096;
+  font-weight: 500;
+}
+
+/* Landing Input Form */
+.landing-input-form {
+  background: white;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.15);
+  margin-bottom: 2rem;
+}
+
+.landing-textarea {
+  width: 100%;
+  padding: 1.25rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 1.05rem;
+  font-family: inherit;
+  resize: vertical;
+  margin-bottom: 1rem;
+  transition: border-color 0.2s;
+}
+
+.landing-textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.landing-generate-button {
+  width: 100%;
+  padding: 1.25rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+}
+
+.landing-generate-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.landing-generate-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Example Prompts */
+.example-prompts-section {
+  margin-top: 1.5rem;
+}
+
+.example-prompts-label {
+  font-size: 0.95rem;
+  color: #718096;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.example-prompts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.example-prompt-card {
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: left;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #2d3748;
+}
+
+.example-prompt-card:hover:not(:disabled) {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #667eea10 0%, #764ba210 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.example-prompt-card:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.example-icon {
+  font-size: 1.5rem;
+}
+
+.example-title {
+  flex: 1;
+}
+
+/* Features Section */
+.features-section {
+  background: white;
+  padding: 3rem 2rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.features-heading {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin-bottom: 2.5rem;
+}
+
+.features-grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+}
+
+.feature-card {
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.feature-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.feature-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 0.5rem;
+}
+
+.feature-description {
+  font-size: 0.95rem;
+  color: #718096;
+  line-height: 1.6;
+}
+
+/* Showcase Section - Carousel */
+.showcase-section {
+  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+  padding: 3rem 2rem 4rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.showcase-heading {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin-bottom: 2.5rem;
+}
+
+.showcase-carousel {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.carousel-container {
+  overflow: hidden;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  background: white;
+}
+
+.carousel-track {
+  display: flex;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.carousel-slide {
+  min-width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.carousel-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+  max-height: 600px;
+}
+
+.carousel-caption {
+  padding: 1.5rem;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2d3748;
+  background: linear-gradient(135deg, #f7fafc 0%, #ffffff 100%);
+  border-top: 2px solid #e2e8f0;
+}
+
+/* Carousel Navigation Dots */
+.carousel-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+.carousel-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #cbd5e0;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.3s;
+  padding: 0;
+}
+
+.carousel-dot:hover {
+  border-color: #667eea;
+  transform: scale(1.2);
+}
+
+.carousel-dot.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: #667eea;
+  transform: scale(1.3);
+}
+
+/* How It Works Section */
+.how-it-works-section {
+  background: white;
+  padding: 3rem 2rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.how-it-works-heading {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin-bottom: 2.5rem;
+}
+
+.steps-grid {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+}
+
+.step-card {
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.step-number {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.step-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 0.75rem;
+}
+
+.step-description {
+  font-size: 0.95rem;
+  color: #718096;
+  line-height: 1.6;
+}
+
+/* Old Input Panel - Keep for backwards compatibility */
 .input-panel {
   position: absolute;
   top: 50%;

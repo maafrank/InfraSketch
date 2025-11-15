@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
-import InputPanel from './components/InputPanel';
+import LandingPage from './components/LandingPage';
+import LoadingAnimation from './components/LoadingAnimation';
 import DiagramCanvas from './components/DiagramCanvas';
 import ChatPanel from './components/ChatPanel';
 import DesignDocPanel from './components/DesignDocPanel';
@@ -431,22 +432,25 @@ Feel free to explore the diagram and ask me anything!`;
             marginLeft: designDocOpen ? `${designDocWidth}px` : '0px'
           }}
         >
-          {!diagram && <InputPanel onGenerate={handleGenerate} loading={loading} />}
-          <DiagramCanvas
-            diagram={diagram}
-            loading={loading}
-            onNodeClick={handleNodeClick}
-            onUpdateNode={handleUpdateNode}
-            onDeleteNode={handleDeleteNode}
-            onAddEdge={handleAddEdge}
-            onDeleteEdge={handleDeleteEdge}
-            onReactFlowInit={setReactFlowInstance}
-            onOpenNodePalette={handleOpenNodePalette}
-            designDocOpen={designDocOpen}
-            designDocWidth={designDocWidth}
-            chatPanelOpen={!!diagram}
-            chatPanelWidth={chatPanelWidth}
-          />
+          {!diagram && !loading && <LandingPage onGenerate={handleGenerate} loading={loading} />}
+          {loading && <LoadingAnimation />}
+          {diagram && (
+            <DiagramCanvas
+              diagram={diagram}
+              loading={loading}
+              onNodeClick={handleNodeClick}
+              onUpdateNode={handleUpdateNode}
+              onDeleteNode={handleDeleteNode}
+              onAddEdge={handleAddEdge}
+              onDeleteEdge={handleDeleteEdge}
+              onReactFlowInit={setReactFlowInstance}
+              onOpenNodePalette={handleOpenNodePalette}
+              designDocOpen={designDocOpen}
+              designDocWidth={designDocWidth}
+              chatPanelOpen={!!diagram}
+              chatPanelWidth={chatPanelWidth}
+            />
+          )}
         </div>
 
         {diagram && (
