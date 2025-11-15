@@ -29,11 +29,15 @@ export default function ChatPanel({
     const handleMouseMove = (e) => {
       if (!isResizing) return;
 
+      // Prevent text selection during resize
+      e.preventDefault();
+
       // Calculate new width based on distance from right edge
       const newWidth = window.innerWidth - e.clientX;
 
       // Set min/max constraints
-      if (newWidth >= 300 && newWidth <= 1200) {
+      // NOTE: To change minimum panel width, update this value AND the min-width in App.css (.chat-panel)
+      if (newWidth >= 150 && newWidth <= 1200) {
         pendingWidth = newWidth;
 
         // Throttle updates using requestAnimationFrame for smooth 60fps
@@ -51,6 +55,8 @@ export default function ChatPanel({
 
     const handleMouseUp = () => {
       setIsResizing(false);
+      // Re-enable text selection
+      document.body.style.userSelect = '';
 
       // Cancel any pending animation frame
       if (rafId) {
@@ -60,6 +66,8 @@ export default function ChatPanel({
     };
 
     if (isResizing) {
+      // Disable text selection on body during resize
+      document.body.style.userSelect = 'none';
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
     }
@@ -67,6 +75,8 @@ export default function ChatPanel({
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      // Ensure text selection is re-enabled on cleanup
+      document.body.style.userSelect = '';
 
       // Cancel any pending animation frame on cleanup
       if (rafId) {

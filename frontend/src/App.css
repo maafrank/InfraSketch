@@ -622,6 +622,7 @@ body {
 }
 
 /* Chat Panel */
+/* NOTE: To change minimum panel width, update min-width here AND in ChatPanel.jsx handleMouseMove */
 .chat-panel {
   background: #fefefe;
   border-left: 1px solid #e2e8f0;
@@ -629,7 +630,7 @@ body {
   flex-direction: column;
   box-shadow: -2px 0 8px rgba(102, 126, 234, 0.1);
   position: relative;
-  min-width: 300px;
+  min-width: 150px;
   max-width: 1200px;
   will-change: width;
   transition: none;
@@ -904,6 +905,7 @@ body {
 }
 
 /* Design Doc Panel */
+/* NOTE: To change minimum panel width, update min-width here AND in DesignDocPanel.jsx handleMouseMove */
 .design-doc-panel {
   background: #fefefe;
   border-right: 1px solid #e2e8f0;
@@ -914,7 +916,7 @@ body {
   left: 0;
   top: 108px;
   bottom: 0;
-  min-width: 300px;
+  min-width: 150px;
   max-width: 1200px;
   z-index: 1000;
   overflow: visible;
