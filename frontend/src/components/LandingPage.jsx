@@ -50,7 +50,27 @@ const SCREENSHOTS = [
   {
     src: "/GeneratedGraph.png",
     alt: "Generated system architecture diagram",
-    caption: "Auto-generated architecture diagrams"
+    caption: "AI-generated architecture diagrams"
+  },
+  {
+    src: "/FullApp_DiagramWithChat.png",
+    alt: "Full application with diagram and chat",
+    caption: "Complete workspace with interactive chat"
+  },
+  {
+    src: "/FullApp_VideoWorkflowChat.png",
+    alt: "Video workflow discussion",
+    caption: "Deep-dive into system workflows"
+  },
+  {
+    src: "/FullApp_DesignDocumentOpen.png",
+    alt: "Design document panel",
+    caption: "Auto-generated design documentation"
+  },
+  {
+    src: "/FullApp_DesignDocWithChat.png",
+    alt: "Design document with chat",
+    caption: "Collaborate on your design docs"
   },
   {
     src: "/Chat_InteractWithGraph.png",
@@ -64,8 +84,8 @@ const SCREENSHOTS = [
   },
   {
     src: "/GenerateSystemDesignDocument.png",
-    alt: "Auto-generated design document",
-    caption: "Comprehensive design docs"
+    alt: "Design document editor",
+    caption: "Edit and export design documents"
   }
 ];
 
