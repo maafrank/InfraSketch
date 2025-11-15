@@ -103,7 +103,8 @@ export default function DesignDocPanel({
       const newWidth = e.clientX;
 
       // Set min/max constraints
-      if (newWidth >= 300 && newWidth <= 1200) {
+      // NOTE: To change minimum panel width, update this value AND the min-width in App.css (.design-doc-panel)
+      if (newWidth >= 150 && newWidth <= 1200) {
         pendingWidth = newWidth;
 
         // Throttle updates using requestAnimationFrame for smooth 60fps
