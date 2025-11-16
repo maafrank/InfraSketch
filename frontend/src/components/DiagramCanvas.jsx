@@ -255,6 +255,8 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
         onPaneClick={handlePaneClick}
         nodeTypes={nodeTypes}
         fitView
+        minZoom={0.1}
+        maxZoom={2}
         edgesReconnectable={true}
         edgesUpdatable={true}
         edgesFocusable={true}
