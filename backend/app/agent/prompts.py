@@ -164,35 +164,59 @@ If the change is too complex for tools (e.g., "redesign entire architecture"), o
   "edges": [...all edges...]
 }}
 
-- If the user asks to modify the **design document**:
+**TOOL-BASED DESIGN DOC EDITING (Recommended)**
 
-  **When to make the edit yourself (Option 1):**
-  - User explicitly asks you to make a change ("change X to Y", "update the section", "make the change yourself")
-  - Small, targeted edits like changing a name, adding a bullet point, fixing a typo
-  - The user is asking for your help to modify something specific
+When modifying the design document, use section-based editing tools for precision:
 
-  **Format for making edits:**
-  Output the updated design document using this format:
+{{
+  "doc_tools": [
+    {{"action": "update_section", "section_header": "### Redis Cache", "find_text": "**Technology**: Redis 7.0", "replace_text": "**Technology**: Memcached 1.6"}},
+    {{"action": "replace_section", "section_header": "## Executive Summary", "new_content": "..."}},
+    {{"action": "append_section", "section_header": "## Security Considerations", "content": "\\n- New bullet point"}},
+    {{"action": "delete_section", "section_header": "### Obsolete Component"}},
+    {{"action": "add_section", "section_header": "### Load Balancer", "content": "...", "insert_after": "## Component Details"}}
+  ],
+  "explanation": "What you changed and why"
+}}
 
-  DESIGN_DOC_UPDATE:
-  ```markdown
-  [Your updated markdown content here - COMPLETE document with ALL sections]
-  ```
+Available design doc actions:
+- **update_section**: Find and replace text within a specific section
+  - Required: section_header (exact match with # symbols), find_text (exact match), replace_text
+  - Best for: Changing a technology name, updating a single bullet point, fixing typos
+- **replace_section**: Replace entire section content (header stays)
+  - Required: section_header (exact match with # symbols), new_content
+  - Best for: Rewriting a section, substantial content changes
+- **append_section**: Add content to end of section
+  - Required: section_header (exact match with # symbols), content
+  - Best for: Adding bullet points, appending paragraphs
+- **delete_section**: Remove entire section including header
+  - Required: section_header (exact match with # symbols)
+  - Best for: Removing obsolete components, deleting unused sections
+- **add_section**: Insert new section at specific location
+  - Required: section_header (with # symbols), content
+  - Optional: insert_after (section header to insert after)
+  - Best for: Adding new components, inserting new major sections
 
-  **CRITICAL INSTRUCTIONS FOR EDITS:**
-  - **PRESERVE UNCHANGED CONTENT EXACTLY**: Copy all sections that aren't being modified word-for-word from the current design doc
-  - **ONLY modify the specific parts requested**: If user asks to change one paragraph, ONLY change that paragraph
-  - **DO NOT rewrite, rephrase, or "improve" unchanged sections** - this is extremely important!
-  - **Think of it as copy-paste with surgical edits**: Take the existing document, find the part to change, change ONLY that part, keep everything else identical
-  - For example: If user says "change Redis to Memcached in the caching section", only change that one word in that one section - leave all other sections untouched
-  - Avoid the temptation to improve or enhance other parts of the document while making the requested edit
+**Important design doc editing rules:**
+- Section headers MUST match EXACTLY including # symbols (e.g., "### Redis Cache")
+- For update_section, find_text must match character-for-character
+- If unsure about exact formatting, use replace_section instead of update_section
+- Multiple edits to the same section can be combined
+- Provide clear explanation of what changed
 
-  **When to just describe changes (Option 2):**
-  - User asks for suggestions or advice ("what should I add?", "how can I improve?")
-  - User is brainstorming and wants your input before deciding
-  - The change requires subjective judgment or user preferences
+**FULL DESIGN DOC REPLACEMENT FALLBACK**
 
-  Example of suggesting: "I would recommend adding a new section on Security Considerations between Infrastructure and Scalability sections. Would you like me to add that for you?"
+If the change is too complex for tools (e.g., "redesign entire document structure"), use the legacy format:
+
+DESIGN_DOC_UPDATE:
+```markdown
+[Complete document with all sections]
+```
+
+**When to suggest vs. edit:**
+- User asks to make a change ("change X to Y") → Use tools to edit
+- User asks for advice ("what should I add?") → Suggest changes in plain text
+- User is brainstorming → Respond with suggestions, ask if they want you to make the edit
 
 - If just answering a question, respond naturally in plain text
 - You can update the diagram, design doc, both, or neither based on the user's request
@@ -270,7 +294,7 @@ Current Design Document (Full Content):
 """
 
 
-DESIGN_DOC_PROMPT = """You are an expert technical writer and system architect. Generate a comprehensive system design document based on the architecture diagram provided.
+DESIGN_DOC_PROMPT = """You are an expert technical writer. Generate a concise system design document based on the architecture diagram.
 
 System Architecture:
 {diagram_context}
@@ -278,103 +302,70 @@ System Architecture:
 Conversation History (for additional context):
 {conversation_history}
 
-Generate a detailed technical design document in Markdown format with the following structure:
+Generate a technical design document in Markdown with these sections:
 
 # System Design Document
 
 ## Executive Summary
-Provide a 2-3 paragraph high-level overview of the system, its purpose, and key architectural decisions.
+1-2 paragraphs: system purpose and key architectural decisions.
 
 ## System Overview
-- Purpose and goals
-- Target scale and performance requirements
-- Key use cases
+- Purpose and goals (2-3 bullets)
+- Target scale (1-2 bullets)
 
 ## Architecture Diagram
 ![System Architecture](diagram.png)
 
 ## Component Details
-For each component in the system, provide:
+For each component:
 ### [Component Name]
-- **Purpose**: What this component does
-- **Technology**: (use technology from metadata)
-- **Inputs**: (list inputs)
-- **Outputs**: (list outputs)
-- **Rationale**: Why this component/technology was chosen
-- **Scalability Considerations**: How it scales
-- **Potential Bottlenecks**: Known limitations
+- **Purpose**: One sentence
+- **Technology**: From diagram metadata
+- **Rationale**: Why chosen (one sentence)
+- **Scaling**: How it scales (one sentence)
 
 ## Data Flow
-Describe the request flow through the system:
-- Critical paths
-- Data transformations
-- Communication patterns between components
-
-## Infrastructure Requirements
-- Compute resources needed
-- Storage requirements
-- Network considerations
-- Estimated costs (if applicable)
+Describe request flow in 2-3 paragraphs. Mention key data paths and transformations.
 
 ## Scalability & Reliability
-- Horizontal vs vertical scaling strategies
-- Failure modes and mitigation strategies
-- High availability approach
-- Disaster recovery considerations
-- Monitoring and alerting strategy
+- Scaling approach (2-3 bullets)
+- Key failure modes (2-3 bullets)
+- Monitoring strategy (1-2 bullets)
 
 ## Security Considerations
-- Authentication and authorization approach
-- Data encryption (at rest and in transit)
-- Network security (firewalls, VPCs, etc.)
-- Secrets management
-- Compliance considerations
+- Authentication/authorization (1-2 bullets)
+- Data encryption (1 bullet)
+- Network security (1 bullet)
 
 ## Trade-offs & Alternatives
-- Key architectural decisions made
-- Why current approach was chosen vs alternatives
-- Known limitations of current design
+For 2-3 key decisions, explain:
+- What was chosen
+- What was considered
+- Why this approach
 
 ## Implementation Phases
-Suggested order of implementation:
-1. Phase 1: Core infrastructure
-2. Phase 2: Essential features
-3. Phase 3: Optimization and scaling
+1. Phase 1: Core components
+2. Phase 2: Additional features
+3. Phase 3: Optimization
 
-## Future Enhancements
-- Potential improvements
-- Evolution path as system grows
-- Features deferred to later phases
+CRITICAL CONSTRAINTS:
+- Keep CONCISE - aim for 15-25KB total (not 50KB+)
+- NO code examples or skeleton code
+- NO deep technical implementation details
+- Use bullet points, not long paragraphs
+- Each component section: ~100-150 words maximum
+- Focus on WHAT and WHY, not HOW to implement
 
-## Appendix
-- Glossary of terms
-- References and additional resources
+FORMATTING:
+- Use ## for sections, ### for components
+- Bullet lists (-) for details
+- Bold (**) for field labels
+- NO tables, NO code blocks
+- Keep paragraphs under 3 sentences
 
-FORMATTING RULES:
-- Use ## for major sections (the 11 sections listed above)
-- Use ### only for component names under "Component Details"
-- Use bullet lists (-) for all subsections and details
-- Bold (**) for field labels like **Purpose**, **Technology**, **Inputs**, etc.
-- NO tables (they are harder to edit in the TipTap editor)
-- Code blocks only for actual code/config examples, NOT for general text
-- Keep paragraphs under 4 sentences for readability
-- Use specific numbers wherever possible (e.g., "handles 10,000 requests/sec" not "high throughput")
-
-QUALITY CHECKLIST (verify before returning):
-✓ Every component from the diagram is documented in Component Details section
-✓ Data Flow section mentions each connection/edge shown in the diagram
-✓ At least 3 specific failure modes identified in Scalability & Reliability section
-✓ Security section addresses BOTH authentication AND authorization explicitly
-✓ Trade-offs section explains at least 2 architectural decisions with specific alternatives considered
-✓ No generic phrases like "industry standard" or "well-known technology" without specifics
-✓ Implementation phases are realistic and actionable (not just "build everything")
-✓ Include specific numbers: latency targets, throughput estimates, storage sizes where relevant
-✓ Each component's **Rationale** explains WHY it was chosen, not just WHAT it does
-
-IMPORTANT:
-- Write in professional technical documentation style
-- Be specific and detailed, not generic
-- Use the actual component names and technologies from the diagram
-- Keep markdown formatting clean and consistent
-- Make it comprehensive but focused on the actual system design provided
+SPEED OPTIMIZATIONS:
+- Document every component but keep descriptions brief
+- Prioritize clarity over comprehensiveness
+- Avoid repetition between sections
+- Use specific component/technology names from diagram
 """
