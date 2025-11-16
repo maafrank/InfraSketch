@@ -173,7 +173,7 @@ def chat_node(state: AgentState) -> AgentState:
             from app.agent.tools import ToolInvocation
             from app.agent.tool_executor import execute_tool_invocation
 
-            print(f"Executing {len(tool_invocation_json['tools'])} tool(s)...")
+            print(f"Executing {len(tool_invocation_json['tools'])} diagram tool(s)...")
 
             # Parse into ToolInvocation object
             tool_invocation = ToolInvocation(**tool_invocation_json)
@@ -190,13 +190,70 @@ def chat_node(state: AgentState) -> AgentState:
             state["display_text"] = tool_invocation.explanation + "\n\n*(Graph has been updated)*"
             state["output"] = json.dumps(state["diagram"])
 
-            print(f"✓ Tools executed successfully")
+            print(f"✓ Diagram tools executed successfully")
             print(f"==========================\n")
             return state
 
         except Exception as e:
-            print(f"✗ Tool execution failed: {e}")
+            print(f"✗ Diagram tool execution failed: {e}")
             print(f"Falling back to legacy JSON parsing...")
+            # Fall through to legacy parsing below
+
+    # PRIORITY 1.5: Try to parse as design doc tool invocation
+    doc_tool_invocation_json = None
+    try:
+        # Try direct parsing
+        parsed = json.loads(content)
+        if "doc_tools" in parsed and isinstance(parsed["doc_tools"], list):
+            doc_tool_invocation_json = parsed
+            print(f"✓ Detected design doc tool invocation (direct JSON)")
+    except json.JSONDecodeError:
+        # Try extracting from code blocks
+        if "```json" in content or "```" in content:
+            try:
+                if "```json" in content:
+                    json_str = content.split("```json")[1].split("```")[0].strip()
+                else:
+                    json_str = content.split("```")[1].split("```")[0].strip()
+
+                parsed = json.loads(json_str)
+                if "doc_tools" in parsed and isinstance(parsed["doc_tools"], list):
+                    doc_tool_invocation_json = parsed
+                    print(f"✓ Detected design doc tool invocation (from code block)")
+            except:
+                pass
+
+    # If we detected a design doc tool invocation, execute it
+    if doc_tool_invocation_json:
+        try:
+            from app.agent.doc_tools import DesignDocToolInvocation
+            from app.agent.doc_tool_executor import execute_doc_tool_invocation
+
+            print(f"Executing {len(doc_tool_invocation_json['doc_tools'])} design doc tool(s)...")
+
+            # Parse into DesignDocToolInvocation object
+            doc_tool_invocation = DesignDocToolInvocation(**doc_tool_invocation_json)
+
+            # Execute design doc tools using session_id from state
+            updated_design_doc = execute_doc_tool_invocation(
+                state["session_id"],
+                doc_tool_invocation
+            )
+
+            # Update state with new design doc
+            state["design_doc"] = updated_design_doc
+            state["design_doc_updated"] = True
+            state["diagram_updated"] = False  # No diagram change
+            state["display_text"] = doc_tool_invocation.explanation + "\n\n*(Design document has been updated)*"
+            state["output"] = ""  # No diagram output
+
+            print(f"✓ Design doc tools executed successfully")
+            print(f"==========================\n")
+            return state
+
+        except Exception as e:
+            print(f"✗ Design doc tool execution failed: {e}")
+            print(f"Falling back to legacy design doc parsing...")
             # Fall through to legacy parsing below
 
     # Check if response is a diagram update (JSON)
