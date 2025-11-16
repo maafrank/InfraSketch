@@ -240,7 +240,8 @@ The backend exposes these REST endpoints (all under `/api` prefix):
     "messages": List[Message],
     "current_node": Optional[str],
     "design_doc": Optional[str],  # Generated markdown content
-    "design_doc_status": DesignDocStatus  # Generation status tracking
+    "design_doc_status": DesignDocStatus,  # Generation status tracking
+    "model": str  # Model used for this session (e.g., "claude-haiku-4-5-20251001")
 }
 ```
 
@@ -281,12 +282,29 @@ The backend exposes these REST endpoints (all under `/api` prefix):
 
 ## Model Configuration
 
-Current model: **Claude Haiku 4.5** (`claude-haiku-4-5-20251001`)
-- Cost: $1 input / $5 output per million tokens
-- Speed: 2x faster than Sonnet 4
-- Max output: 64k tokens (configured to 32k)
-- To upgrade: Change model name in `backend/app/agent/graph.py` → `create_llm()`
-- Available models: claude-4-1-sonnet-20250514 (more expensive but better quality)
+Users can now select their preferred AI model at diagram generation time via a dropdown in the input panel.
+
+**Available Models:**
+- **Claude Haiku 4.5** (`claude-haiku-4-5`) - Default
+  - Alias automatically points to latest Haiku version
+  - Cost: $1 input / $5 output per million tokens
+  - Speed: 2x faster than Sonnet 4.5
+  - Max output: 64k tokens (configured to 32k)
+  - Best for: Most use cases, fast iteration
+
+- **Claude Sonnet 4.5** (`claude-sonnet-4-5`)
+  - Alias automatically points to latest Sonnet version
+  - Cost: ~$3 input / $15 output per million tokens (3x more expensive)
+  - Quality: Superior reasoning and architectural insights
+  - Max output: 64k tokens (configured to 32k)
+  - Best for: Complex systems requiring nuanced design decisions
+
+**Implementation Details:**
+- Model choice is stored in session state (persists across chat and design doc generation)
+- Selected model is used for all session operations: diagram generation, chat, and design doc creation
+- Uses model aliases (`claude-haiku-4-5`, `claude-sonnet-4-5`) which auto-update to latest versions
+- Default: Haiku 4.5 if no model specified
+- Model parameter flows: Frontend → API → SessionState → Agent/DocGenerator
 
 ## Session Management
 

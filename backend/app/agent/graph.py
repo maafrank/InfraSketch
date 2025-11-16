@@ -25,22 +25,23 @@ class AgentState(TypedDict):
     display_text: str  # Text to show in chat (without JSON)
     design_doc: str | None  # Current design document content (markdown)
     design_doc_updated: bool  # Whether design doc was updated in this interaction
+    model: str  # Model to use for this invocation
 
 
-def create_llm():
-    """Create Claude LLM instance."""
+def create_llm(model_name: str = "claude-haiku-4-5-20251001"):
+    """Create Claude LLM instance with specified model."""
     api_key = get_anthropic_api_key()
     return ChatAnthropic(
-        model="claude-haiku-4-5-20251001",
+        model=model_name,
         api_key=api_key,
         temperature=0.7,
-        max_tokens=32768,  # Haiku 4.5 supports up to 64k output tokens
+        max_tokens=32768,  # Supports up to 64k output tokens
     )
 
 
 def generate_diagram_node(state: AgentState) -> AgentState:
     """Generate initial diagram from user prompt."""
-    llm = create_llm()
+    llm = create_llm(state.get("model", "claude-haiku-4-5-20251001"))
 
     messages = [
         SystemMessage(content=SYSTEM_PROMPT),
@@ -96,7 +97,7 @@ def generate_diagram_node(state: AgentState) -> AgentState:
 
 def chat_node(state: AgentState) -> AgentState:
     """Handle conversation about diagram/node."""
-    llm = create_llm()
+    llm = create_llm(state.get("model", "claude-haiku-4-5-20251001"))
 
     # Build context
     diagram_context = get_diagram_context(state["diagram"] or {})

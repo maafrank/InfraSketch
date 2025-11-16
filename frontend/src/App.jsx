@@ -40,10 +40,10 @@ function App() {
   // Chat panel state
   const [chatPanelWidth, setChatPanelWidth] = useState(400);
 
-  const handleGenerate = async (prompt) => {
+  const handleGenerate = async (prompt, model) => {
     setLoading(true);
     try {
-      const response = await generateDiagram(prompt);
+      const response = await generateDiagram(prompt, model);
       console.log('API Response:', response);
       console.log('Diagram:', response.diagram);
       console.log('Nodes:', response.diagram?.nodes);

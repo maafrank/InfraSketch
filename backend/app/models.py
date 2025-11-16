@@ -56,10 +56,12 @@ class SessionState(BaseModel):
     current_node: Optional[str] = None
     design_doc: Optional[str] = None  # Markdown content for design document
     design_doc_status: DesignDocStatus = Field(default_factory=DesignDocStatus)
+    model: str = "claude-haiku-4-5-20251001"  # Model used for this session
 
 
 class GenerateRequest(BaseModel):
     prompt: str
+    model: Optional[str] = None  # Model to use (defaults to Haiku if not specified)
 
 
 class GenerateResponse(BaseModel):
