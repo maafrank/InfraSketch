@@ -8,29 +8,30 @@ from app.agent.prompts import DESIGN_DOC_PROMPT, get_diagram_context
 from app.utils.secrets import get_anthropic_api_key
 
 
-def create_doc_llm():
+def create_doc_llm(model_name: str = "claude-haiku-4-5-20251001"):
     """Create Claude LLM instance for document generation."""
     api_key = get_anthropic_api_key()
     return ChatAnthropic(
-        model="claude-haiku-4-5-20251001",
+        model=model_name,
         api_key=api_key,
         temperature=0.7,
-        max_tokens=32768,  # Haiku 4.5 supports up to 64k output tokens
+        max_tokens=32768,  # Supports up to 64k output tokens
     )
 
 
-def generate_design_document(diagram: dict, conversation_history: list[dict]) -> str:
+def generate_design_document(diagram: dict, conversation_history: list[dict], model: str = "claude-haiku-4-5-20251001") -> str:
     """
     Generate a comprehensive design document from a system diagram.
 
     Args:
         diagram: The system diagram (nodes and edges)
         conversation_history: List of conversation messages for context
+        model: The model to use for generation (defaults to Haiku)
 
     Returns:
         Markdown formatted design document
     """
-    llm = create_doc_llm()
+    llm = create_doc_llm(model)
 
     # Format diagram context
     diagram_context = get_diagram_context(diagram)

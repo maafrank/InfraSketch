@@ -42,6 +42,9 @@ async def generate_diagram(request: GenerateRequest, http_request: Request):
     user_ip = http_request.client.host if http_request.client else None
 
     try:
+        # Use specified model or default to Haiku (alias auto-updates to latest)
+        model = request.model or "claude-haiku-4-5"
+
         # Run agent
         result = agent_graph.invoke({
             "intent": "generate",
@@ -51,14 +54,15 @@ async def generate_diagram(request: GenerateRequest, http_request: Request):
             "conversation_history": [],
             "output": "",
             "diagram_updated": False,
+            "model": model,
         })
 
         # Parse diagram
         diagram_dict = json.loads(result["output"])
         diagram = Diagram(**diagram_dict)
 
-        # Create session
-        session_id = session_manager.create_session(diagram)
+        # Create session with model
+        session_id = session_manager.create_session(diagram, model=model)
 
         # Add initial message
         session_manager.add_message(
@@ -113,7 +117,7 @@ async def chat(request: ChatRequest, http_request: Request):
             for msg in session.messages
         ]
 
-        # Run agent
+        # Run agent with session's model
         result = agent_graph.invoke({
             "intent": "chat",
             "user_message": request.message,
@@ -125,6 +129,7 @@ async def chat(request: ChatRequest, http_request: Request):
             "display_text": "",
             "design_doc": session.design_doc,
             "design_doc_updated": False,
+            "model": session.model,
         })
 
         # Add user message to history
@@ -361,10 +366,11 @@ async def export_design_doc(session_id: str, request: ExportRequest, format: str
         print(f"Edges: {len(session.diagram.edges)}")
         print(f"Has custom diagram image: {request.diagram_image is not None}")
 
-        # Generate markdown document using LLM
+        # Generate markdown document using LLM with session's model
         markdown_content = generate_design_document(
             session.diagram.model_dump(),
-            conversation_history
+            conversation_history,
+            session.model
         )
 
         # Use provided diagram image or generate one
@@ -467,10 +473,11 @@ def _generate_design_doc_background(session_id: str, user_ip: str):
         print(f"Nodes: {len(session.diagram.nodes)}")
         print(f"Edges: {len(session.diagram.edges)}")
 
-        # Generate markdown document using LLM
+        # Generate markdown document using LLM with session's model
         markdown_content = generate_design_document(
             session.diagram.model_dump(),
-            conversation_history
+            conversation_history,
+            session.model
         )
 
         # Store in session state

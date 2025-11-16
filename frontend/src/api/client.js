@@ -11,8 +11,8 @@ const client = axios.create({
   },
 });
 
-export const generateDiagram = async (prompt) => {
-  const response = await client.post('/generate', { prompt });
+export const generateDiagram = async (prompt, model = null) => {
+  const response = await client.post('/generate', { prompt, model });
   return response.data;
 };
 

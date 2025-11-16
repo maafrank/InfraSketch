@@ -24,14 +24,15 @@ class SessionManager:
         # Track session ownership by client identifier
         self.session_owners: Dict[str, str] = {}  # {session_id: client_id}
 
-    def create_session(self, diagram: Diagram, client_id: Optional[str] = None) -> str:
+    def create_session(self, diagram: Diagram, client_id: Optional[str] = None, model: str = "claude-haiku-4-5-20251001") -> str:
         """Create a new session with initial diagram."""
         session_id = str(uuid.uuid4())
         session = SessionState(
             session_id=session_id,
             diagram=diagram,
             messages=[],
-            current_node=None
+            current_node=None,
+            model=model
         )
 
         # Save to appropriate storage

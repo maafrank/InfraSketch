@@ -91,6 +91,7 @@ const SCREENSHOTS = [
 
 export default function LandingPage({ onGenerate, loading }) {
   const [prompt, setPrompt] = useState('');
+  const [model, setModel] = useState('claude-haiku-4-5'); // Default to Haiku (always latest)
   const [currentScreenshot, setCurrentScreenshot] = useState(0);
 
   // Auto-rotate screenshots every 4 seconds
@@ -105,7 +106,7 @@ export default function LandingPage({ onGenerate, loading }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (prompt.trim()) {
-      onGenerate(prompt);
+      onGenerate(prompt, model);
     }
   };
 
@@ -150,6 +151,29 @@ export default function LandingPage({ onGenerate, loading }) {
           >
             {loading ? 'Generating...' : 'Generate System Design'}
           </button>
+
+          {/* Model selector below button */}
+          <div style={{ marginTop: '12px', marginBottom: '-20px', textAlign: 'center' }}>
+            <select
+              id="model-select-landing"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              disabled={loading}
+              style={{
+                padding: '6px 10px',
+                fontSize: '13px',
+                borderRadius: '6px',
+                border: '1px solid #ddd',
+                backgroundColor: 'white',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                outline: 'none',
+                color: '#666'
+              }}
+            >
+              <option value="claude-haiku-4-5">Haiku 4.5</option>
+              <option value="claude-sonnet-4-5">Sonnet 4.5</option>
+            </select>
+          </div>
         </form>
 
         {/* Example Prompts */}
