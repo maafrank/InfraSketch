@@ -28,9 +28,22 @@ export default function DesignDocPanel({
 }) {
   const [width, setWidth] = useState(400); // Default width
   const [isResizing, setIsResizing] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saving', 'saved', 'error'
   const [saveTimer, setSaveTimer] = useState(null);
   const [exportLoading, setExportLoading] = useState(false);
+
+  // Detect mobile viewport
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Initialize Tiptap editor
   const editor = useEditor({
@@ -270,11 +283,16 @@ export default function DesignDocPanel({
   };
 
   return (
-    <div className="design-doc-panel" style={{ width: `${width}px` }}>
-      <div
-        className="resize-handle-right"
-        onMouseDown={handleResizeStart}
-      />
+    <div
+      className={`design-doc-panel ${isMobile ? 'mobile-modal' : ''}`}
+      style={isMobile ? {} : { width: `${width}px` }}
+    >
+      {!isMobile && (
+        <div
+          className="resize-handle-right"
+          onMouseDown={handleResizeStart}
+        />
+      )}
       <div className="design-doc-header">
         <div>
           <h3>Design Document</h3>

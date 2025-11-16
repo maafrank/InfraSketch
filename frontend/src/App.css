@@ -1564,3 +1564,396 @@ body {
   cursor: not-allowed;
   transform: none;
 }
+
+/* ========================================
+   MOBILE RESPONSIVE STYLES
+   ======================================== */
+
+/* Tablet: 768px - 1024px */
+@media (max-width: 1024px) {
+  .app-header {
+    padding: 1rem 1.5rem;
+  }
+
+  .app-logo {
+    height: 50px;
+  }
+
+  .app-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .app-header p {
+    font-size: 0.85rem;
+  }
+
+  .header-buttons {
+    gap: 0.75rem;
+  }
+
+  .add-node-button,
+  .new-design-button,
+  .create-design-doc-button {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  /* Reduce side panel widths on tablet */
+  .chat-panel {
+    min-width: 250px;
+    max-width: 350px;
+  }
+
+  .design-doc-panel {
+    min-width: 250px;
+    max-width: 350px;
+  }
+}
+
+/* Mobile: < 768px */
+@media (max-width: 768px) {
+  /* Header - Stack vertically */
+  .app-header {
+    flex-direction: column;
+    padding: 0.75rem 1rem;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+
+  .title-with-logo {
+    gap: 0.75rem;
+  }
+
+  .app-logo {
+    height: 40px;
+  }
+
+  .app-header h1 {
+    font-size: 1.25rem;
+    margin-bottom: 0.1rem;
+  }
+
+  .app-header p {
+    font-size: 0.75rem;
+  }
+
+  .header-buttons {
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .add-node-button,
+  .new-design-button,
+  .create-design-doc-button,
+  .export-button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    flex: 1;
+    white-space: nowrap;
+  }
+
+  /* Landing Page - Mobile optimized */
+  .hero-section {
+    padding: 2rem 1rem;
+  }
+
+  .hero-title {
+    font-size: 2rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .hero-cta {
+    font-size: 0.9rem;
+  }
+
+  .landing-input-form {
+    padding: 1.5rem;
+  }
+
+  .landing-textarea {
+    font-size: 1rem;
+    padding: 1rem;
+  }
+
+  .landing-generate-button {
+    padding: 1rem;
+    font-size: 1rem;
+  }
+
+  .example-prompts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .example-prompt-card {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .features-section {
+    padding: 2rem 1rem;
+  }
+
+  .features-heading {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .feature-icon {
+    font-size: 2.5rem;
+  }
+
+  .feature-title {
+    font-size: 1.1rem;
+  }
+
+  /* Hide showcase carousel on mobile (too complex) */
+  .showcase-section {
+    display: none;
+  }
+
+  .how-it-works-section {
+    padding: 2rem 1rem;
+  }
+
+  .how-it-works-heading {
+    font-size: 1.5rem;
+  }
+
+  .steps-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .step-number {
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+  }
+
+  /* Chat Panel - Mobile Modal */
+  .chat-panel.mobile-modal {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    z-index: 2000;
+    border-left: none;
+    box-shadow: none;
+  }
+
+  .chat-panel.mobile-modal .resize-handle {
+    display: none;
+  }
+
+  /* Design Doc Panel - Mobile Modal */
+  .design-doc-panel.mobile-modal {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    z-index: 2000;
+    border-right: none;
+    box-shadow: none;
+  }
+
+  .design-doc-panel.mobile-modal .resize-handle-right {
+    display: none;
+  }
+
+  /* Node Palette - Better mobile grid */
+  .node-type-grid {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 0.5rem;
+  }
+
+  .node-type-card {
+    padding: 0.5rem;
+    min-height: 44px; /* Touch-friendly */
+  }
+
+  .node-type-label {
+    font-size: 0.85rem;
+  }
+
+  /* Floating edit button - Larger touch target */
+  .floating-edit-button {
+    width: 64px;
+    height: 64px;
+    bottom: 20px;
+  }
+
+  /* Diagram controls - Hide zoom buttons on mobile (use pinch) */
+  .react-flow__controls {
+    display: none;
+  }
+
+  /* Loading animation - Mobile */
+  .loading-content {
+    padding: 2rem 1.5rem;
+  }
+
+  .loading-icon-container {
+    width: 100px;
+    height: 100px;
+  }
+
+  .loading-icon {
+    font-size: 3rem;
+  }
+
+  .loading-spinner {
+    width: 100px;
+    height: 100px;
+  }
+
+  .loading-title {
+    font-size: 1.25rem;
+  }
+
+  .loading-step {
+    font-size: 1rem;
+  }
+
+  /* Chat messages - Better mobile spacing */
+  .chat-messages {
+    padding: 0.75rem;
+  }
+
+  .message-content {
+    font-size: 0.9rem;
+    padding: 0.6rem 0.85rem;
+    max-width: 90%;
+  }
+
+  .message.user .message-content {
+    max-width: 85%;
+  }
+
+  .message.assistant .message-content {
+    max-width: 90%;
+  }
+
+  .chat-input-form {
+    padding: 0.75rem;
+  }
+
+  .chat-input-form input {
+    font-size: 1rem; /* Prevent zoom on iOS */
+  }
+
+  .chat-input-form button {
+    padding: 0.75rem 1rem;
+  }
+
+  /* Design doc editor - Mobile */
+  .design-doc-editor {
+    padding: 1rem;
+  }
+
+  .design-doc-toolbar {
+    padding: 0.5rem;
+    gap: 0.25rem;
+  }
+
+  .design-doc-toolbar button {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+    min-width: 32px;
+  }
+
+  /* Tooltips - Disable on mobile (use tap instead) */
+  .node-tooltip {
+    max-width: calc(100vw - 2rem);
+  }
+
+  /* Context menu - Better positioning */
+  .context-menu {
+    min-width: 150px;
+  }
+
+  .context-menu button {
+    padding: 12px 16px;
+    font-size: 16px; /* Touch-friendly */
+  }
+
+  /* Custom nodes - Larger touch targets */
+  .custom-node {
+    min-width: 120px;
+    padding: 0.85rem 1.25rem;
+  }
+
+  .node-label {
+    font-size: 0.9rem;
+  }
+
+  .node-type-badge {
+    font-size: 0.7rem;
+  }
+
+  .node-delete-button {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+    top: -10px;
+    right: -10px;
+  }
+}
+
+/* Extra Small Mobile: < 480px */
+@media (max-width: 480px) {
+  .app-header h1 {
+    font-size: 1.1rem;
+  }
+
+  .app-header p {
+    display: none; /* Hide subtitle on very small screens */
+  }
+
+  .header-buttons {
+    flex-wrap: wrap;
+  }
+
+  .add-node-button,
+  .new-design-button,
+  .create-design-doc-button {
+    font-size: 0.8rem;
+    padding: 0.5rem;
+  }
+
+  .hero-title {
+    font-size: 1.75rem;
+  }
+
+  .hero-subtitle {
+    font-size: 0.95rem;
+  }
+
+  .landing-input-form {
+    padding: 1rem;
+  }
+
+  .node-type-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .example-icon {
+    font-size: 1.25rem;
+  }
+}
