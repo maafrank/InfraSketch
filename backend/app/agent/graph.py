@@ -15,6 +15,7 @@ from app.utils.secrets import get_anthropic_api_key
 
 
 class AgentState(TypedDict):
+    session_id: str  # Session ID for tool execution
     intent: Literal["generate", "chat"]
     user_message: str
     diagram: dict | None
@@ -133,9 +134,70 @@ def chat_node(state: AgentState) -> AgentState:
     print(f"\n=== CHAT NODE RESPONSE ===")
     print(f"Content length: {len(content)}")
     print(f"First 200 chars: {content[:200]}")
-    print(f"Has ```json: {'```json' in content}")
-    print(f"Has ```: {'```' in content}")
-    print(f"Has opening brace: {'{' in content}")
+    has_tools = '"tools"' in content
+    has_json_block = '```json' in content
+    has_code_block = '```' in content
+    has_brace = '{' in content
+    print(f"Has 'tools': {has_tools}")
+    print(f"Has ```json: {has_json_block}")
+    print(f"Has ```: {has_code_block}")
+    print(f"Has opening brace: {has_brace}")
+
+    # PRIORITY 1: Try to parse as tool invocation (NEW APPROACH)
+    tool_invocation_json = None
+    try:
+        # Try direct parsing
+        parsed = json.loads(content)
+        if "tools" in parsed and isinstance(parsed["tools"], list):
+            tool_invocation_json = parsed
+            print(f"✓ Detected tool invocation (direct JSON)")
+    except json.JSONDecodeError:
+        # Try extracting from code blocks
+        if "```json" in content or "```" in content:
+            try:
+                if "```json" in content:
+                    json_str = content.split("```json")[1].split("```")[0].strip()
+                else:
+                    json_str = content.split("```")[1].split("```")[0].strip()
+
+                parsed = json.loads(json_str)
+                if "tools" in parsed and isinstance(parsed["tools"], list):
+                    tool_invocation_json = parsed
+                    print(f"✓ Detected tool invocation (from code block)")
+            except:
+                pass
+
+    # If we detected a tool invocation, execute it
+    if tool_invocation_json:
+        try:
+            from app.agent.tools import ToolInvocation
+            from app.agent.tool_executor import execute_tool_invocation
+
+            print(f"Executing {len(tool_invocation_json['tools'])} tool(s)...")
+
+            # Parse into ToolInvocation object
+            tool_invocation = ToolInvocation(**tool_invocation_json)
+
+            # Execute tools using session_id from state
+            updated_diagram = execute_tool_invocation(
+                state["session_id"],
+                tool_invocation
+            )
+
+            # Update state with new diagram
+            state["diagram"] = updated_diagram.model_dump()
+            state["diagram_updated"] = True
+            state["display_text"] = tool_invocation.explanation + "\n\n*(Graph has been updated)*"
+            state["output"] = json.dumps(state["diagram"])
+
+            print(f"✓ Tools executed successfully")
+            print(f"==========================\n")
+            return state
+
+        except Exception as e:
+            print(f"✗ Tool execution failed: {e}")
+            print(f"Falling back to legacy JSON parsing...")
+            # Fall through to legacy parsing below
 
     # Check if response is a diagram update (JSON)
     try:
