@@ -47,6 +47,7 @@ async def generate_diagram(request: GenerateRequest, http_request: Request):
 
         # Run agent
         result = agent_graph.invoke({
+            "session_id": "",  # Not available yet during generation, created after
             "intent": "generate",
             "user_message": request.prompt,
             "diagram": None,
@@ -119,6 +120,7 @@ async def chat(request: ChatRequest, http_request: Request):
 
         # Run agent with session's model
         result = agent_graph.invoke({
+            "session_id": request.session_id,  # NEW: Pass session_id for tool execution
             "intent": "chat",
             "user_message": request.message,
             "diagram": session.diagram.model_dump(),

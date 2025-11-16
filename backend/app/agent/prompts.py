@@ -65,7 +65,105 @@ User's question: {user_message}
 
 Instructions:
 - Answer the user's question clearly and concisely
-- If the user asks to modify the **diagram**, output the FULL UPDATED diagram in JSON format (same schema as before)
+- If the user asks to modify the **diagram**, use the TOOL-BASED approach (recommended) or FULL JSON approach (fallback)
+
+**TOOL-BASED DIAGRAM EDITING (Recommended)**
+
+When modifying the diagram, output a JSON object with tools to execute:
+
+{{
+  "tools": [
+    {{"action": "add_node", "node_id": "...", "type": "...", "label": "...", "description": "...", "technology": "...", "position": {{"x": 100, "y": 200}}}},
+    {{"action": "add_edge", "edge_id": "...", "source": "...", "target": "...", "label": "..."}},
+    {{"action": "delete_edge", "edge_id": "..."}},
+    {{"action": "update_node", "node_id": "...", "label": "...", "technology": "..."}},
+    {{"action": "delete_node", "node_id": "..."}}
+  ],
+  "explanation": "What you changed and why"
+}}
+
+Available actions:
+- **add_node**: Create a new component
+  - Required: node_id, type, label, description, technology, position
+  - Optional: inputs (list), outputs (list), notes (string)
+- **delete_node**: Remove a component and all its connections
+  - Required: node_id
+- **update_node**: Modify properties of an existing component
+  - Required: node_id
+  - Optional: label, description, technology, type, notes
+- **add_edge**: Create a connection between nodes
+  - Required: edge_id, source, target, label
+  - Optional: type ("default" or "animated")
+- **delete_edge**: Remove a connection
+  - Required: edge_id
+
+**Orchestration Patterns:**
+
+IMPORTANT: In all examples below, **REPLACE** the example node IDs with the ACTUAL node IDs from the diagram context above!
+
+1. **Adding component between existing ones**:
+   Example: "Add Redis cache between API (id: `api-server-1`) and DB (id: `postgres-db-1`)"
+   - add_node (create cache with NEW id like "redis-cache-1")
+   - add_edge (source: `api-server-1`, target: `redis-cache-1`)  ← Use EXACT existing ID
+   - add_edge (source: `redis-cache-1`, target: `postgres-db-1`)  ← Use EXACT existing ID
+   - delete_edge (the old `api-server-1` → `postgres-db-1` edge by its edge_id)
+
+2. **Adding load balancer BEFORE a node (PRESERVE downstream connections!)**:
+   Example: "Add load balancer before API (id: `api-server-1`)"
+
+   **CRITICAL**: When inserting a load balancer BEFORE a node, you must:
+   - Only delete/modify edges going INTO the node
+   - PRESERVE all edges going OUT FROM the node (they should remain unchanged!)
+
+   Steps:
+   - add_node (create LB with NEW id like "lb-api-1")
+   - delete_edge (old edge going INTO `api-server-1`, e.g., `client-to-api`)
+   - add_edge (source: previous node, target: `lb-api-1`)  ← Replace the deleted edge
+   - add_edge (source: `lb-api-1`, target: `api-server-1`)  ← LB to target
+   - **DO NOT delete** edges where `api-server-1` is the SOURCE (e.g., `api-server-1` → database)
+
+   Example of what NOT to do:
+   ❌ Don't delete `api-server-1` → `database` edge when adding LB before `api-server-1`
+   ❌ That would disconnect the API from the database!
+
+3. **Removing a component**:
+   Example: "Remove load balancer (id: `lb-main-1`)"
+   - delete_edge (all edges with source or target = `lb-main-1`)  ← Use EXACT ID from context
+   - delete_node (node_id: `lb-main-1`)  ← Use EXACT ID from context
+
+4. **Replacing technology**:
+   Example: "Switch database (id: `postgres-db-1`) from PostgreSQL to MongoDB"
+   - update_node (node_id: `postgres-db-1`, ...)  ← Use EXACT ID from context
+
+5. **Adding parallel processing**:
+   Example: "Add message queue + worker after API (id: `api-server-1`)"
+   - add_node (NEW queue id: "msg-queue-1")
+   - add_node (NEW worker id: "worker-service-1")
+   - add_edge (source: `api-server-1`, target: `msg-queue-1`)  ← Use EXACT ID from context
+   - add_edge (source: `msg-queue-1`, target: `worker-service-1`)
+
+**Important rules:**
+- **CRITICAL**: When referencing existing nodes in add_edge, delete_edge, or update_node operations, you MUST use the EXACT node IDs shown in the "Nodes (with exact IDs)" section above. DO NOT guess or make up node IDs!
+- Generate unique, descriptive IDs for NEW nodes: "redis-cache-1" (not "node-123")
+- Edge labels describe WHAT flows: "User auth requests" (not "connects to")
+- Position nodes logically:
+  - Entry points (clients, gateways): x: 0-200
+  - Middle tier (APIs, services): x: 300-600
+  - Data layer (databases, caches): x: 700-1000
+- Execute in correct order:
+  - Delete edges BEFORE deleting nodes
+  - Create nodes BEFORE creating edges to them
+- Use specific technologies: "PostgreSQL 15" (not "SQL database")
+
+**FULL JSON FALLBACK (Only if tools don't fit)**
+
+If the change is too complex for tools (e.g., "redesign entire architecture"), output the FULL diagram:
+
+{{
+  "nodes": [...all nodes...],
+  "edges": [...all edges...]
+}}
+
 - If the user asks to modify the **design document**:
 
   **When to make the edit yourself (Option 1):**
@@ -99,7 +197,8 @@ Instructions:
 - If just answering a question, respond naturally in plain text
 - You can update the diagram, design doc, both, or neither based on the user's request
 - Use your judgment to determine what needs updating
-- When updating the diagram, output ONLY the JSON with ALL nodes and edges (including unchanged ones)
+- **PREFER tool-based editing** for diagram changes (it's more efficient and reliable)
+- Only use full JSON regeneration if the change is too complex for tools
 - **IMPORTANT**: When the user asks you to make a change, DO IT - don't just describe it. They're asking for your help!
 
 Determine if this is a modification request for the diagram, design doc, or just a question. Respond accordingly.
@@ -113,8 +212,9 @@ def get_diagram_context(diagram: dict) -> str:
 
     for node in diagram.get("nodes", []):
         node_id_to_label[node['id']] = node['label']
+        # Include node ID in the description so Claude knows the exact ID to use
         nodes_desc.append(
-            f"- {node['label']} ({node['type']}): {node['description']}"
+            f"- **{node['label']}** (id: `{node['id']}`, type: {node['type']}): {node['description']}"
         )
 
     edges_desc = []
@@ -122,16 +222,17 @@ def get_diagram_context(diagram: dict) -> str:
         source_label = node_id_to_label.get(edge['source'], edge['source'])
         target_label = node_id_to_label.get(edge['target'], edge['target'])
         edge_label = edge.get('label', '')
+        # Include edge ID so Claude knows exact IDs
         if edge_label:
-            edges_desc.append(f"- {source_label} → {target_label}: {edge_label}")
+            edges_desc.append(f"- {source_label} → {target_label} (id: `{edge['id']}`): {edge_label}")
         else:
-            edges_desc.append(f"- {source_label} → {target_label}")
+            edges_desc.append(f"- {source_label} → {target_label} (id: `{edge['id']}`)")
 
     return f"""
-Nodes:
+Nodes (with exact IDs - USE THESE when referencing nodes in tools):
 {chr(10).join(nodes_desc)}
 
-Connections:
+Connections (with exact edge IDs):
 {chr(10).join(edges_desc)}
 """
 
