@@ -339,13 +339,14 @@ Users can now select their preferred AI model at diagram generation time via a d
 - `designDoc` - generated design document markdown content
 - `designDocOpen` - whether design doc panel is visible
 - `designDocLoading` - whether design doc is currently being generated (shows loading overlay)
+- `isMobile` - mobile viewport detection (≤768px)
 
 When `diagram` prop changes in `DiagramCanvas.jsx`, the `useEffect` hook:
 1. Transforms backend diagram format to React Flow format
 2. Applies auto-layout using dagre algorithm (hierarchical top-to-bottom layout)
 3. Calls `setNodes()` and `setEdges()` to update canvas
 
-**User Interactions:**
+**User Interactions (Desktop >768px):**
 - Click node → Opens chat panel focused on that node
 - Hover node → Shows tooltip with details
 - Right-click node → Context menu to delete
@@ -359,6 +360,18 @@ When `diagram` prop changes in `DiagramCanvas.jsx`, the `useEffect` hook:
 - Drag palette top edge → Resize palette height (min: 60px, max: 800px)
 - Drag chat panel left edge → Resize chat panel width
 - Drag design doc panel right edge → Resize design doc panel width
+
+**User Interactions (Mobile ≤768px):**
+- Click node → Opens chat panel as fullscreen modal (hides diagram)
+- Click X in chat header → Returns to diagram
+- Click "Create Design Doc" → Opens design doc as fullscreen modal (hides diagram)
+- Click X in design doc header → Returns to diagram
+- Node palette → Fullscreen width, 2-column grid on phones (<480px)
+- React Flow controls → Hidden (use pinch-to-zoom instead)
+- All panels → Non-resizable on mobile
+- Header → Stacks vertically with buttons in horizontal row
+- Landing page → Single-column layout, smaller fonts
+- Tooltips → Max width constrained to viewport
 
 ## Debugging
 
@@ -402,6 +415,39 @@ Both servers have auto-reload enabled (`--reload` for backend, Vite HMR for fron
   - `/aws/apigateway/infrasketch-api` - API Gateway execution logs
 - S3 Bucket: `infrasketch-cloudfront-logs-059409992371` - CloudFront access logs
 - Dashboard: `InfraSketch-Overview` - Real-time metrics and usage analytics
+
+## Mobile Responsive Design
+
+**Responsive Breakpoints:**
+- **Desktop**: >1024px - Full desktop experience with resizable panels
+- **Tablet**: 768px-1024px - Reduced panel widths, maintained functionality
+- **Mobile**: ≤768px - Modal panels, simplified interactions
+- **Phone**: ≤480px - Extra compact layout, 2-column grids
+
+**Mobile-First Approach:**
+The app uses a hybrid CSS + JavaScript approach for mobile optimization:
+- **CSS Media Queries** ([App.css](frontend/src/App.css:1568-1959), [NodePalette.css](frontend/src/components/NodePalette.css:163-206)): Handle layout, typography, spacing
+- **JavaScript Detection**: Mobile components (ChatPanel, DesignDocPanel) detect viewport width and switch to modal mode
+
+**Key Mobile Optimizations:**
+1. **Fullscreen Modals**: Side panels become fullscreen overlays on mobile
+2. **Touch-Friendly Targets**: Minimum 44px height for all interactive elements
+3. **Hidden Controls**: React Flow zoom buttons hidden (use pinch-to-zoom)
+4. **Simplified Navigation**: Close buttons replace resize handles on mobile
+5. **Responsive Typography**: Font sizes scale down proportionally
+6. **Grid Layouts**: Multi-column grids collapse to 1-2 columns on small screens
+7. **Viewport-Based Sizing**: Elements use `calc()` and viewport units for responsive sizing
+
+**Mobile Components:**
+- `ChatPanel` - Adds `mobile-modal` class when `window.innerWidth ≤ 768`
+- `DesignDocPanel` - Adds `mobile-modal` class when `window.innerWidth ≤ 768`
+- `App.jsx` - Hides diagram when mobile panels are open (fullscreen modal behavior)
+- `NodePalette` - Uses CSS-only responsive grid (no JS changes needed)
+
+**Testing Mobile:**
+- Chrome DevTools → Toggle Device Toolbar (Cmd+Shift+M)
+- Test breakpoints: 375px (iPhone SE), 768px (iPad), 1024px (iPad Pro)
+- Verify touch targets are ≥44px
 
 ## Important Implementation Details
 

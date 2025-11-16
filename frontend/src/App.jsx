@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import LandingPage from './components/LandingPage';
 import LoadingAnimation from './components/LoadingAnimation';
 import DiagramCanvas from './components/DiagramCanvas';
@@ -39,6 +39,20 @@ function App() {
 
   // Chat panel state
   const [chatPanelWidth, setChatPanelWidth] = useState(400);
+
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const handleGenerate = async (prompt, model) => {
     setLoading(true);
@@ -429,7 +443,8 @@ Feel free to explore the diagram and ask me anything!`;
         <div
           className="main-area"
           style={{
-            marginLeft: designDocOpen ? `${designDocWidth}px` : '0px'
+            marginLeft: designDocOpen ? `${designDocWidth}px` : '0px',
+            display: isMobile && (designDocOpen || selectedNode) ? 'none' : 'flex'
           }}
         >
           {!diagram && !loading && <LandingPage onGenerate={handleGenerate} loading={loading} />}
@@ -453,7 +468,7 @@ Feel free to explore the diagram and ask me anything!`;
           )}
         </div>
 
-        {diagram && (
+        {diagram && (!isMobile || selectedNode) && (
           <ChatPanel
             selectedNode={selectedNode}
             messages={messages}
@@ -461,6 +476,7 @@ Feel free to explore the diagram and ask me anything!`;
             loading={chatLoading}
             diagram={diagram}
             onWidthChange={handleChatPanelWidthChange}
+            onClose={() => setSelectedNode(null)}
           />
         )}
       </div>

@@ -8,11 +8,25 @@ export default function ChatPanel({
   loading,
   diagram,
   onWidthChange,
+  onClose,
 }) {
   const [input, setInput] = useState('');
   const [width, setWidth] = useState(400); // Default width
   const [isResizing, setIsResizing] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const messagesEndRef = useRef(null);
+
+  // Detect mobile viewport
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -106,11 +120,16 @@ export default function ChatPanel({
   };
 
   return (
-    <div className="chat-panel" style={{ width: `${width}px` }}>
-      <div
-        className="resize-handle"
-        onMouseDown={() => setIsResizing(true)}
-      />
+    <div
+      className={`chat-panel ${isMobile ? 'mobile-modal' : ''}`}
+      style={isMobile ? {} : { width: `${width}px` }}
+    >
+      {!isMobile && (
+        <div
+          className="resize-handle"
+          onMouseDown={() => setIsResizing(true)}
+        />
+      )}
       <div className="chat-header">
         <div>
           <h3>System Chat</h3>
@@ -120,6 +139,11 @@ export default function ChatPanel({
             </span>
           )}
         </div>
+        {isMobile && onClose && (
+          <button className="close-button" onClick={onClose} title="Back to diagram">
+            ✕
+          </button>
+        )}
       </div>
 
       <div className="chat-messages">

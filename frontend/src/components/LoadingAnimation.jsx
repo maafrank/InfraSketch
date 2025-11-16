@@ -4,12 +4,12 @@ export default function LoadingAnimation() {
   const [currentStep, setCurrentStep] = useState(0);
 
   const steps = [
-    { icon: '🤔', text: 'Analyzing your architecture...', duration: 1500 },
-    { icon: '🏗️', text: 'Designing system components...', duration: 1500 },
-    { icon: '🔗', text: 'Mapping connections and data flow...', duration: 1500 },
-    { icon: '⚙️', text: 'Optimizing component placement...', duration: 1500 },
-    { icon: '🎨', text: 'Generating visual layout...', duration: 1500 },
-    { icon: '✨', text: 'Finalizing your diagram...', duration: 1500 },
+    { icon: '🤔', text: 'Analyzing your architecture...', duration: 2500 },
+    { icon: '🏗️', text: 'Designing system components...', duration: 2500 },
+    { icon: '🔗', text: 'Mapping connections and data flow...', duration: 2500 },
+    { icon: '⚙️', text: 'Optimizing component placement...', duration: 2500 },
+    { icon: '🎨', text: 'Generating visual layout...', duration: 2500 },
+    { icon: '✨', text: 'Finalizing your diagram...', duration: 2500 },
   ];
 
   useEffect(() => {
