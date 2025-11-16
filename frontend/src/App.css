@@ -1156,7 +1156,7 @@ body {
   background: #f7fafc;
 }
 
-.chat-input-form input {
+.chat-input-form textarea {
   flex: 1;
   padding: 0.75rem;
   border: 2px solid #e2e8f0;
@@ -1164,9 +1164,14 @@ body {
   font-size: 0.95rem;
   font-family: inherit;
   background: white;
+  resize: none;
+  min-height: 44px;
+  line-height: 1.5;
+  overflow-y: auto;
+  transition: height 0.1s ease;
 }
 
-.chat-input-form input:focus {
+.chat-input-form textarea:focus {
   outline: none;
   border-color: #667eea;
   background: white;
@@ -1854,7 +1859,7 @@ body {
     padding: 0.75rem;
   }
 
-  .chat-input-form input {
+  .chat-input-form textarea {
     font-size: 1rem; /* Prevent zoom on iOS */
   }
 

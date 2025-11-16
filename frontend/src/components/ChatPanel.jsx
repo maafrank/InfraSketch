@@ -15,6 +15,7 @@ export default function ChatPanel({
   const [isResizing, setIsResizing] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const messagesEndRef = useRef(null);
+  const textareaRef = useRef(null);
 
   // Detect mobile viewport
   useEffect(() => {
@@ -111,12 +112,39 @@ export default function ChatPanel({
     }
   }, [width, onWidthChange]);
 
+  // Auto-resize textarea based on content (up to 10 lines)
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      // Reset height to auto to get the correct scrollHeight
+      textarea.style.height = 'auto';
+
+      // Calculate line height (approximately 24px with padding)
+      const lineHeight = 24;
+      const maxLines = 10;
+      const maxHeight = lineHeight * maxLines;
+
+      // Set height based on content, capped at max height
+      const newHeight = Math.min(textarea.scrollHeight, maxHeight);
+      textarea.style.height = `${newHeight}px`;
+    }
+  }, [input]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (input.trim()) {
       onSendMessage(input);
       setInput('');
     }
+  };
+
+  const handleKeyDown = (e) => {
+    // Submit on Enter (without Shift)
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
+    // Shift+Enter allows new line (default textarea behavior)
   };
 
   return (
@@ -165,16 +193,17 @@ export default function ChatPanel({
       </div>
 
       <form className="chat-input-form" onSubmit={handleSubmit}>
-        <input
-          type="text"
+        <textarea
+          ref={textareaRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder={
             selectedNode
               ? `Ask about ${selectedNode.data.label}...`
               : 'Ask about the system...'
           }
-          disabled={loading}
+          rows={1}
         />
         <button type="submit" disabled={loading || !input.trim()}>
           Send
