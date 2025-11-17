@@ -1,0 +1,7 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "infrasketch_agent": "./langgraph_studio.py:agent_graph"
+  },
+  "env": ".env"
+}
