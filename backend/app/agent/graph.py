@@ -1,9 +1,18 @@
+"""
+LangGraph agent with native tool calling support.
+
+Uses Claude's native tool calling API instead of manual JSON parsing,
+providing better reliability and self-correction capabilities.
+"""
+
 import json
-import os
-from typing import TypedDict, Literal
+from typing import Literal
 from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
 from langgraph.graph import StateGraph, END
+
+from app.agent.state import InfraSketchState
+from app.agent.tools import all_tools
 from app.agent.prompts import (
     SYSTEM_PROMPT,
     CONVERSATION_PROMPT,
@@ -11,22 +20,8 @@ from app.agent.prompts import (
     get_node_context,
     get_design_doc_context,
 )
+from app.models import Diagram
 from app.utils.secrets import get_anthropic_api_key
-
-
-class AgentState(TypedDict):
-    session_id: str  # Session ID for tool execution
-    intent: Literal["generate", "chat"]
-    user_message: str
-    diagram: dict | None
-    node_id: str | None
-    conversation_history: list[dict]
-    output: str
-    diagram_updated: bool
-    display_text: str  # Text to show in chat (without JSON)
-    design_doc: str | None  # Current design document content (markdown)
-    design_doc_updated: bool  # Whether design doc was updated in this interaction
-    model: str  # Model to use for this invocation
 
 
 def create_llm(model_name: str = "claude-haiku-4-5-20251001"):
@@ -40,13 +35,16 @@ def create_llm(model_name: str = "claude-haiku-4-5-20251001"):
     )
 
 
-def generate_diagram_node(state: AgentState) -> AgentState:
+def generate_diagram_node(state: InfraSketchState) -> dict:
     """Generate initial diagram from user prompt."""
-    llm = create_llm(state.get("model", "claude-haiku-4-5-20251001"))
+    llm = create_llm(state.model or "claude-haiku-4-5-20251001")
+
+    # Get user message from last message in conversation
+    user_message = state.messages[-1].content if state.messages else ""
 
     messages = [
         SystemMessage(content=SYSTEM_PROMPT),
-        HumanMessage(content=f"Create a system architecture for: {state['user_message']}")
+        HumanMessage(content=f"Create a system architecture for: {user_message}")
     ]
 
     response = llm.invoke(messages)
@@ -55,15 +53,14 @@ def generate_diagram_node(state: AgentState) -> AgentState:
     print(f"Content: {response.content}")
     print(f"======================\n")
 
+    diagram = None
     try:
         # Parse JSON response
         diagram_json = json.loads(response.content)
-        print(f"Successfully parsed JSON directly")
-        state["output"] = json.dumps(diagram_json)
-        state["diagram"] = diagram_json
-        state["diagram_updated"] = True
+        print(f"✓ Successfully parsed JSON directly")
+        diagram = Diagram(**diagram_json)
     except json.JSONDecodeError as e:
-        print(f"Failed to parse JSON directly: {e}")
+        print(f"✗ Failed to parse JSON directly: {e}")
         # Fallback: try to extract JSON from response
         content = response.content
         if "```json" in content:
@@ -78,41 +75,53 @@ def generate_diagram_node(state: AgentState) -> AgentState:
 
         try:
             diagram_json = json.loads(json_str)
-            print(f"Successfully parsed extracted JSON")
-            state["output"] = json.dumps(diagram_json)
-            state["diagram"] = diagram_json
-            state["diagram_updated"] = True
+            print(f"✓ Successfully parsed extracted JSON")
+            diagram = Diagram(**diagram_json)
         except Exception as e2:
-            print(f"Failed to parse extracted JSON: {e2}")
+            print(f"✗ Failed to parse extracted JSON: {e2}")
             print(f"JSON string was: {json_str[:500]}")
             # Create error response
-            state["output"] = json.dumps({
-                "nodes": [],
-                "edges": [],
-                "error": "Failed to generate valid diagram"
-            })
-            state["diagram_updated"] = False
+            diagram = Diagram(nodes=[], edges=[])
 
-    return state
+    # Return updates (message + diagram)
+    return {
+        "messages": AIMessage(content=response.content),
+        "diagram": diagram
+    }
 
 
-def chat_node(state: AgentState) -> AgentState:
-    """Handle conversation about diagram/node."""
-    llm = create_llm(state.get("model", "claude-haiku-4-5-20251001"))
+def chat_node(state: InfraSketchState) -> dict:
+    """
+    Handle conversation about diagram/node with native tool calling.
+
+    This node uses Claude's native tool calling API. The LLM can:
+    1. Respond with text
+    2. Call tools to modify the diagram
+    3. Both respond AND call tools
+
+    If tools are called, the tool loop will execute them and return here.
+    """
+    # Bind tools to LLM (includes both diagram and design doc tools)
+    llm = create_llm(state.model or "claude-haiku-4-5-20251001").bind_tools(all_tools)
 
     # Build context
-    diagram_context = get_diagram_context(state["diagram"] or {})
+    diagram_dict = state.diagram.model_dump() if state.diagram else {}
+    diagram_context = get_diagram_context(diagram_dict)
     node_context = get_node_context(
-        state["diagram"] or {},
-        state.get("node_id")
-    ) if state.get("node_id") else ""
-    design_doc_context = get_design_doc_context(state.get("design_doc"))
+        diagram_dict,
+        state.node_id
+    ) if state.node_id else ""
+    design_doc_context = get_design_doc_context(state.design_doc)
 
-    # Format conversation history
+    # Format conversation history from messages (skip system messages)
+    history_messages = [msg for msg in state.messages if not isinstance(msg, SystemMessage)]
     history_str = "\n".join([
-        f"{msg['role']}: {msg['content']}"
-        for msg in state.get("conversation_history", [])
+        f"{'user' if isinstance(msg, HumanMessage) else 'assistant'}: {msg.content}"
+        for msg in history_messages[:-1]  # Exclude current message
     ])
+
+    # Get current user message
+    current_message = state.messages[-1].content if state.messages else ""
 
     # Create prompt
     prompt = CONVERSATION_PROMPT.format(
@@ -120,7 +129,7 @@ def chat_node(state: AgentState) -> AgentState:
         node_context=node_context,
         design_doc_context=design_doc_context,
         conversation_history=history_str,
-        user_message=state["user_message"]
+        user_message=current_message
     )
 
     messages = [
@@ -129,294 +138,172 @@ def chat_node(state: AgentState) -> AgentState:
     ]
 
     response = llm.invoke(messages)
-    content = response.content.strip()
 
     print(f"\n=== CHAT NODE RESPONSE ===")
-    print(f"Content length: {len(content)}")
-    print(f"First 200 chars: {content[:200]}")
-    has_tools = '"tools"' in content
-    has_json_block = '```json' in content
-    has_code_block = '```' in content
-    has_brace = '{' in content
-    print(f"Has 'tools': {has_tools}")
-    print(f"Has ```json: {has_json_block}")
-    print(f"Has ```: {has_code_block}")
-    print(f"Has opening brace: {has_brace}")
-
-    # PRIORITY 1: Try to parse as tool invocation (NEW APPROACH)
-    tool_invocation_json = None
-    try:
-        # Try direct parsing
-        parsed = json.loads(content)
-        if "tools" in parsed and isinstance(parsed["tools"], list):
-            tool_invocation_json = parsed
-            print(f"✓ Detected tool invocation (direct JSON)")
-    except json.JSONDecodeError:
-        # Try extracting from code blocks
-        if "```json" in content or "```" in content:
-            try:
-                if "```json" in content:
-                    json_str = content.split("```json")[1].split("```")[0].strip()
-                else:
-                    json_str = content.split("```")[1].split("```")[0].strip()
-
-                parsed = json.loads(json_str)
-                if "tools" in parsed and isinstance(parsed["tools"], list):
-                    tool_invocation_json = parsed
-                    print(f"✓ Detected tool invocation (from code block)")
-            except:
-                pass
-
-    # If we detected a tool invocation, execute it
-    if tool_invocation_json:
-        try:
-            from app.agent.tools import ToolInvocation
-            from app.agent.tool_executor import execute_tool_invocation
-
-            print(f"Executing {len(tool_invocation_json['tools'])} diagram tool(s)...")
-
-            # Parse into ToolInvocation object
-            tool_invocation = ToolInvocation(**tool_invocation_json)
-
-            # Execute tools using session_id from state
-            updated_diagram = execute_tool_invocation(
-                state["session_id"],
-                tool_invocation
-            )
-
-            # Update state with new diagram
-            state["diagram"] = updated_diagram.model_dump()
-            state["diagram_updated"] = True
-            state["display_text"] = tool_invocation.explanation + "\n\n*(Graph has been updated)*"
-            state["output"] = json.dumps(state["diagram"])
-
-            print(f"✓ Diagram tools executed successfully")
-            print(f"==========================\n")
-            return state
-
-        except Exception as e:
-            print(f"✗ Diagram tool execution failed: {e}")
-            print(f"Falling back to legacy JSON parsing...")
-            # Fall through to legacy parsing below
-
-    # PRIORITY 1.5: Try to parse as design doc tool invocation
-    doc_tool_invocation_json = None
-    try:
-        # Try direct parsing
-        parsed = json.loads(content)
-        if "doc_tools" in parsed and isinstance(parsed["doc_tools"], list):
-            doc_tool_invocation_json = parsed
-            print(f"✓ Detected design doc tool invocation (direct JSON)")
-    except json.JSONDecodeError:
-        # Try extracting from code blocks
-        if "```json" in content or "```" in content:
-            try:
-                if "```json" in content:
-                    json_str = content.split("```json")[1].split("```")[0].strip()
-                else:
-                    json_str = content.split("```")[1].split("```")[0].strip()
-
-                parsed = json.loads(json_str)
-                if "doc_tools" in parsed and isinstance(parsed["doc_tools"], list):
-                    doc_tool_invocation_json = parsed
-                    print(f"✓ Detected design doc tool invocation (from code block)")
-            except:
-                pass
-
-    # If we detected a design doc tool invocation, execute it
-    if doc_tool_invocation_json:
-        try:
-            from app.agent.doc_tools import DesignDocToolInvocation
-            from app.agent.doc_tool_executor import execute_doc_tool_invocation
-
-            print(f"Executing {len(doc_tool_invocation_json['doc_tools'])} design doc tool(s)...")
-
-            # Parse into DesignDocToolInvocation object
-            doc_tool_invocation = DesignDocToolInvocation(**doc_tool_invocation_json)
-
-            # Execute design doc tools using session_id from state
-            updated_design_doc = execute_doc_tool_invocation(
-                state["session_id"],
-                doc_tool_invocation
-            )
-
-            # Update state with new design doc
-            state["design_doc"] = updated_design_doc
-            state["design_doc_updated"] = True
-            state["diagram_updated"] = False  # No diagram change
-            state["display_text"] = doc_tool_invocation.explanation + "\n\n*(Design document has been updated)*"
-            state["output"] = ""  # No diagram output
-
-            print(f"✓ Design doc tools executed successfully")
-            print(f"==========================\n")
-            return state
-
-        except Exception as e:
-            print(f"✗ Design doc tool execution failed: {e}")
-            print(f"Falling back to legacy design doc parsing...")
-            # Fall through to legacy parsing below
-
-    # Check if response is a diagram update (JSON)
-    try:
-        diagram_json = json.loads(content)
-        # Validate it has nodes and edges
-        if "nodes" in diagram_json and "edges" in diagram_json:
-            print(f"✓ Successfully parsed as direct JSON with nodes/edges")
-            state["output"] = content
-            state["diagram"] = diagram_json
-            state["diagram_updated"] = True
-            state["display_text"] = "*(Graph has been updated)*"
-            return state
-    except json.JSONDecodeError as e:
-        print(f"✗ Not direct JSON: {e}")
-
-    # Try to extract JSON if embedded in code blocks
-    if "```json" in content or "```" in content:
-        print(f"Attempting to extract JSON from code block...")
-        try:
-            if "```json" in content:
-                parts = content.split("```json")
-                text_before = parts[0].strip()
-                remaining = parts[1].split("```")
-                json_str = remaining[0].strip()
-                text_after = remaining[1].strip() if len(remaining) > 1 else ""
-                print(f"Extracted from ```json block")
-            else:
-                parts = content.split("```")
-                text_before = parts[0].strip()
-                json_str = parts[1].strip()
-                text_after = parts[2].strip() if len(parts) > 2 else ""
-                print(f"Extracted from ``` block")
-
-            print(f"Extracted JSON length: {len(json_str)}")
-            print(f"First 200 chars: {json_str[:200]}")
-
-            diagram_json = json.loads(json_str)
-            if "nodes" in diagram_json and "edges" in diagram_json:
-                print(f"✓ Successfully parsed extracted JSON with nodes/edges")
-
-                # Combine non-JSON text
-                display_parts = []
-                if text_before:
-                    display_parts.append(text_before)
-                display_parts.append("*(Graph has been updated)*")
-                if text_after:
-                    display_parts.append(text_after)
-
-                state["output"] = json_str
-                state["diagram"] = diagram_json
-                state["diagram_updated"] = True
-                state["display_text"] = "\n\n".join(display_parts)
-                return state
-            else:
-                print(f"✗ Extracted JSON missing nodes or edges")
-        except Exception as e:
-            print(f"✗ Failed to parse extracted JSON: {e}")
-
-    # Try to extract JSON that's embedded in text (no code blocks)
-    if "{" in content and "}" in content:
-        print(f"Attempting to extract JSON from text...")
-        try:
-            # Find the JSON object in the text
-            start_idx = content.find("{")
-            # Find matching closing brace
-            brace_count = 0
-            end_idx = -1
-            for i in range(start_idx, len(content)):
-                if content[i] == "{":
-                    brace_count += 1
-                elif content[i] == "}":
-                    brace_count -= 1
-                    if brace_count == 0:
-                        end_idx = i + 1
-                        break
-
-            if end_idx > start_idx:
-                json_str = content[start_idx:end_idx]
-                print(f"Extracted JSON from position {start_idx} to {end_idx}")
-                print(f"Extracted JSON length: {len(json_str)}")
-                print(f"First 200 chars: {json_str[:200]}")
-
-                diagram_json = json.loads(json_str)
-                if "nodes" in diagram_json and "edges" in diagram_json:
-                    print(f"✓ Successfully parsed extracted JSON with nodes/edges")
-
-                    # Extract text before and after JSON
-                    text_before = content[:start_idx].strip()
-                    text_after = content[end_idx:].strip()
-
-                    # Combine non-JSON text
-                    display_parts = []
-                    if text_before:
-                        display_parts.append(text_before)
-                    display_parts.append("*(Graph has been updated)*")
-                    if text_after:
-                        display_parts.append(text_after)
-
-                    state["output"] = json_str
-                    state["diagram"] = diagram_json
-                    state["diagram_updated"] = True
-                    state["display_text"] = "\n\n".join(display_parts)
-                    return state
-                else:
-                    print(f"✗ Extracted JSON missing nodes or edges")
-        except Exception as e:
-            print(f"✗ Failed to extract JSON from text: {e}")
-
-    # Check for design doc update
-    if "DESIGN_DOC_UPDATE:" in content:
-        print(f"Found DESIGN_DOC_UPDATE marker, extracting...")
-        try:
-            parts = content.split("DESIGN_DOC_UPDATE:")
-            text_before_marker = parts[0].strip()
-            remaining = parts[1]
-
-            # Extract markdown from code block if present
-            if "```markdown" in remaining:
-                markdown_parts = remaining.split("```markdown")
-                markdown_content = markdown_parts[1].split("```")[0].strip()
-                text_after_marker = markdown_parts[1].split("```")[1].strip() if "```" in markdown_parts[1] else ""
-            elif "```" in remaining:
-                code_parts = remaining.split("```")
-                markdown_content = code_parts[1].strip()
-                text_after_marker = code_parts[2].strip() if len(code_parts) > 2 else ""
-            else:
-                # No code block, use rest of content
-                markdown_content = remaining.strip()
-                text_after_marker = ""
-
-            print(f"✓ Extracted design doc update ({len(markdown_content)} chars)")
-
-            # Build display text
-            display_parts = []
-            if text_before_marker:
-                display_parts.append(text_before_marker)
-            display_parts.append("*(Design document has been updated)*")
-            if text_after_marker:
-                display_parts.append(text_after_marker)
-
-            state["design_doc"] = markdown_content
-            state["design_doc_updated"] = True
-            state["display_text"] = "\n\n".join(display_parts)
-            state["diagram_updated"] = False  # Design doc update only
-            print(f"==========================\n")
-            return state
-        except Exception as e:
-            print(f"✗ Failed to extract design doc update: {e}")
-
-    # Not a diagram update or design doc update, just a text response
-    print(f"Treating as text response (no updates)")
+    print(f"Response type: {type(response)}")
+    print(f"Has tool_calls: {hasattr(response, 'tool_calls') and len(response.tool_calls) > 0}")
+    if hasattr(response, 'tool_calls') and response.tool_calls:
+        print(f"Tool calls: {len(response.tool_calls)}")
+        for i, tc in enumerate(response.tool_calls):
+            print(f"  Tool {i+1}: {tc.get('name', 'unknown')}")
+    print(f"Content length: {len(response.content) if response.content else 0}")
     print(f"==========================\n")
-    state["output"] = content
-    state["diagram_updated"] = False
-    state["design_doc_updated"] = False
-    state["display_text"] = content
-    return state
+
+    # Return the AIMessage - tool loop will handle tool execution if needed
+    return {
+        "messages": response
+    }
 
 
-def route_intent(state: AgentState) -> str:
-    """Route based on intent."""
-    if state["intent"] == "generate":
+def tools_node(state: InfraSketchState) -> dict:
+    """
+    Execute tools called by the AI.
+
+    This node extracts tool calls from the last AIMessage and executes them.
+    Results are returned as ToolMessages that will be sent back to the agent.
+    """
+    last_message = state.messages[-1]
+
+    if not isinstance(last_message, AIMessage) or not hasattr(last_message, 'tool_calls'):
+        return {"messages": []}
+
+    tool_calls = last_message.tool_calls
+    if not tool_calls:
+        return {"messages": []}
+
+    print(f"\n=== EXECUTING {len(tool_calls)} TOOL(S) ===")
+
+    # Build a map of tool names to tool functions
+    tool_map = {tool.name: tool for tool in all_tools}
+
+    tool_messages = []
+    for tool_call in tool_calls:
+        tool_name = tool_call.get("name")
+        tool_args = tool_call.get("args", {})
+        tool_id = tool_call.get("id", "unknown")
+
+        print(f"Tool: {tool_name}")
+        print(f"Args: {tool_args}")
+
+        if tool_name not in tool_map:
+            result = {"error": f"Unknown tool: {tool_name}"}
+            print(f"✗ Unknown tool")
+        else:
+            try:
+                # Execute the tool
+                tool_func = tool_map[tool_name]
+                # Inject session_id into args (required by all tools)
+                tool_args["session_id"] = state.session_id
+                result = tool_func.invoke(tool_args)
+                print(f"✓ Result: {result}")
+            except Exception as e:
+                result = {"error": str(e)}
+                print(f"✗ Error: {e}")
+
+        # Create ToolMessage with result
+        tool_messages.append(
+            ToolMessage(
+                content=json.dumps(result),
+                tool_call_id=tool_id
+            )
+        )
+
+    print(f"=== TOOL EXECUTION COMPLETE ===\n")
+
+    return {"messages": tool_messages}
+
+
+def route_tool_decision(state: InfraSketchState) -> Literal["tools", "finalize"]:
+    """
+    Route based on whether the last message has tool calls.
+
+    If the AI decided to call tools, route to "tools" node.
+    Otherwise, route to "finalize" to prepare the final response.
+    """
+    last_message = state.messages[-1]
+    if isinstance(last_message, AIMessage) and hasattr(last_message, 'tool_calls') and last_message.tool_calls:
+        print(f"→ Routing to tools ({len(last_message.tool_calls)} tool call(s))")
+        return "tools"
+    print(f"→ Routing to finalize (no tool calls)")
+    return "finalize"
+
+
+def finalize_chat_response(state: InfraSketchState) -> dict:
+    """
+    Finalize chat response after tool execution (if any).
+
+    This node:
+    1. Checks if tools were executed in this turn
+    2. Updates the diagram and design doc in state if tools modified them
+    3. Adds visual indicators to the message
+    """
+    from app.session.manager import session_manager
+
+    # Get the updated session
+    session = session_manager.get_session(state.session_id)
+    if not session:
+        return {}
+
+    # Check recent messages for tool calls
+    recent_messages = state.messages[-10:]  # Check last 10 messages for tool activity
+
+    # Check what types of tools were called
+    diagram_tools_called = False
+    design_doc_tools_called = False
+
+    for msg in recent_messages:
+        if isinstance(msg, AIMessage) and hasattr(msg, 'tool_calls') and msg.tool_calls:
+            for tool_call in msg.tool_calls:
+                tool_name = tool_call.get("name", "")
+                if tool_name in ["add_node", "delete_node", "update_node", "add_edge", "delete_edge"]:
+                    diagram_tools_called = True
+                elif tool_name in ["update_design_doc_section", "replace_entire_design_doc"]:
+                    design_doc_tools_called = True
+
+    # Build updates
+    updates = {}
+
+    # Update diagram in state if diagram tools were called
+    if diagram_tools_called:
+        print(f"✓ Diagram tools were executed, updating diagram in state")
+        updates["diagram"] = session.diagram
+
+    # Update design doc in state if design doc tools were called
+    if design_doc_tools_called:
+        print(f"✓ Design doc tools were executed, updating design doc in state")
+        updates["design_doc"] = session.design_doc
+
+    # Add visual indicators to the last message if tools were called
+    if diagram_tools_called or design_doc_tools_called:
+        last_msg = state.messages[-1]
+        if isinstance(last_msg, AIMessage) and last_msg.content:
+            content = last_msg.content
+
+            # Add appropriate indicators
+            indicators = []
+            if diagram_tools_called:
+                indicators.append("*(Graph has been updated)*")
+            if design_doc_tools_called:
+                indicators.append("*(Design document has been updated)*")
+
+            updated_content = content + "\n\n" + "\n".join(indicators)
+
+            # Replace the last message
+            new_messages = list(state.messages[:-1])
+            new_messages.append(AIMessage(content=updated_content))
+            updates["messages"] = new_messages
+
+    return updates
+
+
+def route_intent(state: InfraSketchState) -> str:
+    """
+    Route based on whether we have an existing diagram.
+
+    If no diagram exists, it's a generate request.
+    If diagram exists, it's a chat request.
+    """
+    if state.diagram is None:
         return "generate"
     else:
         return "chat"
@@ -424,12 +311,14 @@ def route_intent(state: AgentState) -> str:
 
 # Create the graph
 def create_agent_graph():
-    """Create and compile the LangGraph agent."""
-    workflow = StateGraph(AgentState)
+    """Create and compile the LangGraph agent with native tool calling."""
+    workflow = StateGraph(InfraSketchState)
 
     # Add nodes
     workflow.add_node("generate", generate_diagram_node)
     workflow.add_node("chat", chat_node)
+    workflow.add_node("tools", tools_node)
+    workflow.add_node("finalize", finalize_chat_response)
 
     # Add conditional entry
     workflow.set_conditional_entry_point(
@@ -440,9 +329,24 @@ def create_agent_graph():
         }
     )
 
-    # Both nodes end after execution
+    # Generate ends immediately
     workflow.add_edge("generate", END)
-    workflow.add_edge("chat", END)
+
+    # Chat flow with tool loop
+    workflow.add_conditional_edges(
+        "chat",
+        route_tool_decision,
+        {
+            "tools": "tools",      # If tools called, execute them
+            "finalize": "finalize"  # Otherwise, finalize response
+        }
+    )
+
+    # After tools execute, loop back to chat for agent to see results
+    workflow.add_edge("tools", "chat")
+
+    # Finalize ends the conversation turn
+    workflow.add_edge("finalize", END)
 
     return workflow.compile()
 

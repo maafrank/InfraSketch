@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
 from fastapi.responses import Response, JSONResponse
 from pydantic import BaseModel
+from langchain_core.messages import HumanMessage, AIMessage
 from app.models import (
     GenerateRequest,
     GenerateResponse,
@@ -45,31 +46,33 @@ async def generate_diagram(request: GenerateRequest, http_request: Request):
         # Use specified model or default to Haiku (alias auto-updates to latest)
         model = request.model or "claude-haiku-4-5"
 
-        # Run agent
+        # Run agent with message-based state
         result = agent_graph.invoke({
-            "session_id": "",  # Not available yet during generation, created after
-            "intent": "generate",
-            "user_message": request.prompt,
+            "messages": [HumanMessage(content=request.prompt)],
             "diagram": None,
-            "node_id": None,
-            "conversation_history": [],
-            "output": "",
-            "diagram_updated": False,
+            "session_id": "",  # Will be created after
             "model": model,
         })
 
-        # Parse diagram
-        diagram_dict = json.loads(result["output"])
-        diagram = Diagram(**diagram_dict)
+        # Extract diagram from result
+        diagram = result["diagram"]
 
         # Create session with model
         session_id = session_manager.create_session(diagram, model=model)
 
-        # Add initial message
+        # Add messages to session (user + assistant)
         session_manager.add_message(
             session_id,
             Message(role="user", content=request.prompt)
         )
+        # Add assistant response if present in messages
+        if result.get("messages"):
+            last_msg = result["messages"][-1]
+            if isinstance(last_msg, AIMessage):
+                session_manager.add_message(
+                    session_id,
+                    Message(role="assistant", content=last_msg.content)
+                )
 
         # Log diagram generation event
         duration_ms = (time.time() - start_time) * 1000
@@ -112,63 +115,69 @@ async def chat(request: ChatRequest, http_request: Request):
         if request.node_id:
             session_manager.set_current_node(request.session_id, request.node_id)
 
-        # Build conversation history
-        conversation_history = [
-            {"role": msg.role, "content": msg.content}
-            for msg in session.messages
-        ]
+        # Convert Pydantic messages to LangChain messages
+        langchain_messages = []
+        for msg in session.messages:
+            if msg.role == "user":
+                langchain_messages.append(HumanMessage(content=msg.content))
+            else:
+                langchain_messages.append(AIMessage(content=msg.content))
 
-        # Run agent with session's model
+        # Add current user message
+        langchain_messages.append(HumanMessage(content=request.message))
+
+        # Store diagram/doc state before agent call for comparison
+        # Make a serializable copy for comparison (model_dump then reconstruct)
+        old_diagram_dict = session.diagram.model_dump()
+        old_design_doc = session.design_doc
+
+        # Run agent with message-based state
         result = agent_graph.invoke({
-            "session_id": request.session_id,  # NEW: Pass session_id for tool execution
-            "intent": "chat",
-            "user_message": request.message,
-            "diagram": session.diagram.model_dump(),
-            "node_id": request.node_id,
-            "conversation_history": conversation_history,
-            "output": "",
-            "diagram_updated": False,
-            "display_text": "",
+            "messages": langchain_messages,
+            "diagram": session.diagram,
             "design_doc": session.design_doc,
-            "design_doc_updated": False,
+            "node_id": request.node_id,
+            "session_id": request.session_id,
             "model": session.model,
         })
 
-        # Add user message to history
+        # Add user message to session
         session_manager.add_message(
             request.session_id,
             Message(role="user", content=request.message)
         )
 
-        # Check if diagram was updated
+        # Extract assistant response from last message
+        response_text = ""
+        if result.get("messages"):
+            last_msg = result["messages"][-1]
+            if isinstance(last_msg, AIMessage):
+                response_text = last_msg.content
+
+        # Check if diagram was updated (compare with serialized old state)
         response_diagram = None
-        display_message = result.get("display_text", result["output"])
+        diagram_updated = False
+        if result.get("diagram"):
+            new_diagram_dict = result["diagram"].model_dump()
+            if new_diagram_dict != old_diagram_dict:
+                response_diagram = result["diagram"]
+                # Note: diagram may already be updated in session by tool executor
+                # But we'll update it again to be safe
+                session_manager.update_diagram(request.session_id, response_diagram)
+                diagram_updated = True
 
-        if result["diagram_updated"]:
-            diagram_dict = json.loads(result["output"])
-            response_diagram = Diagram(**diagram_dict)
-            session_manager.update_diagram(request.session_id, response_diagram)
-
-            # Add assistant response with cleaned text
-            session_manager.add_message(
-                request.session_id,
-                Message(role="assistant", content=display_message)
-            )
-        else:
-            # Add assistant text response
-            session_manager.add_message(
-                request.session_id,
-                Message(role="assistant", content=display_message)
-            )
-
-        # Check if design doc was updated
+        # Check if design doc was updated (compare strings)
         response_design_doc = None
-        if result.get("design_doc_updated"):
-            updated_design_doc = result.get("design_doc")
-            if updated_design_doc:
-                session_manager.update_design_doc(request.session_id, updated_design_doc)
-                response_design_doc = updated_design_doc
-                print(f"Design doc updated via chat ({len(updated_design_doc)} chars)")
+        if result.get("design_doc") and result["design_doc"] != old_design_doc:
+            response_design_doc = result["design_doc"]
+            session_manager.update_design_doc(request.session_id, response_design_doc)
+            print(f"Design doc updated via chat ({len(response_design_doc)} chars)")
+
+        # Add assistant response to session
+        session_manager.add_message(
+            request.session_id,
+            Message(role="assistant", content=response_text)
+        )
 
         # Log chat interaction
         duration_ms = (time.time() - start_time) * 1000
@@ -176,13 +185,13 @@ async def chat(request: ChatRequest, http_request: Request):
             session_id=request.session_id,
             message_length=len(request.message),
             node_id=request.node_id,
-            diagram_updated=result["diagram_updated"],
+            diagram_updated=diagram_updated,
             duration_ms=duration_ms,
             user_ip=user_ip,
         )
 
         return ChatResponse(
-            response=display_message,
+            response=response_text,
             diagram=response_diagram,
             design_doc=response_design_doc
         )

@@ -50,14 +50,49 @@ InfraSketch is an AI-powered system design tool with a **React frontend** and **
 ### Conversational Modification Flow
 1. User clicks node → Chat panel opens
 2. User asks question/requests change → POST `/api/chat` with session_id + node_id
-3. Agent retrieves full diagram + conversation history from session
-4. Agent calls Claude with context (diagram + node + history)
-5. **Critical**: Agent extracts JSON from Claude's response using multiple strategies:
-   - Direct JSON parsing
-   - Extract from ```json code blocks
-   - **Extract JSON embedded in text** (finds `{` and matching `}`)
-6. If JSON contains nodes/edges → `diagram_updated: true` → Frontend updates diagram
-7. Otherwise → Text response only → Chat panel shows response
+3. Backend invokes LangGraph agent in "chat" mode
+4. Agent builds context (diagram + conversation history + node focus + design doc)
+5. Claude responds with text and/or tool calls
+6. **If tool calls**: Execute tools → loop back to Claude with results → Claude can call more tools or respond
+7. **If no tool calls**: Finalize response and return
+8. Agent checks session for updates, adds visual indicators if diagram/doc changed
+9. Frontend receives response + updated diagram/doc (if modified)
+
+### Tool-Based Architecture
+
+**How Modifications Work:**
+
+Instead of parsing JSON from Claude's responses, the agent uses **Claude's native tool calling API**:
+
+1. **Claude decides** what changes to make (e.g., "add a load balancer")
+2. **Claude calls tools** with specific parameters:
+   ```python
+   add_node(
+       node_id="nginx-lb-1",
+       type="loadbalancer",
+       label="NGINX Load Balancer",
+       description="Distributes traffic across backend instances",
+       technology="NGINX",
+       position={"x": 200, "y": 100}
+   )
+   add_edge(
+       edge_id="client-to-lb",
+       source="client",
+       target="nginx-lb-1",
+       label="HTTP requests"
+   )
+   ```
+3. **Tools execute** and modify the session in DynamoDB/memory
+4. **Claude sees results** and can call more tools or provide a text response
+5. **Agent syncs state** with session after all tools complete
+6. **Frontend receives** updated diagram automatically
+
+**Why This Works Better:**
+- ✅ **Reliable**: No fragile JSON parsing, Claude uses structured API
+- ✅ **Self-correcting**: If a tool fails (e.g., node ID already exists), Claude sees the error and retries with a different ID
+- ✅ **Surgical edits**: Design doc updates only replace specific sections, not the entire document
+- ✅ **Type-safe**: Tools validate parameters before execution
+- ✅ **Auditable**: Every change is logged with tool name + parameters
 
 ### Key Components
 
@@ -68,8 +103,10 @@ InfraSketch is an AI-powered system design tool with a **React frontend** and **
 - `session/manager.py` - **Hybrid session storage** (in-memory for local, DynamoDB for Lambda)
 - `session/dynamodb_storage.py` - DynamoDB-backed persistent session storage
 - `lambda_handler.py` - Lambda entry point that routes API Gateway requests and async task invocations
-- `agent/graph.py` - **LangGraph agent** (see below)
-- `agent/prompts.py` - System prompts for Claude
+- `agent/graph.py` - **LangGraph agent with tool calling** (see below)
+- `agent/state.py` - Hybrid state model using LangGraph reducers + direct fields
+- `agent/tools.py` - **Native tools for diagram and design doc modifications** (see below)
+- `agent/prompts.py` - System prompts for Claude (generation + conversation)
 - `agent/doc_generator.py` - Standalone LLM call for design document generation
 - `middleware/rate_limit.py` - Token bucket algorithm, 60 req/min per IP by default
 - `middleware/auth.py` - Optional API key auth (enable via REQUIRE_API_KEY=true)
@@ -94,39 +131,66 @@ InfraSketch is an AI-powered system design tool with a **React frontend** and **
 
 ### LangGraph Agent Implementation
 
-The agent (`backend/app/agent/graph.py`) uses LangGraph's `StateGraph` with:
+The agent (`backend/app/agent/graph.py`) uses LangGraph's `StateGraph` with **native Claude tool calling** (no manual JSON parsing).
 
-**State Schema**:
+**State Schema** (`backend/app/agent/state.py`):
 ```python
 {
-    "intent": "generate" | "chat",
-    "user_message": str,
-    "diagram": dict | None,
-    "node_id": str | None,
-    "conversation_history": list[dict],
-    "output": str,
-    "diagram_updated": bool,
-    "display_text": str  # Text to show in chat (without JSON)
+    "messages": Sequence[AnyMessage],  # Managed by add_messages reducer
+    "diagram": Diagram | None,
+    "design_doc": str | None,
+    "session_id": str,
+    "model": str,  # e.g., "claude-haiku-4-5"
+    "node_id": str | None,  # For node-focused conversations
 }
 ```
 
 **Graph Structure**:
-- Entry point → `route_intent()` → routes to "generate" or "chat" node
-- Both nodes call `create_llm()` which returns Claude Haiku 4.5 with `max_tokens=32768`
-- Both nodes end execution (no loops)
+```
+Entry → route_intent() → "generate" (no diagram) OR "chat" (has diagram)
+  ↓
+"generate" → END
+  ↓
+"chat" → route_tool_decision() → "tools" (if tool calls) OR "finalize" (no tools)
+  ↓
+"tools" → execute tools → "chat" (loop back with results)
+  ↓
+"finalize" → add indicators → END
+```
 
-**Critical: JSON Extraction Logic**
+**Tool Calling Architecture**:
 
-Claude often returns text before JSON (e.g., "This is a modification request..."). The `chat_node` has **three extraction strategies**:
+The agent uses **Claude's native tool calling API** instead of manual JSON parsing:
 
-1. Try direct `json.loads(content)`
-2. If fails, extract from ```json or ``` code blocks
-3. **If no code blocks, find embedded JSON**:
-   - Find first `{` character
-   - Count braces to find matching `}`
-   - Extract substring and parse
+1. **Tools** (`backend/app/agent/tools.py`):
+   - `add_node`, `delete_node`, `update_node` - Diagram modifications
+   - `add_edge`, `delete_edge` - Connection modifications
+   - `update_design_doc_section` - Surgical doc edits (preferred)
+   - `replace_entire_design_doc` - Complete doc replacement (rare)
 
-This is why diagram updates work even when Claude adds explanatory text.
+2. **Tool Loop**:
+   - `chat_node()` → Claude returns text + tool calls (or just text)
+   - `route_tool_decision()` → Check if tool calls exist
+   - `tools_node()` → Execute tools, inject `session_id` automatically
+   - Loop back to `chat_node()` → Claude sees results, may call more tools
+   - `finalize_chat_response()` → Add visual indicators, update state
+
+3. **Session ID Injection**:
+   - Tools are defined WITHOUT `session_id` in their signature (for Claude)
+   - `tools_node()` **injects** `session_id` before execution
+   - This is transparent to the LLM - it never sees session_id
+
+4. **State Updates**:
+   - Tools modify session in DynamoDB/memory
+   - `finalize_chat_response()` pulls updated diagram/doc from session
+   - State is updated with latest artifacts
+   - Visual indicators added: "*(Graph has been updated)*"
+
+**Why This Approach Works**:
+- No JSON parsing → More reliable, self-correcting
+- Tool loop → Claude can fix mistakes by calling tools again
+- Surgical edits → Design doc changes don't overwrite entire document
+- Session sync → State always matches persistent storage
 
 ## Environment Setup
 
@@ -248,16 +312,16 @@ The backend exposes these REST endpoints (all under `/api` prefix):
 ## Common Issues & Solutions
 
 ### Issue: Diagram not updating after chat request
-**Cause**: Claude returned text + JSON, but JSON extraction failed
-**Solution**: Check backend logs for "✗ Failed to extract JSON". The brace-counting logic should catch this, but if JSON is malformed, agent returns empty nodes/edges array.
+**Cause**: Tool execution failed or session not syncing properly
+**Solution**: Check backend logs for "=== EXECUTING TOOL(S) ===" and tool results. Look for tool errors like "Node 'xyz' not found" or "Edge already exists". The tool loop will retry if Claude detects failure, but if tools succeed and diagram still doesn't update, check `finalize_chat_response()` logs.
 
 ### Issue: White screen after generate
-**Cause**: Infinite render loop (fixed) or empty diagram
-**Solution**: Check browser console for "Number of nodes: 0". If 0, Claude didn't return valid JSON - check backend logs.
+**Cause**: Empty diagram returned or diagram generation failed
+**Solution**: Check browser console for "Number of nodes: 0". If 0, check backend logs for "✗ Failed to parse JSON" in `generate_diagram_node()`. The generation node still uses JSON parsing (only chat uses tool calling). Verify Claude API is working and response is valid JSON.
 
-### Issue: Token limit error
-**Cause**: Claude's response was cut off mid-JSON
-**Solution**: `max_tokens=32768` in `create_llm()` should prevent this. Haiku 4.5 supports up to 64k output tokens.
+### Issue: Tools being called with wrong node IDs
+**Cause**: Claude is guessing node IDs instead of using exact IDs from context
+**Solution**: Verify the diagram context in prompts includes "Nodes (with exact IDs)" section. Tool docstrings emphasize using EXACT IDs. If Claude continues guessing, the tool will fail gracefully with a clear error message that Claude can see and retry.
 
 ### Issue: Design doc generation stuck or not updating
 **Cause**: Frontend not polling correctly or backend task failed
@@ -376,14 +440,37 @@ When `diagram` prop changes in `DiagramCanvas.jsx`, the `useEffect` hook:
 ## Debugging
 
 **Backend logs** (`print` statements in graph.py):
-- "=== CLAUDE RESPONSE ===" - shows raw Claude output
-- "✓ Successfully parsed" - JSON extraction succeeded
-- "✗ Failed to parse" - shows error and attempted JSON string
+- **Generation node** (initial diagram creation):
+  - "=== CLAUDE RESPONSE ===" - shows raw Claude output
+  - "✓ Successfully parsed JSON directly" - direct parsing worked
+  - "✗ Failed to parse JSON directly" - trying fallback extraction
+  - "Extracted JSON from ```json block" - found code block
+
+- **Chat node** (conversational modifications):
+  - "=== CHAT NODE RESPONSE ===" - shows response type
+  - "Has tool_calls: True" - Claude wants to use tools
+  - "Tool calls: 2" - number of tools to execute
+  - "Tool 1: add_node" - which tools were called
+
+- **Tools node** (tool execution):
+  - "=== EXECUTING 2 TOOL(S) ===" - starting tool execution
+  - "Tool: add_node" - which tool is running
+  - "Args: {node_id: 'api-1', ...}" - tool parameters
+  - "✓ Result: {success: True, ...}" - tool succeeded
+  - "✗ Error: Node 'xyz' not found" - tool failed
+  - "=== TOOL EXECUTION COMPLETE ===" - all tools done
+
+- **Finalize node** (state sync):
+  - "→ Routing to tools (2 tool call(s))" - going to execute tools
+  - "→ Routing to finalize (no tool calls)" - no tools to execute
+  - "✓ Diagram tools were executed, updating diagram in state" - syncing diagram
+  - "✓ Design doc tools were executed, updating design doc in state" - syncing doc
 
 **Frontend logs** (browser console):
 - "API Response:" - full backend response
 - "Has diagram update?" - whether backend returned diagram
 - "DiagramCanvas received diagram" - what canvas is rendering
+- "Generation status: generating (23s elapsed)" - design doc polling progress
 
 Both servers have auto-reload enabled (`--reload` for backend, Vite HMR for frontend).
 
@@ -481,20 +568,27 @@ All resizable panels (DesignDocPanel, ChatPanel, NodePalette) use a consistent p
 - See `main.py` ALLOWED_ORIGINS list
 
 **State Synchronization:**
-- Backend is source of truth for diagram data
-- Frontend makes API call for any modification (add/delete node/edge)
-- Agent-generated updates flow through `/api/chat` endpoint
-- Manual updates flow through CRUD endpoints
+- **Backend (session storage)** is the source of truth for diagram data
+- **Tools** modify session directly in DynamoDB/memory (not via state)
+- **Finalize node** syncs state with session after tool execution
+- Frontend receives updated diagram from state
+- Agent-generated updates flow through `/api/chat` → tools → session → state
+- Manual updates flow through CRUD endpoints → session
 
-**Response Handling:**
-- Agent returns `display_text` separate from JSON diagram
-- When diagram updates, frontend shows "*(Graph has been updated)*" message
-- Text before/after JSON in Claude's response is preserved in chat
+**Tool-Based Updates:**
+- Claude calls tools (e.g., `add_node`, `update_design_doc_section`)
+- Tools execute and modify session storage directly
+- `finalize_chat_response()` detects which tools were called
+- Pulls updated artifacts from session into state
+- Adds visual indicators: "*(Graph has been updated)*" or "*(Design document has been updated)*"
+- Frontend receives final state with indicators
 
 **Error Recovery:**
-- If JSON parsing fails completely, agent returns empty diagram with error flag
+- **Generation failures**: If JSON parsing fails in `generate_diagram_node()`, returns empty diagram
+- **Tool failures**: Tools return `{success: False, error: "..."}` in result
+- **Tool loop self-correction**: Claude sees tool errors and can retry with corrected parameters
+- **Session errors**: Session not found returns 404, triggering user to start new session
 - Frontend validates nodes/edges arrays exist before rendering
-- Session not found returns 404, triggering user to start new session
 
 ## Design Document Feature
 
@@ -552,19 +646,29 @@ The app generates comprehensive technical design documents from diagrams using *
    - **Ask the chat bot to make edits** to the design document
 
 **Design Document Chat Editing:**
-Users can ask the chat bot to modify the design document. The bot is instructed to:
-- **Make surgical, targeted edits**: Only modify the specific parts requested
-- **Preserve all unchanged content exactly**: Copy unchanged sections word-for-word from the current document
-- **Avoid rewriting or "improving" other sections**: This prevents unwanted changes to parts the user didn't ask to modify
-- **Return the full updated document**: While only the requested parts should change, the bot must return the complete document
 
-The bot receives the **full design document** in its context (not just a preview), enabling it to accurately preserve unchanged sections. This approach minimizes token usage and prevents accidental rewrites of unrelated content.
+Users can ask the chat bot to modify the design document using **surgical, section-based edits**.
+
+**How it works:**
+- The bot uses the `update_design_doc_section` tool to target specific sections
+- **NEVER overwrites the entire document** (unless explicitly requested to regenerate everything)
+- Identifies the exact section header (e.g., "## Security Considerations" or "### Redis Cache")
+- Replaces ONLY that section with updated content
+- All other sections remain completely untouched in the document
+
+**Technical implementation:**
+- The bot receives the **full design document** in its context
+- Uses section markers to find and replace specific parts
+- The tool finds `section_start_marker` and optionally `section_end_marker`
+- Replaces content between markers while preserving everything else
+- This prevents token waste and accidental rewrites of unrelated content
 
 **Example interactions:**
-- ✅ "Change Redis to Memcached in the caching section" → Bot changes only that technology name
-- ✅ "Add a bullet point about rate limiting to the Security section" → Bot adds only that point
-- ✅ "Fix the typo in the Executive Summary" → Bot fixes only that typo
-- ❌ "Improve the document" → Bot suggests improvements instead of making changes (subjective)
+- ✅ "Change Redis to Memcached in the caching section" → Bot finds "### Redis Cache" header, updates only that component section
+- ✅ "Add a bullet point about rate limiting to Security" → Bot targets "## Security Considerations" section, adds the bullet
+- ✅ "Fix the typo in the Executive Summary" → Bot targets "## Executive Summary" section, fixes only that typo
+- ❌ "Improve the document" → Bot asks for specifics rather than making subjective changes
+- ⚠️ "Regenerate the entire document" → Bot uses `replace_entire_design_doc` tool (only exception to surgical edits)
 
 **Export Flow (After Generation):**
 1. User selects format from export dropdown (PNG, PDF, Markdown, or Both)
