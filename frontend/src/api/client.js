@@ -9,6 +9,7 @@ const client = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 45000, // 45 seconds (API Gateway times out at 30s)
 });
 
 export const generateDiagram = async (prompt, model = null) => {

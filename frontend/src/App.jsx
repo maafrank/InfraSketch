@@ -89,7 +89,21 @@ Feel free to explore the diagram and ask me anything!`;
       ]);
     } catch (error) {
       console.error('Failed to generate diagram:', error);
-      alert('Failed to generate diagram. Please try again.');
+
+      // Provide specific error messages based on error type
+      let errorMessage = 'Failed to generate diagram. Please try again.';
+
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        errorMessage = 'Request timed out. Sonnet 4.5 can take 30+ seconds for complex diagrams. Try:\n\n1. Simplify your prompt\n2. Use Haiku 4.5 (faster, same quality for most cases)\n3. Try again in a moment';
+      } else if (error.response?.status === 504) {
+        errorMessage = 'Gateway timeout. The request took too long. Try:\n\n1. Use Haiku 4.5 instead (much faster)\n2. Simplify your architecture prompt\n3. Try again in a moment';
+      } else if (!error.response) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (error.response?.status >= 500) {
+        errorMessage = `Server error (${error.response.status}). Please try again in a moment.`;
+      }
+
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
