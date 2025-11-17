@@ -15,7 +15,7 @@ body {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f0f4f8;
+  background: #e8e8e6;
 }
 
 .app-header {
@@ -108,7 +108,7 @@ body {
   top: 100%;
   right: 0;
   margin-top: 0.5rem;
-  background: white;
+  background: #f5f5f3;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   overflow: hidden;
@@ -120,10 +120,10 @@ body {
   display: block;
   width: 100%;
   padding: 0.75rem 1rem;
-  background: white;
+  background: #f5f5f3;
   color: #333;
   border: none;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid #d0d0cc;
   text-align: left;
   font-size: 0.95rem;
   cursor: pointer;
@@ -159,7 +159,7 @@ body {
   width: 100%;
   height: 100%;
   overflow-y: auto;
-  background: linear-gradient(135deg, #f0f4f8 0%, #e6eef5 100%);
+  background: linear-gradient(135deg, #e8e8e6 0%, #ddddd8 100%);
 }
 
 /* Hero Section */
@@ -200,7 +200,7 @@ body {
 
 /* Landing Input Form */
 .landing-input-form {
-  background: white;
+  background: #f5f5f3;
   padding: 2rem;
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(102, 126, 234, 0.15);
@@ -269,8 +269,8 @@ body {
 }
 
 .example-prompt-card {
-  background: white;
-  border: 2px solid #e2e8f0;
+  background: #f5f5f3;
+  border: 2px solid #d0d0cc;
   border-radius: 12px;
   padding: 1rem;
   cursor: pointer;
@@ -306,9 +306,9 @@ body {
 
 /* Features Section */
 .features-section {
-  background: white;
+  background: #f5f5f3;
   padding: 3rem 2rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid #d0d0cc;
 }
 
 .features-heading {
@@ -352,9 +352,9 @@ body {
 
 /* Showcase Section - Carousel */
 .showcase-section {
-  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+  background: linear-gradient(135deg, #e8e8e6 0%, #ddddd8 100%);
   padding: 3rem 2rem 4rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid #d0d0cc;
 }
 
 .showcase-heading {
@@ -374,7 +374,7 @@ body {
   overflow: hidden;
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-  background: white;
+  background: #f5f5f3;
 }
 
 .carousel-track {
@@ -438,9 +438,9 @@ body {
 
 /* How It Works Section */
 .how-it-works-section {
-  background: white;
+  background: #f5f5f3;
   padding: 3rem 2rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid #d0d0cc;
 }
 
 .how-it-works-heading {
@@ -497,7 +497,7 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: #fefefe;
+  background: #f5f5f3;
   padding: 2rem;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(102, 126, 234, 0.15);
@@ -563,7 +563,7 @@ body {
 .loading-content {
   max-width: 600px;
   width: 100%;
-  background: white;
+  background: #f5f5f3;
   border-radius: 16px;
   padding: 3rem 2rem;
   box-shadow: 0 8px 32px rgba(102, 126, 234, 0.15);
@@ -698,7 +698,7 @@ body {
 .diagram-canvas {
   width: 100%;
   height: 100%;
-  background: #f7fafc;
+  background: #e8e8e6;
   position: relative;
 }
 
@@ -747,7 +747,7 @@ body {
   padding: 1rem 1.5rem;
   border-radius: 8px;
   border: 2px solid;
-  background: #fefefe;
+  background: #f5f5f3;
   min-width: 150px;
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.12);
   transition: transform 0.2s, box-shadow 0.2s;
@@ -825,8 +825,8 @@ body {
 }
 
 .node-tooltip {
-  background: #fefefe;
-  border: 1px solid #e2e8f0;
+  background: #f5f5f3;
+  border: 1px solid #d0d0cc;
   border-radius: 8px;
   padding: 1rem;
   max-width: 300px;
@@ -961,8 +961,8 @@ body {
 /* Chat Panel */
 /* NOTE: To change minimum panel width, update min-width here AND in ChatPanel.jsx handleMouseMove */
 .chat-panel {
-  background: #fefefe;
-  border-left: 1px solid #e2e8f0;
+  background: #f5f5f3;
+  border-left: 1px solid #d0d0cc;
   display: flex;
   flex-direction: column;
   box-shadow: -2px 0 8px rgba(102, 126, 234, 0.1);
@@ -995,11 +995,11 @@ body {
 
 .chat-header {
   padding: 1rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #d0d0cc;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #f7fafc;
+  background: #e8e8e6;
 }
 
 .chat-header h3 {
@@ -1126,7 +1126,7 @@ body {
 }
 
 .message.assistant .message-content {
-  background: #edf2f7;
+  background: #e8e8e6;
   color: #2d3748;
   align-self: flex-start;
   max-width: 85%;
@@ -1150,20 +1150,20 @@ body {
 
 .chat-input-form {
   padding: 1rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid #d0d0cc;
   display: flex;
   gap: 0.5rem;
-  background: #f7fafc;
+  background: #e8e8e6;
 }
 
 .chat-input-form textarea {
   flex: 1;
   padding: 0.75rem;
-  border: 2px solid #e2e8f0;
+  border: 2px solid #d0d0cc;
   border-radius: 8px;
   font-size: 0.95rem;
   font-family: inherit;
-  background: white;
+  background: #f5f5f3;
   resize: none;
   min-height: 44px;
   line-height: 1.5;
@@ -1174,7 +1174,7 @@ body {
 .chat-input-form textarea:focus {
   outline: none;
   border-color: #667eea;
-  background: white;
+  background: #f5f5f3;
 }
 
 .chat-input-form button {
@@ -1199,8 +1199,8 @@ body {
 
 /* Context Menu */
 .context-menu {
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: #f5f5f3;
+  border: 1px solid #d0d0cc;
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 1000;
@@ -1212,7 +1212,7 @@ body {
   width: 100%;
   padding: 10px 16px;
   border: none;
-  background: white;
+  background: #f5f5f3;
   text-align: left;
   cursor: pointer;
   font-size: 14px;
@@ -1249,8 +1249,8 @@ body {
 /* Design Doc Panel */
 /* NOTE: To change minimum panel width, update min-width here AND in DesignDocPanel.jsx handleMouseMove */
 .design-doc-panel {
-  background: #fefefe;
-  border-right: 1px solid #e2e8f0;
+  background: #f5f5f3;
+  border-right: 1px solid #d0d0cc;
   display: flex;
   flex-direction: column;
   box-shadow: 2px 0 8px rgba(102, 126, 234, 0.1);
@@ -1292,11 +1292,11 @@ body {
 
 .design-doc-header {
   padding: 1rem;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #d0d0cc;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #f7fafc;
+  background: #e8e8e6;
 }
 
 .design-doc-header h3 {
@@ -1327,8 +1327,8 @@ body {
 
 .design-doc-toolbar {
   padding: 0.75rem;
-  border-bottom: 1px solid #e2e8f0;
-  background: #f7fafc;
+  border-bottom: 1px solid #d0d0cc;
+  background: #e8e8e6;
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
@@ -1336,8 +1336,8 @@ body {
 
 .design-doc-toolbar button {
   padding: 0.5rem 0.75rem;
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: #f5f5f3;
+  border: 1px solid #d0d0cc;
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.9rem;
@@ -1493,8 +1493,8 @@ body {
 
 .design-doc-footer {
   padding: 1rem 1.5rem;
-  border-top: 1px solid #e2e8f0;
-  background: #f7fafc;
+  border-top: 1px solid #d0d0cc;
+  background: #e8e8e6;
   display: flex;
   justify-content: space-between;
   align-items: center;
