@@ -154,24 +154,26 @@ async def chat(request: ChatRequest, http_request: Request):
             if isinstance(last_msg, AIMessage):
                 response_text = last_msg.content
 
-        # Check if diagram was updated (compare with serialized old state)
+        # Check if diagram was updated by reloading from session storage
+        # This is critical for production (DynamoDB) where tools update the session
+        # directly, but the agent state may not reflect those changes
         response_diagram = None
         diagram_updated = False
-        if result.get("diagram"):
-            new_diagram_dict = result["diagram"].model_dump()
-            if new_diagram_dict != old_diagram_dict:
-                response_diagram = result["diagram"]
-                # Note: diagram may already be updated in session by tool executor
-                # But we'll update it again to be safe
-                session_manager.update_diagram(request.session_id, response_diagram)
-                diagram_updated = True
 
-        # Check if design doc was updated (compare strings)
+        # Reload session to get any updates made by tools
+        updated_session = session_manager.get_session(request.session_id)
+        new_diagram_dict = updated_session.diagram.model_dump()
+
+        if new_diagram_dict != old_diagram_dict:
+            response_diagram = updated_session.diagram
+            diagram_updated = True
+            print(f"✓ Diagram updated: {len(updated_session.diagram.nodes)} nodes, {len(updated_session.diagram.edges)} edges")
+
+        # Check if design doc was updated (reload from session like diagram)
         response_design_doc = None
-        if result.get("design_doc") and result["design_doc"] != old_design_doc:
-            response_design_doc = result["design_doc"]
-            session_manager.update_design_doc(request.session_id, response_design_doc)
-            print(f"Design doc updated via chat ({len(response_design_doc)} chars)")
+        if updated_session.design_doc and updated_session.design_doc != old_design_doc:
+            response_design_doc = updated_session.design_doc
+            print(f"✓ Design doc updated via chat ({len(response_design_doc)} chars)")
 
         # Add assistant response to session
         session_manager.add_message(
