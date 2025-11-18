@@ -10,14 +10,10 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 from enum import Enum
 
-# Configure root logger
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(message)s',  # We'll use JSON format instead of default
-    stream=sys.stdout
-)
-
-logger = logging.getLogger("infrasketch")
+# Use root logger (pre-configured by Lambda)
+# Lambda's logging is already set up, so we just need to get the root logger
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)  # Ensure INFO level is enabled
 
 
 class EventType(str, Enum):
