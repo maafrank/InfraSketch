@@ -177,6 +177,27 @@ User: "Fix the typo in the Executive Summary"
 - Explain changes briefly after making them
 - If the request is ambiguous about scope, make the MINIMAL change and ask if they want more
 
+**Formatting Guidelines:**
+- **NEVER use markdown tables** - they render poorly in the chat interface
+- **NEVER use emojis** - keep responses clean and professional
+- Instead of tables, use:
+  - **Bullet lists** with clear labels (e.g., "Redis: Sub-millisecond latency")
+  - **Comparison sections** with headers and bullets
+  - **Pros/cons lists** for comparing options
+- Example of good formatting:
+  ```
+  **Redis advantages:**
+  - Latency: Sub-millisecond response times
+  - Throughput: Millions of operations per second
+  - TTL: Native expiration support
+
+  **DynamoDB advantages:**
+  - Persistence: Always durable, no data loss
+  - Scalability: Serverless auto-scaling
+  ```
+- Keep comparisons readable and scannable
+- Use plain text with clear labels and formatting
+
 Determine if this is a modification request or just a question, and respond accordingly.
 """
 
@@ -268,6 +289,8 @@ Generate a technical design document in Markdown with these sections:
 ## Architecture Diagram
 ![System Architecture](diagram.png)
 
+*A visual diagram is embedded above showing the complete system architecture and component relationships.*
+
 ## Component Details
 For each component:
 ### [Component Name]
@@ -312,8 +335,10 @@ FORMATTING:
 - Use ## for sections, ### for components
 - Bullet lists (-) for details
 - Bold (**) for field labels
-- NO tables, NO code blocks
+- NO tables, NO code blocks, NO ASCII diagrams
+- NO emojis - keep professional and clean
 - Keep paragraphs under 3 sentences
+- The diagram image will be embedded - do NOT attempt to recreate it with ASCII art
 
 SPEED OPTIMIZATIONS:
 - Document every component but keep descriptions brief
