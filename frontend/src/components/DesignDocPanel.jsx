@@ -25,6 +25,7 @@ export default function DesignDocPanel({
   onExport,
   isGenerating = false,
   onWidthChange,
+  onApplyLayout,
 }) {
   const [width, setWidth] = useState(400); // Default width
   const [isResizing, setIsResizing] = useState(false);
@@ -186,20 +187,43 @@ export default function DesignDocPanel({
     }
 
     try {
-      // Temporarily hide edge labels to avoid rendering artifacts
-      const edgeLabels = document.querySelectorAll('.react-flow__edge-text');
-      edgeLabels.forEach((label) => {
-        label.style.display = 'none';
+      // Apply layout before capturing to ensure clean organization
+      if (onApplyLayout) {
+        console.log('Applying layout before screenshot...');
+        onApplyLayout();
+        // Wait for layout animation to complete (400ms animation + 100ms buffer)
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      // Hide edge labels using opacity to avoid rendering artifacts
+      // Using opacity: 0 instead of display: none or removing from DOM
+      const edgeTexts = document.querySelectorAll('.react-flow__edge-text');
+      const edgeTextBgs = document.querySelectorAll('.react-flow__edge-textbg');
+
+      // Store original opacity values
+      const originalStyles = [];
+
+      edgeTexts.forEach((el) => {
+        originalStyles.push({ element: el, opacity: el.style.opacity });
+        el.style.opacity = '0';
       });
+
+      edgeTextBgs.forEach((el) => {
+        originalStyles.push({ element: el, opacity: el.style.opacity });
+        el.style.opacity = '0';
+      });
+
+      // Small delay to ensure styles are applied
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       const dataUrl = await toPng(diagramElement, {
         quality: 1.0,
         pixelRatio: 2,
       });
 
-      // Restore edge labels
-      edgeLabels.forEach((label) => {
-        label.style.display = '';
+      // Restore all original styles
+      originalStyles.forEach(({ element, opacity }) => {
+        element.style.opacity = opacity;
       });
 
       // Convert data URL to base64 (remove "data:image/png;base64," prefix)
@@ -208,7 +232,7 @@ export default function DesignDocPanel({
       console.error('Failed to capture diagram:', error);
       return null;
     }
-  }, []);
+  }, [onApplyLayout]);
 
   const handleExport = async (format) => {
     setExportLoading(true);

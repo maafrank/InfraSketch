@@ -712,16 +712,22 @@ body {
   font-size: 1.2rem;
 }
 
-/* Floating Edit Button */
-.floating-edit-button {
+/* Floating Action Buttons */
+.floating-buttons {
   position: absolute;
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  z-index: 100;
+}
+
+.floating-edit-button,
+.floating-layout-button {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
   color: white;
   cursor: pointer;
@@ -730,16 +736,25 @@ body {
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
-  z-index: 100;
 }
 
-.floating-edit-button:hover {
-  transform: translateX(-50%) scale(1.1);
+.floating-edit-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.floating-layout-button {
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+}
+
+.floating-edit-button:hover,
+.floating-layout-button:hover {
+  transform: scale(1.1);
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
-.floating-edit-button:active {
-  transform: translateX(-50%) scale(0.95);
+.floating-edit-button:active,
+.floating-layout-button:active {
+  transform: scale(0.95);
 }
 
 /* Custom Node */
