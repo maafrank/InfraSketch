@@ -9,6 +9,7 @@ load_dotenv()
 from app.api.routes import router
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.auth import APIKeyMiddleware
+from app.middleware.clerk_auth import ClerkAuthMiddleware
 from app.middleware.logging import RequestLoggingMiddleware
 
 app = FastAPI(title="InfraSketch API", version="1.0.0")
@@ -44,7 +45,11 @@ app.add_middleware(
     burst_size=int(os.getenv("RATE_LIMIT_BURST", "10")),
 )
 
-# Add optional API key authentication
+# Add Clerk JWT authentication middleware
+# Validates Clerk tokens and attaches user_id to request.state
+app.add_middleware(ClerkAuthMiddleware)
+
+# Add optional API key authentication (legacy)
 # Enable by setting REQUIRE_API_KEY=true in environment
 app.add_middleware(APIKeyMiddleware)
 

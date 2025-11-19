@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { SignedIn, SignedOut, SignInButton, UserButton, useAuth, useClerk } from "@clerk/clerk-react";
 import { toPng } from 'html-to-image';
 import LandingPage from './components/LandingPage';
 import LoadingAnimation from './components/LoadingAnimation';
@@ -17,7 +18,8 @@ import {
   generateDesignDoc,
   pollDesignDocStatus,
   updateDesignDoc,
-  exportDesignDoc
+  exportDesignDoc,
+  setClerkTokenGetter
 } from './api/client';
 import './App.css';
 
@@ -45,6 +47,15 @@ function App() {
   // Mobile detection
   const [isMobile, setIsMobile] = useState(false);
 
+  // Auth - Set up token getter for API client
+  const { getToken, isSignedIn } = useAuth();
+  const { openSignIn } = useClerk();
+
+  useEffect(() => {
+    // Provide getToken function to API client for auth headers
+    setClerkTokenGetter(getToken);
+  }, [getToken]);
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth <= 768);
@@ -57,6 +68,12 @@ function App() {
   }, []);
 
   const handleGenerate = async (prompt, model) => {
+    // Check if user is signed in, redirect to sign-in if not
+    if (!isSignedIn) {
+      openSignIn();
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await generateDiagram(prompt, model);
@@ -302,7 +319,7 @@ Feel free to explore the diagram and ask me anything!`;
         (status) => {
           // Progress callback - could update UI with elapsed time
           console.log('Generation status:', status.status,
-                     `(${status.elapsed_seconds?.toFixed(0) || 0}s elapsed)`);
+            `(${status.elapsed_seconds?.toFixed(0) || 0}s elapsed)`);
         }
       );
 
@@ -500,6 +517,32 @@ Feel free to explore the diagram and ask me anything!`;
             </button>
           </div>
         )}
+        <div className="auth-buttons" style={{ marginLeft: 'auto', paddingRight: '20px', display: 'flex', alignItems: 'center' }}>
+          <SignedOut>
+            <SignInButton mode="modal">
+              <button className="sign-in-button" style={{
+                padding: '8px 16px',
+                borderRadius: '6px',
+                border: '1px solid rgba(255,255,255,0.2)',
+                background: 'rgba(255,255,255,0.1)',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}>
+                Sign In
+              </button>
+            </SignInButton>
+          </SignedOut>
+          <SignedIn>
+            <UserButton
+              appearance={{
+                elements: {
+                  avatarBox: { width: 32, height: 32 }
+                }
+              }}
+            />
+          </SignedIn>
+        </div>
       </header>
 
       <div className="app-content">

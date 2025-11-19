@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any, Literal
+from datetime import datetime
 
 
 class NodePosition(BaseModel):
@@ -51,12 +52,14 @@ class DesignDocStatus(BaseModel):
 
 class SessionState(BaseModel):
     session_id: str
+    user_id: str  # Clerk user ID - links session to authenticated user
     diagram: Diagram
     messages: List[Message] = Field(default_factory=list)
     current_node: Optional[str] = None
     design_doc: Optional[str] = None  # Markdown content for design document
     design_doc_status: DesignDocStatus = Field(default_factory=DesignDocStatus)
     model: str = "claude-haiku-4-5-20251001"  # Model used for this session
+    created_at: Optional[datetime] = None  # When session was created (for sorting)
 
 
 class GenerateRequest(BaseModel):

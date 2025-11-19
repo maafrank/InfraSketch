@@ -12,6 +12,47 @@ const client = axios.create({
   timeout: 45000, // 45 seconds (API Gateway times out at 30s)
 });
 
+// Store getToken function - will be set by App.jsx
+let getClerkToken = null;
+
+export const setClerkTokenGetter = (tokenGetter) => {
+  getClerkToken = tokenGetter;
+};
+
+// Request interceptor to add Clerk auth token
+client.interceptors.request.use(
+  async (config) => {
+    if (getClerkToken) {
+      try {
+        const token = await getClerkToken();
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      } catch (error) {
+        console.error('Failed to get Clerk token:', error);
+      }
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor to handle auth errors
+client.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      console.error('Authentication required - please sign in');
+      // The error will be caught by the calling code
+    } else if (error.response?.status === 403) {
+      console.error('Access denied - you don\'t have permission for this resource');
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const generateDiagram = async (prompt, model = null) => {
   const response = await client.post('/generate', { prompt, model });
   return response.data;
@@ -128,5 +169,10 @@ export const exportDesignDoc = async (sessionId, format = 'pdf', diagramImage = 
       diagram_image: diagramImage
     }
   );
+  return response.data;
+};
+
+export const getUserSessions = async () => {
+  const response = await client.get('/user/sessions');
   return response.data;
 };
