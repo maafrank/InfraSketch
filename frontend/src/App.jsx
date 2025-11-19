@@ -30,6 +30,7 @@ function App() {
   const [showAddNodeModal, setShowAddNodeModal] = useState(false);
   const [preSelectedNodeType, setPreSelectedNodeType] = useState(null);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
+  const [applyLayoutFn, setApplyLayoutFn] = useState(null);
 
   // Design doc state
   const [designDoc, setDesignDoc] = useState(null);
@@ -451,6 +452,7 @@ Feel free to explore the diagram and ask me anything!`;
             onExport={handleExportDesignDoc}
             isGenerating={designDocLoading}
             onWidthChange={handleDesignDocWidthChange}
+            onApplyLayout={applyLayoutFn}
           />
         )}
 
@@ -473,6 +475,7 @@ Feel free to explore the diagram and ask me anything!`;
               onAddEdge={handleAddEdge}
               onDeleteEdge={handleDeleteEdge}
               onReactFlowInit={setReactFlowInstance}
+              onLayoutReady={(layoutFn) => setApplyLayoutFn(() => layoutFn)}
               onOpenNodePalette={handleOpenNodePalette}
               designDocOpen={designDocOpen}
               designDocWidth={designDocWidth}

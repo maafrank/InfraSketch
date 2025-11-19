@@ -18,7 +18,7 @@ const nodeTypes = {
   custom: CustomNode,
 };
 
-function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAddEdge, onDeleteEdge, onReactFlowInit, onUpdateNode, onOpenNodePalette, designDocOpen, designDocWidth, chatPanelOpen, chatPanelWidth }) {
+function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAddEdge, onDeleteEdge, onReactFlowInit, onUpdateNode, onOpenNodePalette, onLayoutReady, designDocOpen, designDocWidth, chatPanelOpen, chatPanelWidth }) {
   const reactFlowInstance = useReactFlow();
 
   // Pass the React Flow instance to parent
@@ -37,6 +37,30 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const isTooltipHoveredRef = useRef(false);
   const hideTooltipTimeoutRef = useRef(null);
+
+  // Function to apply layout to current nodes/edges
+  const applyLayout = useCallback(() => {
+    setNodes((currentNodes) => {
+      setEdges((currentEdges) => {
+        const layoutedNodes = getLayoutedElements(currentNodes, currentEdges, 'TB');
+
+        // Use fitView to center the diagram after layout
+        setTimeout(() => {
+          reactFlowInstance?.fitView({ padding: 0.2, duration: 400 });
+        }, 10);
+
+        return currentEdges;
+      });
+      return getLayoutedElements(currentNodes, edges, 'TB');
+    });
+  }, [setNodes, setEdges, edges, reactFlowInstance]);
+
+  // Expose applyLayout to parent component
+  useEffect(() => {
+    if (onLayoutReady) {
+      onLayoutReady(applyLayout);
+    }
+  }, [onLayoutReady, applyLayout]);
 
   // Update nodes and edges when diagram changes
   useEffect(() => {
@@ -86,6 +110,17 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
     setNodes(layoutedNodes);
     setEdges(flowEdges);
   }, [diagram, setNodes, setEdges, onDeleteNode, selectedEdge]);
+
+  // Re-layout when panels open/close or resize (debounced)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (nodes.length > 0 && reactFlowInstance) {
+        reactFlowInstance.fitView({ padding: 0.2, duration: 400 });
+      }
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [designDocOpen, chatPanelOpen, designDocWidth, chatPanelWidth, reactFlowInstance, nodes.length]);
 
   const handleNodeMouseEnter = useCallback((event, node) => {
     // Clear any pending hide timeout
@@ -265,26 +300,49 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
         <Controls />
       </ReactFlow>
 
-      {/* Floating edit button */}
-      <button
-        className="floating-edit-button"
-        onClick={() => setIsPaletteOpen(true)}
-        title="Add component"
-      >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+      {/* Floating action buttons */}
+      <div className="floating-buttons">
+        <button
+          className="floating-edit-button"
+          onClick={() => setIsPaletteOpen(true)}
+          title="Add component"
         >
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-        </svg>
-      </button>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
+        </button>
+        <button
+          className="floating-layout-button"
+          onClick={applyLayout}
+          title="Re-organize layout"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="21 16 21 21 16 21"></polyline>
+            <path d="M14 8l-2-2-2 2"></path>
+            <path d="M12 6v9"></path>
+            <polyline points="3 8 3 3 8 3"></polyline>
+          </svg>
+        </button>
+      </div>
 
       {/* Node palette */}
       <NodePalette
