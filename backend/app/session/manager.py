@@ -1,7 +1,8 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 import os
 import uuid
 import time
+from datetime import datetime
 from app.models import SessionState, Diagram, Message, DesignDocStatus
 
 
@@ -21,18 +22,27 @@ class SessionManager:
             self.sessions: Dict[str, SessionState] = {}
             self.storage = None
 
-        # Track session ownership by client identifier
-        self.session_owners: Dict[str, str] = {}  # {session_id: client_id}
+    def create_session(self, diagram: Diagram, user_id: str, model: str = "claude-haiku-4-5-20251001") -> str:
+        """
+        Create a new session with initial diagram.
 
-    def create_session(self, diagram: Diagram, client_id: Optional[str] = None, model: str = "claude-haiku-4-5-20251001") -> str:
-        """Create a new session with initial diagram."""
+        Args:
+            diagram: Initial diagram state
+            user_id: Clerk user ID (from authenticated request)
+            model: AI model to use for this session
+
+        Returns:
+            session_id: UUID for the new session
+        """
         session_id = str(uuid.uuid4())
         session = SessionState(
             session_id=session_id,
+            user_id=user_id,
             diagram=diagram,
             messages=[],
             current_node=None,
-            model=model
+            model=model,
+            created_at=datetime.now()
         )
 
         # Save to appropriate storage
@@ -41,18 +51,17 @@ class SessionManager:
         else:
             self.sessions[session_id] = session
 
-        # Track ownership if client_id provided
-        if client_id:
-            self.session_owners[session_id] = client_id
-
         return session_id
 
-    def get_session(self, session_id: str, client_id: Optional[str] = None) -> Optional[SessionState]:
+    def get_session(self, session_id: str) -> Optional[SessionState]:
         """
         Retrieve session by ID.
 
-        If client_id is provided and ownership is tracked, validates ownership.
-        Returns None if session doesn't exist or client doesn't own it.
+        Args:
+            session_id: UUID of the session
+
+        Returns:
+            SessionState or None if not found
         """
         # Get from appropriate storage
         if self.is_lambda:
@@ -60,23 +69,47 @@ class SessionManager:
         else:
             session = self.sessions.get(session_id)
 
-        if not session:
-            return None
-
-        # If ownership tracking is enabled and client_id provided
-        if client_id and session_id in self.session_owners:
-            if self.session_owners[session_id] != client_id:
-                # Client doesn't own this session
-                return None
-
         return session
 
-    def verify_ownership(self, session_id: str, client_id: str) -> bool:
-        """Check if client owns the session."""
-        if session_id not in self.session_owners:
-            # No ownership tracked, allow access
-            return True
-        return self.session_owners.get(session_id) == client_id
+    def verify_ownership(self, session_id: str, user_id: str) -> bool:
+        """
+        Check if user owns the session.
+
+        Args:
+            session_id: UUID of the session
+            user_id: Clerk user ID
+
+        Returns:
+            True if user owns the session, False otherwise
+        """
+        session = self.get_session(session_id)
+        if not session:
+            return False
+        return session.user_id == user_id
+
+    def get_user_sessions(self, user_id: str) -> List[SessionState]:
+        """
+        Get all sessions belonging to a user.
+
+        Args:
+            user_id: Clerk user ID
+
+        Returns:
+            List of SessionState objects, sorted by created_at (newest first)
+        """
+        if self.is_lambda:
+            # Use DynamoDB GSI query
+            sessions = self.storage.get_sessions_by_user(user_id)
+        else:
+            # Filter in-memory sessions
+            sessions = [
+                session for session in self.sessions.values()
+                if session.user_id == user_id
+            ]
+
+        # Sort by created_at (newest first)
+        sessions.sort(key=lambda s: s.created_at or datetime.min, reverse=True)
+        return sessions
 
     def update_diagram(self, session_id: str, diagram: Diagram) -> bool:
         """Update diagram for a session."""

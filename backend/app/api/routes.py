@@ -32,6 +32,34 @@ import time
 router = APIRouter()
 
 
+def verify_session_access(session_id: str, user_id: str, http_request: Request) -> SessionState:
+    """
+    Helper function to verify user has access to a session.
+
+    Args:
+        session_id: Session ID to check
+        user_id: User ID from authenticated request
+        http_request: FastAPI Request object
+
+    Returns:
+        SessionState if user has access
+
+    Raises:
+        HTTPException: 401 if not authenticated, 404 if session not found, 403 if no access
+    """
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
+
+    session = session_manager.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    if not session_manager.verify_ownership(session_id, user_id):
+        raise HTTPException(status_code=403, detail="You don't have permission to access this session")
+
+    return session
+
+
 class ExportRequest(BaseModel):
     diagram_image: str | None = None  # Base64 encoded PNG from frontend
 
@@ -41,6 +69,11 @@ async def generate_diagram(request: GenerateRequest, http_request: Request):
     """Generate initial system diagram from user prompt."""
     start_time = time.time()
     user_ip = http_request.client.host if http_request.client else None
+
+    # Extract user_id from request state (set by Clerk middleware)
+    user_id = getattr(http_request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
 
     try:
         # Use specified model or default to Haiku (alias auto-updates to latest)
@@ -57,8 +90,8 @@ async def generate_diagram(request: GenerateRequest, http_request: Request):
         # Extract diagram from result
         diagram = result["diagram"]
 
-        # Create session with model
-        session_id = session_manager.create_session(diagram, model=model)
+        # Create session with user_id
+        session_id = session_manager.create_session(diagram, user_id=user_id, model=model)
 
         # Add messages to session (user + assistant)
         session_manager.add_message(
@@ -105,11 +138,20 @@ async def chat(request: ChatRequest, http_request: Request):
     start_time = time.time()
     user_ip = http_request.client.host if http_request.client else None
 
+    # Extract user_id from request state (set by Clerk middleware)
+    user_id = getattr(http_request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
+
     try:
         # Get session
         session = session_manager.get_session(request.session_id)
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
+
+        # Verify ownership
+        if not session_manager.verify_ownership(request.session_id, user_id):
+            raise HTTPException(status_code=403, detail="You don't have permission to access this session")
 
         # Update current node if provided
         if request.node_id:
@@ -211,20 +253,38 @@ async def chat(request: ChatRequest, http_request: Request):
 
 
 @router.get("/session/{session_id}", response_model=SessionState)
-async def get_session(session_id: str):
+async def get_session(session_id: str, http_request: Request):
     """Retrieve current session state."""
+    # Extract user_id from request state (set by Clerk middleware)
+    user_id = getattr(http_request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
+
     session = session_manager.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
+
+    # Verify ownership
+    if not session_manager.verify_ownership(session_id, user_id):
+        raise HTTPException(status_code=403, detail="You don't have permission to access this session")
+
     return session
 
 
 @router.post("/session/{session_id}/nodes", response_model=Diagram)
 async def add_node(session_id: str, node: Node, http_request: Request):
     """Add a new node to the diagram."""
+    # Extract user_id and verify ownership
+    user_id = getattr(http_request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
+
     session = session_manager.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
+
+    if not session_manager.verify_ownership(session_id, user_id):
+        raise HTTPException(status_code=403, detail="You don't have permission to modify this session")
 
     # Check for duplicate node ID
     if any(n.id == node.id for n in session.diagram.nodes):
@@ -248,9 +308,8 @@ async def add_node(session_id: str, node: Node, http_request: Request):
 @router.delete("/session/{session_id}/nodes/{node_id}", response_model=Diagram)
 async def delete_node(session_id: str, node_id: str, http_request: Request):
     """Delete a node and its connected edges from the diagram."""
-    session = session_manager.get_session(session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+    user_id = getattr(http_request.state, "user_id", None)
+    session = verify_session_access(session_id, user_id, http_request)
 
     # Find and remove node
     original_count = len(session.diagram.nodes)
@@ -279,11 +338,10 @@ async def delete_node(session_id: str, node_id: str, http_request: Request):
 
 
 @router.patch("/session/{session_id}/nodes/{node_id}", response_model=Diagram)
-async def update_node(session_id: str, node_id: str, updated_node: Node):
+async def update_node(session_id: str, node_id: str, updated_node: Node, http_request: Request):
     """Update an existing node's properties."""
-    session = session_manager.get_session(session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+    user_id = getattr(http_request.state, "user_id", None)
+    session = verify_session_access(session_id, user_id, http_request)
 
     # Ensure IDs match
     if updated_node.id != node_id:
@@ -304,11 +362,10 @@ async def update_node(session_id: str, node_id: str, updated_node: Node):
 
 
 @router.post("/session/{session_id}/edges", response_model=Diagram)
-async def add_edge(session_id: str, edge: Edge):
+async def add_edge(session_id: str, edge: Edge, http_request: Request):
     """Add a new edge to the diagram."""
-    session = session_manager.get_session(session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+    user_id = getattr(http_request.state, "user_id", None)
+    session = verify_session_access(session_id, user_id, http_request)
 
     # Validate source and target nodes exist
     node_ids = {n.id for n in session.diagram.nodes}
@@ -328,11 +385,10 @@ async def add_edge(session_id: str, edge: Edge):
 
 
 @router.delete("/session/{session_id}/edges/{edge_id}", response_model=Diagram)
-async def delete_edge(session_id: str, edge_id: str):
+async def delete_edge(session_id: str, edge_id: str, http_request: Request):
     """Delete an edge from the diagram."""
-    session = session_manager.get_session(session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+    user_id = getattr(http_request.state, "user_id", None)
+    session = verify_session_access(session_id, user_id, http_request)
 
     # Find and remove edge
     original_count = len(session.diagram.edges)
@@ -359,12 +415,11 @@ async def export_design_doc(session_id: str, request: ExportRequest, format: str
     """
     start_time = time.time()
     user_ip = http_request.client.host if http_request and http_request.client else None
+    user_id = getattr(http_request.state, "user_id", None) if http_request else None
 
     try:
-        # Get session
-        session = session_manager.get_session(session_id)
-        if not session:
-            raise HTTPException(status_code=404, detail="Session not found")
+        # Verify access
+        session = verify_session_access(session_id, user_id, http_request)
 
         # Get conversation history
         conversation_history = [
@@ -544,12 +599,11 @@ async def generate_design_doc(session_id: str, request: ExportRequest, backgroun
     """
     import os
     user_ip = http_request.client.host if http_request.client else None
+    user_id = getattr(http_request.state, "user_id", None)
 
     try:
-        # Get session
-        session = session_manager.get_session(session_id)
-        if not session:
-            raise HTTPException(status_code=404, detail="Session not found")
+        # Verify access
+        session = verify_session_access(session_id, user_id, http_request)
 
         # Check if already generating
         if session.design_doc_status.status == "generating":
@@ -616,7 +670,7 @@ async def generate_design_doc(session_id: str, request: ExportRequest, backgroun
 
 
 @router.get("/session/{session_id}/design-doc/status")
-async def get_design_doc_status(session_id: str):
+async def get_design_doc_status(session_id: str, http_request: Request):
     """
     Get the current status of design document generation.
 
@@ -626,9 +680,8 @@ async def get_design_doc_status(session_id: str):
     Returns:
         JSON with status information
     """
-    session = session_manager.get_session(session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+    user_id = getattr(http_request.state, "user_id", None)
+    session = verify_session_access(session_id, user_id, http_request)
 
     status = session.design_doc_status
 
@@ -672,12 +725,11 @@ async def update_design_doc(session_id: str, request: DesignDocUpdateRequest, ht
         JSON with updated design_doc content
     """
     user_ip = http_request.client.host if http_request.client else None
+    user_id = getattr(http_request.state, "user_id", None)
 
     try:
-        # Get session
-        session = session_manager.get_session(session_id)
-        if not session:
-            raise HTTPException(status_code=404, detail="Session not found")
+        # Verify access
+        session = verify_session_access(session_id, user_id, http_request)
 
         # Validate content size (limit to 1MB)
         if len(request.content) > 1_000_000:
@@ -725,12 +777,11 @@ async def export_design_doc_from_session(session_id: str, request: ExportRequest
     """
     start_time = time.time()
     user_ip = http_request.client.host if http_request and http_request.client else None
+    user_id = getattr(http_request.state, "user_id", None) if http_request else None
 
     try:
-        # Get session
-        session = session_manager.get_session(session_id)
-        if not session:
-            raise HTTPException(status_code=404, detail="Session not found")
+        # Verify access
+        session = verify_session_access(session_id, user_id, http_request)
 
         # Check if design doc exists
         if not session.design_doc:
@@ -822,3 +873,52 @@ async def export_design_doc_from_session(session_id: str, request: ExportRequest
             success=False,
         )
         raise HTTPException(status_code=500, detail=f"Failed to export design document: {str(e)}")
+
+
+@router.get("/user/sessions")
+async def get_user_sessions(http_request: Request):
+    """
+    Get all sessions belonging to the authenticated user.
+
+    Returns:
+        List of sessions with metadata, sorted by most recent first
+    """
+    user_id = getattr(http_request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
+
+    try:
+        # Get all sessions for this user
+        sessions = session_manager.get_user_sessions(user_id)
+
+        # Format response with session previews
+        sessions_data = []
+        for session in sessions:
+            sessions_data.append({
+                "session_id": session.session_id,
+                "created_at": session.created_at.isoformat() if session.created_at else None,
+                "node_count": len(session.diagram.nodes),
+                "edge_count": len(session.diagram.edges),
+                "message_count": len(session.messages),
+                "has_design_doc": session.design_doc is not None,
+                "model": session.model,
+            })
+
+        log_event(
+            EventType.API_REQUEST,
+            user_ip=http_request.client.host if http_request.client else None,
+            metadata={
+                "endpoint": "/user/sessions",
+                "session_count": len(sessions_data)
+            }
+        )
+
+        return JSONResponse(content={"sessions": sessions_data, "total": len(sessions_data)})
+
+    except Exception as e:
+        log_error(
+            error_type="get_user_sessions_failed",
+            error_message=str(e),
+            user_ip=http_request.client.host if http_request.client else None,
+        )
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve sessions: {str(e)}")

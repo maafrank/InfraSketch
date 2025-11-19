@@ -97,7 +97,7 @@ Instead of parsing JSON from Claude's responses, the agent uses **Claude's nativ
 ### Key Components
 
 **Backend (`backend/app/`)**:
-- `main.py` - FastAPI app with CORS, rate limiting, optional auth, and request logging middleware
+- `main.py` - FastAPI app with CORS, rate limiting, Clerk auth, and request logging middleware
 - `models.py` - Pydantic models for Node, Edge, Diagram, SessionState
 - `api/routes.py` - Endpoints for generate, chat, session management, CRUD operations, with structured event logging
 - `session/manager.py` - **Hybrid session storage** (in-memory for local, DynamoDB for Lambda)
@@ -108,8 +108,9 @@ Instead of parsing JSON from Claude's responses, the agent uses **Claude's nativ
 - `agent/tools.py` - **Native tools for diagram and design doc modifications** (see below)
 - `agent/prompts.py` - System prompts for Claude (generation + conversation)
 - `agent/doc_generator.py` - Standalone LLM call for design document generation
+- `middleware/clerk_auth.py` - **Clerk JWT authentication** (validates tokens, extracts user_id)
 - `middleware/rate_limit.py` - Token bucket algorithm, 60 req/min per IP by default
-- `middleware/auth.py` - Optional API key auth (enable via REQUIRE_API_KEY=true)
+- `middleware/auth.py` - Legacy API key auth (disabled by default, superseded by Clerk)
 - `middleware/logging.py` - Request/response logging middleware
 - `utils/secrets.py` - Helper for retrieving API keys (supports both .env and AWS Secrets Manager)
 - `utils/logger.py` - Structured JSON logging for CloudWatch (tracks events, errors, performance)
@@ -194,10 +195,29 @@ The agent uses **Claude's native tool calling API** instead of manual JSON parsi
 
 ## Environment Setup
 
-Create `.env` file in root:
+Create `.env` file in root (backend):
 ```env
+# Required
 ANTHROPIC_API_KEY=your-api-key-here
-LANGSMITH_TRACING=False  # Optional
+CLERK_SECRET_KEY=sk_test_your-clerk-secret-key-here
+
+# Optional
+LANGSMITH_TRACING=False
+RATE_LIMIT_PER_MINUTE=60
+RATE_LIMIT_BURST=10
+REQUIRE_API_KEY=false
+EXTRA_ALLOWED_ORIGINS=""
+```
+
+Create `.env` file in `frontend/` directory:
+```env
+# Required
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_your-clerk-publishable-key-here
+VITE_API_URL=http://localhost:8000
+
+# Production (.env.production)
+VITE_CLERK_PUBLISHABLE_KEY=pk_live_your-clerk-publishable-key-here
+VITE_API_URL=https://b31htlojb0.execute-api.us-east-1.amazonaws.com/prod
 ```
 
 ## API Endpoints
@@ -343,6 +363,16 @@ The backend exposes these REST endpoints (all under `/api` prefix):
 2. Check if `infrasketch-sessions` table exists: `aws dynamodb describe-table --table-name infrasketch-sessions`
 3. First Lambda cold start may take 20+ seconds due to table creation
 4. Check logs for "Creating DynamoDB table" or "DynamoDB table exists"
+
+### Issue: 401 Unauthorized errors on all requests
+**Cause**: Missing or invalid Clerk authentication token
+**Solution**:
+1. Verify `VITE_CLERK_PUBLISHABLE_KEY` is set in frontend `.env` file
+2. Check that user is signed in (Clerk UI should show user profile)
+3. Verify `CLERK_SECRET_KEY` is set in backend `.env` or AWS Secrets Manager
+4. Check backend logs for "Missing or invalid Authorization header" or "Token validation failed"
+5. Ensure Clerk domain matches between frontend and backend (production vs development)
+6. Verify JWKS cache is not stale (refresh after 1 hour automatically)
 
 ## Model Configuration
 
@@ -721,6 +751,49 @@ Users can ask the chat bot to modify the design document using **surgical, secti
 - WeasyPrint fallback requires system libraries but produces better formatting
 - Screenshot uses 2x pixel ratio for high-resolution export
 
+## Authentication Architecture (Clerk)
+
+The app uses **Clerk** for user authentication and authorization. All API requests (except public endpoints) require a valid JWT token.
+
+**Frontend Flow:**
+1. User signs in through Clerk UI components
+2. `ClerkProvider` wraps the entire app in `main.jsx`
+3. Axios interceptor in `api/client.js` automatically adds JWT to all requests:
+   ```javascript
+   const token = await getToken();
+   headers.Authorization = `Bearer ${token}`;
+   ```
+4. User ID is stored in session state for ownership verification
+
+**Backend Flow:**
+1. `ClerkAuthMiddleware` intercepts all requests (except `/`, `/health`, `/docs`, `/openapi.json`, `/redoc`)
+2. Extracts JWT from `Authorization: Bearer {token}` header
+3. Fetches Clerk's public keys (JWKS) from `https://{CLERK_DOMAIN}/.well-known/jwks.json`
+   - Keys are cached for 1 hour to reduce network calls
+4. Validates JWT signature using public key matching token's `kid` (key ID)
+5. Verifies token claims:
+   - Issuer matches Clerk domain
+   - Token has not expired
+   - Subject (user_id) exists
+6. Attaches `user_id` to `request.state.user_id` for use in route handlers
+7. Returns 401 if token is missing/invalid, 403 if user lacks permission
+
+**Session Ownership:**
+- Every session includes `user_id` field
+- Routes verify `session.user_id == request.state.user_id` before allowing access
+- Prevents users from accessing/modifying other users' sessions
+- Example: `GET /api/session/{session_id}` checks ownership before returning data
+
+**Key Files:**
+- `backend/app/middleware/clerk_auth.py` - JWT validation middleware
+- `frontend/src/main.jsx` - ClerkProvider setup
+- `frontend/src/api/client.js` - Axios interceptor for token injection
+
+**Environment Variables:**
+- `CLERK_SECRET_KEY` (backend) - For server-side operations (kept secret)
+- `VITE_CLERK_PUBLISHABLE_KEY` (frontend) - Public key for client SDK
+- `CLERK_DOMAIN` (backend) - Defaults to `clerk.infrasketch.net` (production) or auto-detected from publishable key
+
 ## Middleware Architecture
 
 The backend uses a layered middleware approach (order matters):
@@ -730,11 +803,15 @@ The backend uses a layered middleware approach (order matters):
    - Configure via env: `RATE_LIMIT_PER_MINUTE`, `RATE_LIMIT_BURST`
    - In-memory only (resets on restart)
    - Skips `/health` and `/` endpoints
-3. **API Key Auth** (`APIKeyMiddleware`) - Optional authentication (disabled by default)
+3. **Clerk Auth** (`ClerkAuthMiddleware`) - JWT validation and user identification (see Authentication Architecture section above)
+   - Required for all endpoints except public paths
+   - Fetches and caches Clerk's public keys (JWKS)
+   - Attaches `user_id` to request state
+4. **API Key Auth** (`APIKeyMiddleware`) - Legacy authentication (disabled by default, superseded by Clerk)
    - Enable via `REQUIRE_API_KEY=true`
    - Provide keys via `VALID_API_KEYS=key1,key2,key3`
    - Accepts keys in: `X-API-Key` header, `Authorization: Bearer` header, or `api_key` query param
-4. **Request Logging** (`RequestLoggingMiddleware`) - Logs all requests with timing
+5. **Request Logging** (`RequestLoggingMiddleware`) - Logs all requests with timing
    - Should be last middleware to capture complete request lifecycle
    - Skips `/health`, `/`, `/favicon.ico` to reduce noise
 
@@ -825,14 +902,21 @@ aws lambda invoke \
 
 ## Security Features
 
+**User Authentication (Clerk):**
+- JWT-based authentication required for all API endpoints (except public paths)
+- Token validation using Clerk's public keys (JWKS)
+- Session ownership verification: Users can only access their own sessions
+- Automatic token refresh handled by Clerk SDK
+- Secure key management: Secret keys never exposed to frontend
+
 **Rate Limiting:**
 - Default: 60 requests per minute per IP
 - Burst allowance: 10 requests
 - Configurable via environment variables
 - Returns HTTP 429 with `Retry-After` header when exceeded
 
-**API Key Authentication (Optional):**
-- Disabled by default for public access
+**API Key Authentication (Legacy):**
+- Disabled by default (superseded by Clerk authentication)
 - Enable by setting `REQUIRE_API_KEY=true` in Lambda environment
 - Provide comma-separated keys in `VALID_API_KEYS`
 - Public endpoints exempt: `/`, `/health`, `/docs`, `/openapi.json`, `/redoc`
@@ -842,6 +926,7 @@ aws lambda invoke \
 - Example: `192.168.1.100` → `192.168.1.0`
 
 **CORS Security:**
-- Production only allows CloudFront distribution domain
+- Production only allows CloudFront distribution domains and infrasketch.net
 - Local development allows localhost:5173
 - No wildcard origins in production
+- Credentials enabled for authenticated origins
