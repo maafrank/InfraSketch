@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { toPng } from 'html-to-image';
 import LandingPage from './components/LandingPage';
 import LoadingAnimation from './components/LoadingAnimation';
 import DiagramCanvas from './components/DiagramCanvas';
@@ -401,6 +402,65 @@ Feel free to explore the diagram and ask me anything!`;
     URL.revokeObjectURL(url);
   };
 
+  // Handle PNG export from floating button
+  const handleExportPng = useCallback(async () => {
+    const diagramElement = document.querySelector('.react-flow__viewport');
+    if (!diagramElement) {
+      console.error('Diagram element not found');
+      return;
+    }
+
+    try {
+      // Apply layout before capturing to ensure clean organization
+      if (applyLayoutFn) {
+        console.log('Applying layout before screenshot...');
+        applyLayoutFn();
+        // Wait for layout animation to complete (400ms animation + 100ms buffer)
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      // Hide edge labels using opacity to avoid rendering artifacts
+      const edgeTexts = document.querySelectorAll('.react-flow__edge-text');
+      const edgeTextBgs = document.querySelectorAll('.react-flow__edge-textbg');
+
+      // Store original opacity values
+      const originalStyles = [];
+
+      edgeTexts.forEach((el) => {
+        originalStyles.push({ element: el, opacity: el.style.opacity });
+        el.style.opacity = '0';
+      });
+
+      edgeTextBgs.forEach((el) => {
+        originalStyles.push({ element: el, opacity: el.style.opacity });
+        el.style.opacity = '0';
+      });
+
+      // Small delay to ensure styles are applied
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      const dataUrl = await toPng(diagramElement, {
+        quality: 1.0,
+        pixelRatio: 2,
+      });
+
+      // Restore all original styles
+      originalStyles.forEach(({ element, opacity }) => {
+        element.style.opacity = opacity;
+      });
+
+      // Convert data URL to base64 and download
+      const base64 = dataUrl.split(',')[1];
+      const blob = base64ToBlob(base64, 'image/png');
+      downloadBlob(blob, 'diagram.png');
+
+      console.log('Diagram PNG exported successfully');
+    } catch (error) {
+      console.error('Failed to export diagram:', error);
+      alert('Failed to export diagram. Please try again.');
+    }
+  }, [applyLayoutFn, base64ToBlob, downloadBlob]);
+
   return (
     <div className="app">
       <header className="app-header">
@@ -477,6 +537,7 @@ Feel free to explore the diagram and ask me anything!`;
               onReactFlowInit={setReactFlowInstance}
               onLayoutReady={(layoutFn) => setApplyLayoutFn(() => layoutFn)}
               onOpenNodePalette={handleOpenNodePalette}
+              onExportPng={handleExportPng}
               designDocOpen={designDocOpen}
               designDocWidth={designDocWidth}
               chatPanelOpen={!!diagram}
