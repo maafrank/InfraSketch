@@ -60,6 +60,8 @@ class SessionState(BaseModel):
     design_doc_status: DesignDocStatus = Field(default_factory=DesignDocStatus)
     model: str = "claude-haiku-4-5-20251001"  # Model used for this session
     created_at: Optional[datetime] = None  # When session was created (for sorting)
+    name: Optional[str] = None  # Concise session name (e.g., "E-commerce Platform")
+    name_generated: bool = False  # Prevents re-generating name once set
 
 
 class GenerateRequest(BaseModel):

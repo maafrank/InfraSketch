@@ -24,20 +24,20 @@ from app.models import Diagram
 from app.utils.secrets import get_anthropic_api_key
 
 
-def create_llm(model_name: str = "claude-haiku-4-5-20251001"):
+def create_llm(model_name: str = "claude-haiku-4-5"):
     """Create Claude LLM instance with specified model."""
     api_key = get_anthropic_api_key()
     return ChatAnthropic(
         model=model_name,
         api_key=api_key,
-        temperature=0.7,
+        temperature=0.4,
         max_tokens=32768,  # Supports up to 64k output tokens
     )
 
 
 def generate_diagram_node(state: InfraSketchState) -> dict:
     """Generate initial diagram from user prompt."""
-    llm = create_llm(state.model or "claude-haiku-4-5-20251001")
+    llm = create_llm(state.model or "claude-haiku-4-5")
 
     # Get user message from last message in conversation
     user_message = state.messages[-1].content if state.messages else ""

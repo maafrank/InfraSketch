@@ -26,6 +26,7 @@ export default function DesignDocPanel({
   isGenerating = false,
   onWidthChange,
   onApplyLayout,
+  sessionHistorySidebarWidth = 0,
 }) {
   const [width, setWidth] = useState(400); // Default width
   const [isResizing, setIsResizing] = useState(false);
@@ -113,8 +114,8 @@ export default function DesignDocPanel({
       e.preventDefault();
 
       // Calculate new width based on mouse X position
-      // Since panel is on the left side, width = mouse X position
-      const newWidth = e.clientX;
+      // Account for session history sidebar offset
+      const newWidth = e.clientX - sessionHistorySidebarWidth;
 
       // Set min/max constraints
       // NOTE: To change minimum panel width, update this value AND the min-width in App.css (.design-doc-panel)
@@ -164,7 +165,7 @@ export default function DesignDocPanel({
         cancelAnimationFrame(rafId);
       }
     };
-  }, [isResizing]);
+  }, [isResizing, sessionHistorySidebarWidth]);
 
   const handleSave = async (htmlContent) => {
     setSaveStatus('saving');
@@ -309,7 +310,7 @@ export default function DesignDocPanel({
   return (
     <div
       className={`design-doc-panel ${isMobile ? 'mobile-modal' : ''}`}
-      style={isMobile ? {} : { width: `${width}px` }}
+      style={isMobile ? {} : { width: `${width}px`, left: `${sessionHistorySidebarWidth}px` }}
     >
       {!isMobile && (
         <div
