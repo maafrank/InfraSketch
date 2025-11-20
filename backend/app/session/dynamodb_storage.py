@@ -119,8 +119,8 @@ class DynamoDBSessionStorage:
         # Convert all floats to Decimals for DynamoDB compatibility
         session_dict = convert_floats_to_decimals(session_dict)
 
-        # Add TTL (expire sessions after 24 hours)
-        session_dict['ttl'] = int(time.time()) + (24 * 60 * 60)
+        # Add TTL (expire sessions after 1 year)
+        session_dict['ttl'] = int(time.time()) + (365 * 24 * 60 * 60)
 
         return session_dict
 

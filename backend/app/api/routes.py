@@ -16,6 +16,7 @@ from app.models import (
 from app.session.manager import session_manager
 from app.agent.graph import agent_graph
 from app.agent.doc_generator import generate_design_document
+from app.agent.name_generator import generate_session_name
 from app.utils.diagram_export import generate_diagram_png, convert_markdown_to_pdf
 from app.utils.logger import (
     log_diagram_generation,
@@ -64,8 +65,52 @@ class ExportRequest(BaseModel):
     diagram_image: str | None = None  # Base64 encoded PNG from frontend
 
 
+def _generate_session_name_background(session_id: str, prompt: str, model: str):
+    """Background task to generate session name from initial prompt."""
+    import os
+
+    try:
+        session = session_manager.get_session(session_id)
+        if not session:
+            print(f"Session {session_id} not found for name generation")
+            return
+
+        # Skip if already generated (should never happen, but safety check)
+        if session.name_generated:
+            print(f"Session {session_id} already has a name: {session.name}")
+            return
+
+        print(f"\n=== BACKGROUND: GENERATE SESSION NAME ===")
+        print(f"Session ID: {session_id}")
+        print(f"Prompt: {prompt[:100]}...")
+
+        # Get API key from environment or secrets
+        from app.utils.secrets import get_anthropic_api_key
+        api_key = get_anthropic_api_key()
+
+        # Generate name using LLM
+        import asyncio
+        name = asyncio.run(generate_session_name(prompt, api_key, model))
+
+        # Update session using proper method
+        session_manager.update_session_name(session_id, name)
+
+        print(f"Generated name: {name}")
+        print(f"=========================================\n")
+
+    except Exception as e:
+        import traceback
+        print(f"Error generating session name: {e}")
+        print(traceback.format_exc())
+        # Set fallback name so we don't retry
+        try:
+            session_manager.update_session_name(session_id, "Untitled Design")
+        except:
+            pass
+
+
 @router.post("/generate", response_model=GenerateResponse)
-async def generate_diagram(request: GenerateRequest, http_request: Request):
+async def generate_diagram(request: GenerateRequest, http_request: Request, background_tasks: BackgroundTasks):
     """Generate initial system diagram from user prompt."""
     start_time = time.time()
     user_ip = http_request.client.host if http_request.client else None
@@ -106,6 +151,9 @@ async def generate_diagram(request: GenerateRequest, http_request: Request):
                     session_id,
                     Message(role="assistant", content=last_msg.content)
                 )
+
+        # Generate session name in background
+        background_tasks.add_task(_generate_session_name_background, session_id, request.prompt, model)
 
         # Log diagram generation event
         duration_ms = (time.time() - start_time) * 1000
@@ -902,6 +950,7 @@ async def get_user_sessions(http_request: Request):
                 "message_count": len(session.messages),
                 "has_design_doc": session.design_doc is not None,
                 "model": session.model,
+                "name": session.name,
             })
 
         log_event(

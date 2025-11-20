@@ -185,6 +185,19 @@ class SessionManager:
             return None
         return session.design_doc_status
 
+    def update_session_name(self, session_id: str, name: str) -> bool:
+        """Update session name and mark as generated."""
+        session = self.get_session(session_id)
+        if not session:
+            return False
+        session.name = name
+        session.name_generated = True
+
+        # Save updated session
+        if self.is_lambda:
+            return self.storage.save_session(session)
+        return True
+
 
 # Global session manager instance
 session_manager = SessionManager()

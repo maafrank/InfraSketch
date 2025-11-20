@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { SignedIn, SignedOut, SignInButton, UserButton, useAuth, useClerk } from "@clerk/clerk-react";
 import { toPng } from 'html-to-image';
 import LandingPage from './components/LandingPage';
@@ -7,6 +8,7 @@ import DiagramCanvas from './components/DiagramCanvas';
 import ChatPanel from './components/ChatPanel';
 import DesignDocPanel from './components/DesignDocPanel';
 import AddNodeModal from './components/AddNodeModal';
+import SessionHistorySidebar from './components/SessionHistorySidebar';
 import {
   generateDiagram,
   sendChatMessage,
@@ -19,11 +21,12 @@ import {
   pollDesignDocStatus,
   updateDesignDoc,
   exportDesignDoc,
-  setClerkTokenGetter
+  setClerkTokenGetter,
+  getSession
 } from './api/client';
 import './App.css';
 
-function App() {
+function App({ resumeMode = false }) {
   const [sessionId, setSessionId] = useState(null);
   const [diagram, setDiagram] = useState(null);
   const [selectedNode, setSelectedNode] = useState(null);
@@ -44,12 +47,20 @@ function App() {
   // Chat panel state
   const [chatPanelWidth, setChatPanelWidth] = useState(400);
 
+  // Session history sidebar state
+  const [sessionHistoryOpen, setSessionHistoryOpen] = useState(false);
+  const [sessionHistorySidebarWidth, setSessionHistorySidebarWidth] = useState(300);
+
   // Mobile detection
   const [isMobile, setIsMobile] = useState(false);
 
   // Auth - Set up token getter for API client
   const { getToken, isSignedIn } = useAuth();
   const { openSignIn } = useClerk();
+
+  // Routing
+  const { sessionId: urlSessionId } = useParams();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Provide getToken function to API client for auth headers
@@ -66,6 +77,50 @@ function App() {
 
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Re-center diagram when sidebar opens/closes
+  useEffect(() => {
+    if (diagram && applyLayoutFn && !isMobile) {
+      // Small delay to allow panel animations to complete
+      const timer = setTimeout(() => {
+        applyLayoutFn();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [sessionHistoryOpen, sessionHistorySidebarWidth, diagram, applyLayoutFn, isMobile]);
+
+  // Resume session from URL parameter
+  useEffect(() => {
+    if (resumeMode && urlSessionId && !sessionId && isSignedIn) {
+      loadSession(urlSessionId);
+    }
+  }, [resumeMode, urlSessionId, sessionId, isSignedIn]);
+
+  const loadSession = async (sid) => {
+    setLoading(true);
+    try {
+      const sessionData = await getSession(sid);
+
+      // Restore full session state
+      setSessionId(sessionData.session_id);
+      setDiagram(sessionData.diagram);
+      setMessages(sessionData.messages || []);
+      setDesignDoc(sessionData.design_doc);
+
+      // Open design doc panel if it exists
+      if (sessionData.design_doc) {
+        setDesignDocOpen(true);
+      }
+
+      console.log('Session loaded:', sessionData.session_id);
+    } catch (error) {
+      console.error('Failed to load session:', error);
+      alert('Failed to load session. It may have expired or you may not have access.');
+      navigate('/');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleGenerate = async (prompt, model) => {
     // Check if user is signed in, redirect to sign-in if not
@@ -293,6 +348,7 @@ Feel free to explore the diagram and ask me anything!`;
     setMessages([]);
     setDesignDoc(null);
     setDesignDocOpen(false);
+    navigate('/');
   };
 
   const handleCreateDesignDoc = async () => {
@@ -396,6 +452,16 @@ Feel free to explore the diagram and ask me anything!`;
     setChatPanelWidth(width);
   }, []);
 
+  // Wrap setSessionHistorySidebarWidth in useCallback to prevent unnecessary re-renders
+  const handleSessionHistorySidebarWidthChange = useCallback((width) => {
+    setSessionHistorySidebarWidth(width);
+  }, []);
+
+  // Handler for loading a session from history
+  const handleLoadSession = useCallback(async (sessionId) => {
+    await loadSession(sessionId);
+  }, []);
+
   // Helper function to convert base64 to blob
   const base64ToBlob = (base64, mimeType) => {
     const byteCharacters = atob(base64);
@@ -495,29 +561,40 @@ Feel free to explore the diagram and ask me anything!`;
           </div>
         </div>
         <div className="header-right">
-          {diagram && (
-            <div className="header-buttons">
-              <button
-                className="create-design-doc-button"
-                onClick={handleCreateDesignDoc}
-                disabled={designDocLoading}
-              >
-                {designDocLoading ? 'Generating...' : (designDoc && !designDocOpen ? 'Open Design Doc' : 'Create Design Doc')}
-              </button>
-              <button
-                className="add-node-button"
-                onClick={() => setShowAddNodeModal(true)}
-              >
-                + Add Node
-              </button>
-              <button
-                className="new-design-button"
-                onClick={handleNewDesign}
-              >
-                New Design
-              </button>
-            </div>
-          )}
+          <div className="header-buttons">
+            <button
+              className={`history-toggle-button ${sessionHistoryOpen ? 'active' : ''}`}
+              onClick={() => setSessionHistoryOpen(!sessionHistoryOpen)}
+              title={sessionHistoryOpen ? 'Close history' : 'Open history'}
+              aria-label={sessionHistoryOpen ? 'Close session history' : 'Open session history'}
+              aria-expanded={sessionHistoryOpen}
+            >
+              {sessionHistoryOpen ? '✕' : '☰'}
+            </button>
+            {diagram && (
+              <>
+                <button
+                  className="create-design-doc-button"
+                  onClick={handleCreateDesignDoc}
+                  disabled={designDocLoading}
+                >
+                  {designDocLoading ? 'Generating...' : (designDoc && !designDocOpen ? 'Open Design Doc' : 'Create Design Doc')}
+                </button>
+                <button
+                  className="add-node-button"
+                  onClick={() => setShowAddNodeModal(true)}
+                >
+                  + Add Node
+                </button>
+                <button
+                  className="new-design-button"
+                  onClick={handleNewDesign}
+                >
+                  New Design
+                </button>
+              </>
+            )}
+          </div>
           <div className="auth-buttons">
             <SignedOut>
               <SignInButton mode="modal">
@@ -540,6 +617,15 @@ Feel free to explore the diagram and ask me anything!`;
       </header>
 
       <div className="app-content">
+        {sessionHistoryOpen && (
+          <SessionHistorySidebar
+            isOpen={sessionHistoryOpen}
+            onClose={() => setSessionHistoryOpen(false)}
+            onSessionSelect={handleLoadSession}
+            onWidthChange={handleSessionHistorySidebarWidthChange}
+          />
+        )}
+
         {designDocOpen && (
           <DesignDocPanel
             designDoc={designDoc}
@@ -550,14 +636,15 @@ Feel free to explore the diagram and ask me anything!`;
             isGenerating={designDocLoading}
             onWidthChange={handleDesignDocWidthChange}
             onApplyLayout={applyLayoutFn}
+            sessionHistorySidebarWidth={sessionHistoryOpen ? sessionHistorySidebarWidth : 0}
           />
         )}
 
         <div
           className="main-area"
           style={{
-            marginLeft: designDocOpen ? `${designDocWidth}px` : '0px',
-            display: isMobile && (designDocOpen || selectedNode) ? 'none' : 'flex'
+            marginLeft: diagram ? `${(sessionHistoryOpen ? sessionHistorySidebarWidth : 0) + (designDocOpen ? designDocWidth : 0)}px` : '0px',
+            display: isMobile && (sessionHistoryOpen || designDocOpen || selectedNode) ? 'none' : 'flex'
           }}
         >
           {!diagram && !loading && <LandingPage onGenerate={handleGenerate} loading={loading} />}
