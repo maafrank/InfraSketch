@@ -494,54 +494,48 @@ Feel free to explore the diagram and ask me anything!`;
             </div>
           </div>
         </div>
-        {diagram && (
-          <div className="header-buttons">
-            <button
-              className="create-design-doc-button"
-              onClick={handleCreateDesignDoc}
-              disabled={designDocLoading}
-            >
-              {designDocLoading ? 'Generating...' : (designDoc && !designDocOpen ? 'Open Design Doc' : 'Create Design Doc')}
-            </button>
-            <button
-              className="add-node-button"
-              onClick={() => setShowAddNodeModal(true)}
-            >
-              + Add Node
-            </button>
-            <button
-              className="new-design-button"
-              onClick={handleNewDesign}
-            >
-              New Design
-            </button>
-          </div>
-        )}
-        <div className="auth-buttons" style={{ marginLeft: 'auto', paddingRight: '20px', display: 'flex', alignItems: 'center' }}>
-          <SignedOut>
-            <SignInButton mode="modal">
-              <button className="sign-in-button" style={{
-                padding: '8px 16px',
-                borderRadius: '6px',
-                border: '1px solid rgba(255,255,255,0.2)',
-                background: 'rgba(255,255,255,0.1)',
-                color: 'white',
-                cursor: 'pointer',
-                fontSize: '14px'
-              }}>
-                Sign In
+        <div className="header-right">
+          {diagram && (
+            <div className="header-buttons">
+              <button
+                className="create-design-doc-button"
+                onClick={handleCreateDesignDoc}
+                disabled={designDocLoading}
+              >
+                {designDocLoading ? 'Generating...' : (designDoc && !designDocOpen ? 'Open Design Doc' : 'Create Design Doc')}
               </button>
-            </SignInButton>
-          </SignedOut>
-          <SignedIn>
-            <UserButton
-              appearance={{
-                elements: {
-                  avatarBox: { width: 32, height: 32 }
-                }
-              }}
-            />
-          </SignedIn>
+              <button
+                className="add-node-button"
+                onClick={() => setShowAddNodeModal(true)}
+              >
+                + Add Node
+              </button>
+              <button
+                className="new-design-button"
+                onClick={handleNewDesign}
+              >
+                New Design
+              </button>
+            </div>
+          )}
+          <div className="auth-buttons">
+            <SignedOut>
+              <SignInButton mode="modal">
+                <button className="sign-in-button">
+                  Sign In
+                </button>
+              </SignInButton>
+            </SignedOut>
+            <SignedIn>
+              <UserButton
+                appearance={{
+                  elements: {
+                    avatarBox: { width: 32, height: 32 }
+                  }
+                }}
+              />
+            </SignedIn>
+          </div>
         </div>
       </header>
 

@@ -207,6 +207,10 @@ RATE_LIMIT_PER_MINUTE=60
 RATE_LIMIT_BURST=10
 REQUIRE_API_KEY=false
 EXTRA_ALLOWED_ORIGINS=""
+
+# Local Development - Disable Clerk auth for easier testing
+# Set to false in production!
+DISABLE_CLERK_AUTH=true
 ```
 
 Create `.env` file in `frontend/` directory:

@@ -41,6 +41,7 @@ class ClerkAuthMiddleware(BaseHTTPMiddleware):
     Middleware to validate Clerk JWT tokens on all requests.
 
     Exempts public endpoints like /health, /, /docs from authentication.
+    Can be disabled via DISABLE_CLERK_AUTH=true environment variable.
     """
 
     # Endpoints that don't require authentication
@@ -56,6 +57,12 @@ class ClerkAuthMiddleware(BaseHTTPMiddleware):
         """
         Process each request and validate JWT token.
         """
+        # Check if Clerk auth is disabled (for local development)
+        if os.getenv("DISABLE_CLERK_AUTH", "false").lower() == "true":
+            # Set a dummy user_id for local development
+            request.state.user_id = "local-dev-user"
+            return await call_next(request)
+
         # Skip auth for public endpoints
         if request.url.path in self.PUBLIC_PATHS:
             return await call_next(request)

@@ -26,6 +26,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 2rem;
 }
 
 .app-title {
@@ -63,10 +64,38 @@ body {
   opacity: 0.9;
 }
 
+.header-right {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  margin-left: auto;
+}
+
 .header-buttons {
   display: flex;
   gap: 1rem;
   align-items: center;
+}
+
+.auth-buttons {
+  display: flex;
+  align-items: center;
+}
+
+.sign-in-button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.sign-in-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .add-node-button,
@@ -1649,6 +1678,8 @@ body {
 
   .title-with-logo {
     gap: 0.75rem;
+    width: 100%;
+    justify-content: space-between;
   }
 
   .app-logo {
@@ -1664,10 +1695,22 @@ body {
     font-size: 0.75rem;
   }
 
+  .header-right {
+    width: 100%;
+    margin-left: 0;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
   .header-buttons {
     width: 100%;
     justify-content: space-between;
     gap: 0.5rem;
+  }
+
+  .auth-buttons {
+    width: 100%;
+    justify-content: flex-end;
   }
 
   .add-node-button,
