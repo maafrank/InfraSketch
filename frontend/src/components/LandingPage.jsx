@@ -131,7 +131,7 @@ export default function LandingPage({ onGenerate, loading }) {
           <p className="hero-subtitle">
             Describe your system in plain English. Our AI generates professional architecture diagrams in seconds.
           </p>
-          <p className="hero-cta">Try it free — no sign-up required</p>
+          <p className="hero-cta">100% Free</p>
         </div>
 
         {/* Main Input Form - Front and Center */}
