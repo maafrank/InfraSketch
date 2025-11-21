@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { SignedIn, SignedOut, SignInButton, UserButton, useAuth, useClerk } from "@clerk/clerk-react";
 import { toPng } from 'html-to-image';
+import { useTheme } from './contexts/ThemeContext';
 import LandingPage from './components/LandingPage';
 import DiagramCanvas from './components/DiagramCanvas';
 import ChatPanel from './components/ChatPanel';
@@ -9,6 +10,7 @@ import DesignDocPanel from './components/DesignDocPanel';
 import AddNodeModal from './components/AddNodeModal';
 import SessionHistorySidebar from './components/SessionHistorySidebar';
 import NodePalette from './components/NodePalette';
+import ThemeToggle from './components/ThemeToggle';
 import {
   generateDiagram,
   sendChatMessage,
@@ -29,6 +31,7 @@ import {
 import './App.css';
 
 function App({ resumeMode = false }) {
+  const { theme } = useTheme();
   const [sessionId, setSessionId] = useState(null);
   const [sessionName, setSessionName] = useState(null);
   const [diagram, setDiagram] = useState(null);
@@ -735,7 +738,11 @@ function App({ resumeMode = false }) {
           style={{ cursor: isSignedIn ? 'pointer' : 'default' }}
         >
           <div className="title-with-logo">
-            <img src="/InfraSketchLogoTransparent_01.png" alt="InfraSketch Logo" className="app-logo" />
+            <img
+              src={theme === 'dark' ? "/InfraSketchLogoTransparent_02.png" : "/InfraSketchLogoTransparent_01.png"}
+              alt="InfraSketch Logo"
+              className="app-logo"
+            />
             <div className="title-text">
               <h1>InfraSketch</h1>
               <p>AI-Powered System Design Tool</p>
@@ -778,6 +785,7 @@ function App({ resumeMode = false }) {
             )}
           </div>
           <div className="auth-buttons">
+            <ThemeToggle />
             <SignedOut>
               <SignInButton mode="modal">
                 <button className="sign-in-button">

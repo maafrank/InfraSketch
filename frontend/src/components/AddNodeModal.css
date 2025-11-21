@@ -4,7 +4,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: var(--overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -12,20 +12,20 @@
 }
 
 .modal-content {
-  background: white;
+  background: var(--bg-tertiary);
   border-radius: 8px;
   padding: 24px;
   width: 90%;
   max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px var(--shadow-sm);
 }
 
 .modal-content h2 {
   margin: 0 0 20px 0;
   font-size: 24px;
-  color: #1a1a1a;
+  color: var(--text-primary);
 }
 
 .form-group {
@@ -36,7 +36,7 @@
   display: block;
   margin-bottom: 6px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
   font-size: 14px;
 }
 
@@ -45,19 +45,21 @@
 .form-group textarea {
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--input-border);
   border-radius: 4px;
   font-size: 14px;
   font-family: inherit;
   box-sizing: border-box;
+  background: var(--input-bg);
+  color: var(--text-primary);
 }
 
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #4a90e2;
-  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+  border-color: var(--input-focus-border);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .form-group textarea {
@@ -84,19 +86,19 @@
 }
 
 .button-primary {
-  background-color: #4a90e2;
-  color: white;
+  background-color: var(--brand-purple);
+  color: var(--text-inverse);
 }
 
 .button-primary:hover {
-  background-color: #357abd;
+  background-color: var(--brand-purple-dark);
 }
 
 .button-secondary {
-  background-color: #f5f5f5;
-  color: #666;
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
 }
 
 .button-secondary:hover {
-  background-color: #e0e0e0;
+  background-color: var(--border-light);
 }

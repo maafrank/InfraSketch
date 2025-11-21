@@ -1,10 +1,10 @@
 /* Session History Sidebar */
 .session-history-sidebar {
-  background: #f5f5f3;
-  border-right: 1px solid #d0d0cc;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  box-shadow: 2px 0 8px rgba(102, 126, 234, 0.1);
+  box-shadow: 2px 0 8px var(--shadow-sm);
   position: fixed;
   left: 0;
   top: 108px;
@@ -42,18 +42,18 @@
 }
 
 .resize-handle-right:hover {
-  background: rgba(102, 126, 234, 0.2);
+  background: var(--brand-purple-light);
 }
 
 .resize-handle-right:active {
-  background: rgba(102, 126, 234, 0.4);
+  background: var(--brand-purple-lighter);
 }
 
 /* Sidebar Header */
 .session-history-header {
   padding: 1rem;
-  border-bottom: 1px solid #d0d0cc;
-  background: #e8e8e6;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-primary);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -62,7 +62,7 @@
 
 .session-history-header h3 {
   font-size: 1.1rem;
-  color: #333;
+  color: var(--text-primary);
   margin: 0;
   font-weight: 600;
 }
@@ -72,14 +72,14 @@
   border: none;
   font-size: 1.25rem;
   cursor: pointer;
-  color: #666;
+  color: var(--text-secondary);
   padding: 0.25rem;
   line-height: 1;
   transition: color 0.2s;
 }
 
 .close-button:hover {
-  color: #333;
+  color: var(--text-primary);
 }
 
 /* Content Area */
@@ -98,12 +98,12 @@
 
 /* Compact Session Item */
 .session-list-item {
-  background: white;
+  background: var(--bg-tertiary);
   border-radius: 8px;
   padding: 12px;
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-xs);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -111,18 +111,18 @@
 
 .session-list-item:hover {
   transform: translateX(4px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  background: #fafafa;
+  box-shadow: var(--shadow-sm);
+  background: var(--bg-secondary);
 }
 
 .session-list-item.active {
-  background: #eef2ff;
-  border: 2px solid #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+  background: var(--brand-purple-lightest);
+  border: 2px solid var(--brand-purple);
+  box-shadow: var(--shadow-md);
 }
 
 .session-list-item.active:hover {
-  background: #e0e7ff;
+  background: var(--brand-purple-lighter);
 }
 
 .session-item-header {
@@ -133,7 +133,7 @@
 
 .session-date-compact {
   font-size: 0.85rem;
-  color: #374151;
+  color: var(--text-muted);
   font-weight: 600;
 }
 
@@ -144,7 +144,7 @@
 .session-name-compact {
   font-size: 1rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
   line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -161,9 +161,9 @@
   width: 100%;
   font-size: 1rem;
   font-weight: 600;
-  color: #1f2937;
-  background: white;
-  border: 2px solid #667eea;
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border: 2px solid var(--brand-purple);
   border-radius: 4px;
   padding: 4px 8px;
   font-family: inherit;
@@ -171,14 +171,14 @@
 
 .session-name-edit input:focus {
   outline: none;
-  border-color: #764ba2;
+  border-color: var(--brand-purple-dark);
 }
 
 .session-stats-compact {
   display: flex;
   gap: 6px;
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--text-muted);
   align-items: center;
 }
 
@@ -188,10 +188,10 @@
 
 .session-model-compact {
   font-size: 0.75rem;
-  background: #f3f4f6;
+  background: var(--bg-secondary);
   padding: 3px 8px;
   border-radius: 4px;
-  color: #667eea;
+  color: var(--brand-purple);
   align-self: flex-start;
   font-weight: 600;
 }
@@ -204,14 +204,14 @@
   justify-content: center;
   padding: 40px 20px;
   text-align: center;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .session-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid rgba(102, 126, 234, 0.2);
-  border-top-color: #667eea;
+  border: 3px solid var(--brand-purple-light);
+  border-top-color: var(--brand-purple);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-bottom: 12px;
@@ -235,7 +235,7 @@
   justify-content: center;
   padding: 40px 20px;
   text-align: center;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .session-error p {
@@ -244,8 +244,8 @@
 }
 
 .session-error button {
-  background: #667eea;
-  color: white;
+  background: var(--brand-purple);
+  color: var(--bg-tertiary);
   border: none;
   padding: 8px 16px;
   border-radius: 6px;
@@ -255,7 +255,7 @@
 }
 
 .session-error button:hover {
-  background: #5568d3;
+  background: var(--brand-purple-dark);
 }
 
 /* Empty State */
@@ -266,27 +266,27 @@
   justify-content: center;
   padding: 40px 20px;
   text-align: center;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .session-empty p {
   font-size: 0.95rem;
   margin-bottom: 6px;
-  color: #374151;
+  color: var(--text-secondary);
   font-weight: 600;
 }
 
 .session-empty small {
   font-size: 0.8rem;
-  color: #9ca3af;
+  color: var(--text-muted);
 }
 
 /* Context Menu */
 .session-context-menu {
-  background: white;
-  border: 1px solid #d0d0cc;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-md);
   z-index: 3000;
   overflow: hidden;
   min-width: 120px;
@@ -297,25 +297,25 @@
   width: 100%;
   padding: 10px 16px;
   border: none;
-  background: white;
+  background: var(--bg-tertiary);
   text-align: left;
   cursor: pointer;
   font-size: 14px;
-  color: #1f2937;
+  color: var(--text-primary);
   transition: background 0.2s;
   font-weight: 500;
 }
 
 .session-context-menu button:hover {
-  background: #f3f4f6;
+  background: var(--bg-secondary);
 }
 
 .session-context-menu button.delete-button {
-  color: #e53e3e;
+  color: var(--btn-danger);
 }
 
 .session-context-menu button.delete-button:hover {
-  background: #fff5f5;
+  background: var(--btn-danger-light);
 }
 
 /* Mobile Modal */

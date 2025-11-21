@@ -108,7 +108,16 @@ class SessionManager:
             ]
 
         # Sort by created_at (newest first)
-        sessions.sort(key=lambda s: s.created_at or datetime.min, reverse=True)
+        # Helper to normalize datetimes for comparison (handle both naive and aware)
+        def get_sort_key(session):
+            if not session.created_at:
+                return datetime.min.replace(tzinfo=timezone.utc)
+            # If datetime is naive, assume UTC
+            if session.created_at.tzinfo is None:
+                return session.created_at.replace(tzinfo=timezone.utc)
+            return session.created_at
+
+        sessions.sort(key=get_sort_key, reverse=True)
         return sessions
 
     def update_diagram(self, session_id: str, diagram: Diagram) -> bool:
