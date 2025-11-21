@@ -1,3 +1,186 @@
+:root {
+  /* Brand Colors */
+  --brand-purple: #667eea;
+  --brand-purple-dark: #764ba2;
+  --brand-purple-light: rgba(102, 126, 234, 0.2);
+  --brand-purple-lighter: rgba(102, 126, 234, 0.4);
+  --brand-purple-lightest: #eef2ff;
+
+  /* Light Mode Colors */
+  --bg-primary: #e8e8e6;
+  --bg-secondary: #f5f5f3;
+  --bg-tertiary: white;
+  --bg-header: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --bg-landing-gradient-end: #d5d5d0;
+
+  /* Text Colors */
+  --text-primary: #1a202c;
+  --text-secondary: #4a5568;
+  --text-tertiary: #718096;
+  --text-muted: #999;
+  --text-inverse: white;
+
+  /* Border Colors */
+  --border-color: #d0d0cc;
+  --border-light: #e0e0e0;
+  --border-dark: #cbd5e0;
+
+  /* Shadow Colors */
+  --shadow-xs: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --shadow-sm: rgba(0, 0, 0, 0.1);
+  --shadow-md: rgba(0, 0, 0, 0.15);
+  --shadow-lg: rgba(0, 0, 0, 0.2);
+  --shadow-xl: rgba(0, 0, 0, 0.25);
+  --shadow-brand: rgba(102, 126, 234, 0.2);
+
+  /* Node Type Colors - Light Mode */
+  --node-database: #4A90E2;
+  --node-cache: #F5A623;
+  --node-server: #7ED321;
+  --node-api: #BD10E0;
+  --node-loadbalancer: #50E3C2;
+  --node-queue: #D0021B;
+  --node-cdn: #9013FE;
+  --node-gateway: #417505;
+  --node-storage: #B8E986;
+  --node-service: #8B572A;
+
+  /* Button Colors */
+  --btn-primary-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --btn-hover-shadow: rgba(102, 126, 234, 0.4);
+  --btn-danger: #ef4444;
+  --btn-danger-hover: #dc2626;
+  --btn-danger-light: #fff5f5;
+
+  /* Input Colors */
+  --input-bg: white;
+  --input-border: #d0d0cc;
+  --input-focus-border: #667eea;
+  --input-placeholder: #999;
+
+  /* Special Elements */
+  --scrollbar-thumb: #cbd5e0;
+  --scrollbar-track: #f5f5f3;
+  --edge-color: #b1b1b7;
+  --react-flow-bg: #e8e8e6;
+
+  /* Overlay Colors */
+  --overlay-bg: rgba(0, 0, 0, 0.5);
+  --loading-overlay: rgba(245, 245, 243, 0.95);
+
+  /* Badge Colors */
+  --badge-bg: #dbeafe;
+  --badge-text: #1e40af;
+
+  /* Spinner */
+  --spinner-border: rgba(255, 255, 255, 0.3);
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-landing-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-landing-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --gradient-landing-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  --gradient-landing-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+
+  /* Transition timing */
+  --theme-transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+[data-theme="dark"] {
+  /* Dark Mode Colors */
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #2d2d2d;
+  --bg-tertiary: #3a3a3a;
+  --bg-header: linear-gradient(135deg, #7688f4 0%, #8654b2 100%);
+  --bg-landing-gradient-end: #0d0d0d;
+
+  /* Text Colors */
+  --text-primary: #e8e8e6;
+  --text-secondary: #b8b8b6;
+  --text-tertiary: #888886;
+  --text-muted: #666664;
+  --text-inverse: #1a1a1a;
+
+  /* Border Colors */
+  --border-color: #3d3d3d;
+  --border-light: #4a4a4a;
+  --border-dark: #2a2a2a;
+
+  /* Brand Colors - Dark Mode */
+  --brand-purple-light: rgba(118, 136, 244, 0.2);
+  --brand-purple-lighter: rgba(118, 136, 244, 0.4);
+  --brand-purple-lightest: #2d3561;
+
+  /* Shadow Colors */
+  --shadow-xs: 0 2px 4px rgba(0, 0, 0, 0.2);
+  --shadow-sm: rgba(0, 0, 0, 0.3);
+  --shadow-md: rgba(0, 0, 0, 0.4);
+  --shadow-lg: rgba(0, 0, 0, 0.5);
+  --shadow-xl: rgba(0, 0, 0, 0.6);
+  --shadow-brand: rgba(118, 136, 244, 0.3);
+
+  /* Node Type Colors - Dark Mode (brightened for contrast) */
+  --node-database: #5aa0f2;
+  --node-cache: #ffb633;
+  --node-server: #8ee331;
+  --node-api: #cd20f0;
+  --node-loadbalancer: #60f3d2;
+  --node-queue: #e0122b;
+  --node-cdn: #a023ff;
+  --node-gateway: #518515;
+  --node-storage: #c8f996;
+  --node-service: #9b673a;
+
+  /* Button Colors */
+  --btn-primary-bg: linear-gradient(135deg, #7688f4 0%, #8654b2 100%);
+  --btn-hover-shadow: rgba(118, 136, 244, 0.5);
+  --btn-danger: #f87171;
+  --btn-danger-hover: #ef4444;
+  --btn-danger-light: #3a2a2a;
+
+  /* Input Colors */
+  --input-bg: #2d2d2d;
+  --input-border: #3d3d3d;
+  --input-focus-border: #7688f4;
+  --input-placeholder: #666664;
+
+  /* Special Elements */
+  --scrollbar-thumb: #4a4a4a;
+  --scrollbar-track: #2d2d2d;
+  --edge-color: #6a6a6a;
+  --react-flow-bg: #1a1a1a;
+
+  /* Overlay Colors */
+  --overlay-bg: rgba(0, 0, 0, 0.7);
+  --loading-overlay: rgba(45, 45, 45, 0.95);
+
+  /* Badge Colors - Dark Mode */
+  --badge-bg: #1e3a8a;
+  --badge-text: #93c5fd;
+
+  /* Spinner - Dark Mode */
+  --spinner-border: rgba(118, 136, 244, 0.2);
+
+  /* Gradients - slightly brightened for dark mode */
+  --gradient-primary: linear-gradient(135deg, #7688f4 0%, #8654b2 100%);
+  --gradient-landing-1: linear-gradient(135deg, #7688f4 0%, #8654b2 100%);
+  --gradient-landing-2: linear-gradient(135deg, #ffa3fb 0%, #ff6777 100%);
+  --gradient-landing-3: linear-gradient(135deg, #5fbcfe 0%, #10f2fe 100%);
+  --gradient-landing-4: linear-gradient(135deg, #53f98b 0%, #48ffd7 100%);
+}
+
+/* Smooth theme transitions */
+*,
+*::before,
+*::after {
+  transition: var(--theme-transition);
+}
+
+/* Disable transitions on theme change to avoid flash */
+[data-theme] * {
+  transition: var(--theme-transition);
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -5,6 +188,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 #root {

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
+import { useTheme } from '../contexts/ThemeContext';
 import { getUserSessions } from '../api/client';
 import './SessionHistory.css';
 
 export default function SessionHistory() {
+  const { theme } = useTheme();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -59,7 +61,11 @@ export default function SessionHistory() {
       <header className="app-header">
         <div className="app-title" onClick={handleNewDesign} style={{ cursor: 'pointer' }}>
           <div className="title-with-logo">
-            <img src="/InfraSketchLogoTransparent_01.png" alt="InfraSketch Logo" className="app-logo" />
+            <img
+              src={theme === 'dark' ? "/InfraSketchLogoTransparent_02.png" : "/InfraSketchLogoTransparent_01.png"}
+              alt="InfraSketch Logo"
+              className="app-logo"
+            />
             <div className="title-text">
               <h1>InfraSketch</h1>
               <p>AI-Powered System Design Tool</p>

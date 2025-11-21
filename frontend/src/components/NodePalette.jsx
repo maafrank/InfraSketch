@@ -5,61 +5,51 @@ const NODE_TYPES = [
   {
     value: 'database',
     label: 'Database',
-    color: '#4A90E2',
     description: 'Persistent data storage (SQL, NoSQL, etc.)'
   },
   {
     value: 'cache',
     label: 'Cache',
-    color: '#F5A623',
     description: 'In-memory data store for fast retrieval'
   },
   {
     value: 'server',
     label: 'Server',
-    color: '#7ED321',
     description: 'Application or web server'
   },
   {
     value: 'api',
     label: 'API',
-    color: '#BD10E0',
     description: 'REST, GraphQL, or other API endpoint'
   },
   {
     value: 'loadbalancer',
     label: 'Load Balancer',
-    color: '#50E3C2',
     description: 'Distributes traffic across multiple servers'
   },
   {
     value: 'queue',
     label: 'Queue',
-    color: '#D0021B',
     description: 'Message queue for async processing'
   },
   {
     value: 'cdn',
     label: 'CDN',
-    color: '#9013FE',
     description: 'Content delivery network for static assets'
   },
   {
     value: 'gateway',
     label: 'Gateway',
-    color: '#417505',
     description: 'API gateway or entry point'
   },
   {
     value: 'storage',
     label: 'Storage',
-    color: '#B8E986',
     description: 'Object or file storage (S3, etc.)'
   },
   {
     value: 'service',
     label: 'Service',
-    color: '#8B572A',
     description: 'Microservice or background service'
   },
 ];
@@ -157,16 +147,12 @@ export default function NodePalette({ isOpen, onClose, onSelectType, designDocOp
             {NODE_TYPES.map((nodeType) => (
               <div
                 key={nodeType.value}
-                className="node-type-card"
-                style={{ borderColor: nodeType.color }}
+                className={`node-type-card node-type-${nodeType.value}`}
                 onClick={() => onSelectType(nodeType.value)}
                 onMouseEnter={() => setHoveredType(nodeType.value)}
                 onMouseLeave={() => setHoveredType(null)}
               >
-                <div
-                  className="node-type-color-bar"
-                  style={{ backgroundColor: nodeType.color }}
-                />
+                <div className={`node-type-color-bar node-type-${nodeType.value}`} />
                 <div className="node-type-label">{nodeType.label}</div>
 
                 {/* Tooltip */}
