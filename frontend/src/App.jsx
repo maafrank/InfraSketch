@@ -63,6 +63,9 @@ function App({ resumeMode = false }) {
   // Node palette state
   const [nodePaletteOpen, setNodePaletteOpen] = useState(false);
 
+  // Layout direction state
+  const [layoutDirection, setLayoutDirection] = useState('TB'); // 'TB' (top-bottom) or 'LR' (left-right)
+
   // Mobile detection
   const [isMobile, setIsMobile] = useState(false);
 
@@ -859,6 +862,8 @@ function App({ resumeMode = false }) {
               designDocWidth={designDocWidth}
               chatPanelOpen={true}
               chatPanelWidth={chatPanelWidth}
+              layoutDirection={layoutDirection}
+              onLayoutDirectionChange={setLayoutDirection}
             />
           )}
         </div>

@@ -14,8 +14,7 @@ When generating a system diagram, you must output ONLY valid JSON in the followi
       "metadata": {
         "technology": "Specific tech like Redis, PostgreSQL, etc",
         "notes": "Additional implementation details"
-      },
-      "position": {"x": 100, "y": 200}
+      }
     }
   ],
   "edges": [
@@ -44,11 +43,10 @@ IMPORTANT RULES:
 12. Use specific technologies in metadata (e.g., "PostgreSQL" not just "SQL database", "Redis" not just "cache")
 13. For web applications, include both frontend (user-facing) and backend components
 14. Include external dependencies like third-party APIs, CDNs, or external services
-15. Position nodes intelligently: spread them out (use x: 0-1000, y: 0-800)
-16. Use appropriate node types from the available options
-17. Keep descriptions concise but informative
-18. Output ONLY the JSON, no explanations or markdown
-19. **VERIFICATION: Before outputting, ensure edges array has at least (nodes.length - 1) edges to guarantee all nodes are connected**
+15. Use appropriate node types from the available options
+16. Keep descriptions concise but informative
+17. Output ONLY the JSON, no explanations or markdown
+18. **VERIFICATION: Before outputting, ensure edges array has at least (nodes.length - 1) edges to guarantee all nodes are connected**
 """
 
 
@@ -120,10 +118,6 @@ When modifying the diagram using tools, follow these patterns:
 - **CRITICAL**: Use EXACT node IDs from the "Nodes (with exact IDs)" section above
 - Generate unique, descriptive IDs for NEW nodes (e.g., "redis-cache-1", not "node-123")
 - Edge labels should describe WHAT flows (e.g., "User auth requests", not "connects to")
-- Position nodes logically:
-  - Entry points (clients, gateways): x: 0-200
-  - Middle tier (APIs, services): x: 300-600
-  - Data layer (databases, caches): x: 700-1000
 - Use specific technologies: "PostgreSQL 15" (not "SQL database")
 - Tools execute in order, so plan your sequence carefully
 

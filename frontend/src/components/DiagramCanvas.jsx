@@ -40,7 +40,7 @@ const EXAMPLE_PROMPTS = [
   }
 ];
 
-function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAddEdge, onDeleteEdge, onReactFlowInit, onUpdateNode, onOpenNodePalette, onLayoutReady, onExportPng, onExampleClick, designDocOpen, designDocWidth, chatPanelOpen, chatPanelWidth }) {
+function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAddEdge, onDeleteEdge, onReactFlowInit, onUpdateNode, onOpenNodePalette, onLayoutReady, onExportPng, onExampleClick, designDocOpen, designDocWidth, chatPanelOpen, chatPanelWidth, layoutDirection = 'TB', onLayoutDirectionChange }) {
   const reactFlowInstance = useReactFlow();
 
   // Pass the React Flow instance to parent
@@ -63,7 +63,7 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
   const applyLayout = useCallback(() => {
     setNodes((currentNodes) => {
       setEdges((currentEdges) => {
-        const layoutedNodes = getLayoutedElements(currentNodes, currentEdges, 'TB');
+        const layoutedNodes = getLayoutedElements(currentNodes, currentEdges, layoutDirection);
 
         // Use fitView to center the diagram after layout
         setTimeout(() => {
@@ -72,9 +72,9 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
 
         return currentEdges;
       });
-      return getLayoutedElements(currentNodes, edges, 'TB');
+      return getLayoutedElements(currentNodes, edges, layoutDirection);
     });
-  }, [setNodes, setEdges, edges, reactFlowInstance]);
+  }, [setNodes, setEdges, edges, reactFlowInstance, layoutDirection]);
 
   // Expose applyLayout to parent component
   useEffect(() => {
@@ -123,14 +123,14 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
     }));
 
     // Apply auto-layout
-    const layoutedNodes = getLayoutedElements(flowNodes, flowEdges, 'TB');
+    const layoutedNodes = getLayoutedElements(flowNodes, flowEdges, layoutDirection);
 
     console.log('Setting layoutedNodes:', layoutedNodes);
     console.log('Setting flowEdges:', flowEdges);
 
     setNodes(layoutedNodes);
     setEdges(flowEdges);
-  }, [diagram, setNodes, setEdges, onDeleteNode, selectedEdge]);
+  }, [diagram, setNodes, setEdges, onDeleteNode, selectedEdge, layoutDirection]);
 
   // Re-layout when panels open/close or resize (debounced)
   useEffect(() => {
@@ -402,6 +402,52 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
             <path d="M12 6v9"></path>
             <polyline points="3 8 3 3 8 3"></polyline>
           </svg>
+        </button>
+        <button
+          className="floating-direction-button"
+          onClick={() => {
+            const newDirection = layoutDirection === 'TB' ? 'LR' : 'TB';
+            onLayoutDirectionChange && onLayoutDirectionChange(newDirection);
+          }}
+          title={`Switch to ${layoutDirection === 'TB' ? 'horizontal' : 'vertical'} layout`}
+        >
+          {layoutDirection === 'TB' ? (
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+              <line x1="10" y1="6.5" x2="14" y2="6.5"></line>
+              <line x1="10" y1="17.5" x2="14" y2="17.5"></line>
+            </svg>
+          ) : (
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <line x1="6.5" y1="10" x2="6.5" y2="14"></line>
+              <line x1="17.5" y1="10" x2="17.5" y2="14"></line>
+            </svg>
+          )}
         </button>
         <button
           className="floating-camera-button"
