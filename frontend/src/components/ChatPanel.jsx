@@ -6,9 +6,14 @@ export default function ChatPanel({
   messages,
   onSendMessage,
   loading,
+  loadingStepText,
   diagram,
   onWidthChange,
   onClose,
+  onExitNodeFocus,
+  examplePrompt,
+  currentModel,
+  onModelChange,
 }) {
   const [input, setInput] = useState('');
   const [width, setWidth] = useState(400); // Default width
@@ -130,6 +135,17 @@ export default function ChatPanel({
     }
   }, [input]);
 
+  // Populate input when example prompt is provided
+  useEffect(() => {
+    if (examplePrompt) {
+      setInput(examplePrompt);
+      // Auto-focus the textarea
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    }
+  }, [examplePrompt]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (input.trim()) {
@@ -159,19 +175,30 @@ export default function ChatPanel({
         />
       )}
       <div className="chat-header">
-        <div>
-          <h3>System Chat</h3>
-          {selectedNode && (
-            <span className="chat-context">
-              Context: {selectedNode.data.label} ({selectedNode.data.type})
-            </span>
-          )}
+        <div className="chat-header-content">
+          <div className="chat-header-row">
+            <select
+              id="chat-model-select"
+              value={currentModel}
+              onChange={(e) => onModelChange(e.target.value)}
+              disabled={loading}
+              className="model-select"
+            >
+              <option value="claude-haiku-4-5">Claude Haiku 4.5</option>
+              <option value="claude-sonnet-4-5">Claude Sonnet 4.5</option>
+            </select>
+            {selectedNode && (
+              <span className="chat-context">
+                {selectedNode.data.label} ({selectedNode.data.type})
+              </span>
+            )}
+            {isMobile && onClose && (
+              <button className="close-button" onClick={onClose} title="Back to diagram">
+                ✕
+              </button>
+            )}
+          </div>
         </div>
-        {isMobile && onClose && (
-          <button className="close-button" onClick={onClose} title="Back to diagram">
-            ✕
-          </button>
-        )}
       </div>
 
       <div className="chat-messages">
@@ -189,8 +216,28 @@ export default function ChatPanel({
             <div className="message-content typing">Thinking...</div>
           </div>
         )}
+        {loadingStepText && (
+          <div className="message assistant">
+            <div className="message-role">assistant</div>
+            <div className="message-content typing">{loadingStepText}</div>
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
+
+      {selectedNode && !isMobile && onExitNodeFocus && (
+        <div className="node-focus-indicator">
+          <span>Chatting about: <strong>{selectedNode.data.label}</strong></span>
+          <button
+            className="exit-node-focus-button"
+            onClick={onExitNodeFocus}
+            title="Return to system chat"
+            type="button"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       <form className="chat-input-form" onSubmit={handleSubmit}>
         <textarea

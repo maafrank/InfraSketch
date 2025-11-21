@@ -64,7 +64,7 @@ const NODE_TYPES = [
   },
 ];
 
-export default function NodePalette({ isOpen, onClose, onSelectType, designDocOpen, designDocWidth, chatPanelOpen, chatPanelWidth }) {
+export default function NodePalette({ isOpen, onClose, onSelectType, designDocOpen, designDocWidth, chatPanelOpen, chatPanelWidth, sessionHistoryOpen, sessionHistorySidebarWidth }) {
   const [hoveredType, setHoveredType] = useState(null);
   const [height, setHeight] = useState(120); // Default height
   const [isResizing, setIsResizing] = useState(false);
@@ -126,7 +126,8 @@ export default function NodePalette({ isOpen, onClose, onSelectType, designDocOp
   if (!isOpen) return null;
 
   // Calculate palette positioning based on panel states
-  const leftOffset = designDocOpen ? designDocWidth : 0;
+  // Session history sidebar (left) + design doc panel (left)
+  const leftOffset = (sessionHistoryOpen ? sessionHistorySidebarWidth : 0) + (designDocOpen ? designDocWidth : 0);
   const rightOffset = chatPanelOpen ? chatPanelWidth : 0;
 
   return (

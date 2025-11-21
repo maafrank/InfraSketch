@@ -3,12 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { SignedIn, SignedOut, SignInButton, UserButton, useAuth, useClerk } from "@clerk/clerk-react";
 import { toPng } from 'html-to-image';
 import LandingPage from './components/LandingPage';
-import LoadingAnimation from './components/LoadingAnimation';
 import DiagramCanvas from './components/DiagramCanvas';
 import ChatPanel from './components/ChatPanel';
 import DesignDocPanel from './components/DesignDocPanel';
 import AddNodeModal from './components/AddNodeModal';
 import SessionHistorySidebar from './components/SessionHistorySidebar';
+import NodePalette from './components/NodePalette';
 import {
   generateDiagram,
   sendChatMessage,
@@ -22,17 +22,21 @@ import {
   updateDesignDoc,
   exportDesignDoc,
   setClerkTokenGetter,
-  getSession
+  getSession,
+  createBlankSession,
+  pollSessionName
 } from './api/client';
 import './App.css';
 
 function App({ resumeMode = false }) {
   const [sessionId, setSessionId] = useState(null);
+  const [sessionName, setSessionName] = useState(null);
   const [diagram, setDiagram] = useState(null);
   const [selectedNode, setSelectedNode] = useState(null);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
+  const [loadingStepText, setLoadingStepText] = useState('');
   const [showAddNodeModal, setShowAddNodeModal] = useState(false);
   const [preSelectedNodeType, setPreSelectedNodeType] = useState(null);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
@@ -46,10 +50,15 @@ function App({ resumeMode = false }) {
 
   // Chat panel state
   const [chatPanelWidth, setChatPanelWidth] = useState(400);
+  const [examplePrompt, setExamplePrompt] = useState(null);
+  const [currentModel, setCurrentModel] = useState('claude-haiku-4-5'); // Track current model
 
   // Session history sidebar state
   const [sessionHistoryOpen, setSessionHistoryOpen] = useState(false);
   const [sessionHistorySidebarWidth, setSessionHistorySidebarWidth] = useState(300);
+
+  // Node palette state
+  const [nodePaletteOpen, setNodePaletteOpen] = useState(false);
 
   // Mobile detection
   const [isMobile, setIsMobile] = useState(false);
@@ -103,81 +112,25 @@ function App({ resumeMode = false }) {
 
       // Restore full session state
       setSessionId(sessionData.session_id);
+      setSessionName(sessionData.name);
       setDiagram(sessionData.diagram);
       setMessages(sessionData.messages || []);
       setDesignDoc(sessionData.design_doc);
 
-      // Open design doc panel if it exists
-      if (sessionData.design_doc) {
-        setDesignDocOpen(true);
+      // Restore model from session (fallback to default if not present)
+      if (sessionData.model) {
+        setCurrentModel(sessionData.model);
       }
 
-      console.log('Session loaded:', sessionData.session_id);
+      // Always close design doc panel when switching sessions
+      // Users can reopen it if they want to view the design doc
+      setDesignDocOpen(false);
+
+      console.log('Session loaded:', sessionData.session_id, 'Name:', sessionData.name);
     } catch (error) {
       console.error('Failed to load session:', error);
       alert('Failed to load session. It may have expired or you may not have access.');
       navigate('/');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGenerate = async (prompt, model) => {
-    // Check if user is signed in, redirect to sign-in if not
-    if (!isSignedIn) {
-      openSignIn();
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await generateDiagram(prompt, model);
-      console.log('API Response:', response);
-      console.log('Diagram:', response.diagram);
-      console.log('Nodes:', response.diagram?.nodes);
-      console.log('Edges:', response.diagram?.edges);
-      setSessionId(response.session_id);
-      setDiagram(response.diagram);
-      setSelectedNode(null);
-
-      // Generate system summary
-      const nodeCount = response.diagram?.nodes?.length || 0;
-      const nodeTypes = [...new Set(response.diagram?.nodes?.map(n => n.type) || [])];
-      const summary = `## System Overview
-
-I've generated a system architecture with **${nodeCount} components**.
-
-### Component Types
-${nodeTypes.map(type => `- **${type}**`).join('\n')}
-
-### What's Next?
-- **Click any node** to focus the conversation on that component
-- **Ask questions** about the overall system design
-- **Request changes** to add, remove, or modify components
-
-Feel free to explore the diagram and ask me anything!`;
-
-      setMessages([
-        { role: 'user', content: prompt },
-        { role: 'assistant', content: summary }
-      ]);
-    } catch (error) {
-      console.error('Failed to generate diagram:', error);
-
-      // Provide specific error messages based on error type
-      let errorMessage = 'Failed to generate diagram. Please try again.';
-
-      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-        errorMessage = 'Request timed out. Sonnet 4.5 can take 30+ seconds for complex diagrams. Try:\n\n1. Simplify your prompt\n2. Use Haiku 4.5 (faster, same quality for most cases)\n3. Try again in a moment';
-      } else if (error.response?.status === 504) {
-        errorMessage = 'Gateway timeout. The request took too long. Try:\n\n1. Use Haiku 4.5 instead (much faster)\n2. Simplify your architecture prompt\n3. Try again in a moment';
-      } else if (!error.response) {
-        errorMessage = 'Network error. Please check your connection and try again.';
-      } else if (error.response?.status >= 500) {
-        errorMessage = `Server error (${error.response.status}). Please try again in a moment.`;
-      }
-
-      alert(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -195,8 +148,121 @@ Feel free to explore the diagram and ask me anything!`;
     setSelectedNode(node);
   }, [selectedNode]);
 
+  const handleExitNodeFocus = useCallback(() => {
+    const contextMessage = {
+      role: 'system',
+      content: `*Returned to system chat*`,
+    };
+    setMessages((prev) => [...prev, contextMessage]);
+    setSelectedNode(null);
+  }, []);
+
   const handleSendMessage = async (message) => {
-    if (!sessionId) return;
+    // Check if user is signed in, redirect to sign-in if not
+    if (!isSignedIn) {
+      openSignIn();
+      return;
+    }
+
+    // If diagram has no nodes, this is initial generation - use generate endpoint
+    const hasNodes = diagram?.nodes?.length > 0;
+    if (!hasNodes) {
+      setLoading(true);
+
+      // Add user message immediately
+      const userMessage = { role: 'user', content: message };
+      setMessages([userMessage]);
+
+      // Define loading steps (without emojis)
+      const loadingSteps = [
+        'Analyzing your architecture...',
+        'Designing system components...',
+        'Mapping connections and data flow...',
+        'Optimizing component placement...',
+        'Generating visual layout...',
+        'Finalizing your diagram...'
+      ];
+
+      // Update loading step text progressively
+      const updateLoadingSteps = async () => {
+        for (let i = 0; i < loadingSteps.length; i++) {
+          setLoadingStepText(loadingSteps[i]);
+
+          // Wait 2-3 seconds before showing next step
+          if (i < loadingSteps.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 2500));
+          }
+        }
+      };
+
+      // Start updating loading steps (runs in background)
+      const loadingStepsPromise = updateLoadingSteps();
+
+      try {
+        const response = await generateDiagram(message);
+
+        // Wait for loading steps to complete before showing result
+        await loadingStepsPromise;
+
+        setSessionId(response.session_id);
+        setDiagram(response.diagram);
+
+        // Clear loading step text
+        setLoadingStepText('');
+
+        // Fetch session to get the system overview message from backend
+        // This ensures consistency with what's stored in the session history
+        const session = await getSession(response.session_id);
+        setMessages(session.messages || []);
+
+        // Poll for session name generation in background (non-blocking)
+        pollSessionName(response.session_id, (name) => {
+          console.log('Session name updated:', name);
+          setSessionName(name);
+        }).catch(error => {
+          console.error('Failed to poll session name:', error);
+          // Non-critical - just log and continue
+        });
+
+        console.log('Generated initial diagram:', response);
+      } catch (error) {
+        console.error('Failed to generate diagram:', error);
+
+        // Provide specific error messages based on error type
+        let errorMessage = 'Failed to generate diagram. Please try again.';
+
+        if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+          errorMessage = 'Request timed out. Sonnet 4.5 can take 30+ seconds for complex diagrams. Try:\n\n1. Simplify your prompt\n2. Use Haiku 4.5 (faster, same quality for most cases)\n3. Try again in a moment';
+        } else if (error.response?.status === 504) {
+          errorMessage = 'Gateway timeout. The request took too long. Try:\n\n1. Use Haiku 4.5 instead (much faster)\n2. Simplify your architecture prompt\n3. Try again in a moment';
+        } else if (!error.response) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (error.response?.status >= 500) {
+          errorMessage = `Server error (${error.response.status}). Please try again in a moment.`;
+        }
+
+        alert(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // Auto-create session if it doesn't exist (for chat on blank canvas)
+    let currentSessionId = sessionId;
+    if (!currentSessionId) {
+      try {
+        const newSession = await createBlankSession();
+        currentSessionId = newSession.session_id;
+        setSessionId(currentSessionId);
+        setDiagram(newSession.diagram);
+        console.log('Auto-created blank session:', currentSessionId);
+      } catch (error) {
+        console.error('Failed to create session:', error);
+        alert('Failed to create session. Please try again.');
+        return;
+      }
+    }
 
     // Add user message immediately
     const userMessage = { role: 'user', content: message };
@@ -205,9 +271,10 @@ Feel free to explore the diagram and ask me anything!`;
     setChatLoading(true);
     try {
       const response = await sendChatMessage(
-        sessionId,
+        currentSessionId,
         message,
-        selectedNode?.id
+        selectedNode?.id,
+        currentModel
       );
 
       console.log('Chat API Response:', response);
@@ -229,6 +296,16 @@ Feel free to explore the diagram and ask me anything!`;
         console.log('Updating design doc with new data');
         setDesignDoc(response.design_doc);
       }
+
+      // Poll for session name if this was the first message (no session name yet)
+      if (!sessionName || sessionName === 'Untitled Design') {
+        pollSessionName(currentSessionId, (name) => {
+          console.log('Session name updated after chat:', name);
+          setSessionName(name);
+        }).catch(error => {
+          console.error('Failed to poll session name:', error);
+        });
+      }
     } catch (error) {
       console.error('Failed to send message:', error);
       const errorMessage = {
@@ -242,10 +319,24 @@ Feel free to explore the diagram and ask me anything!`;
   };
 
   const handleAddNode = async (node) => {
-    if (!sessionId) return;
+    // Auto-create session if it doesn't exist
+    let currentSessionId = sessionId;
+    if (!currentSessionId) {
+      try {
+        const newSession = await createBlankSession();
+        currentSessionId = newSession.session_id;
+        setSessionId(currentSessionId);
+        setDiagram(newSession.diagram);
+        console.log('Auto-created blank session:', currentSessionId);
+      } catch (error) {
+        console.error('Failed to create session:', error);
+        alert('Failed to create session. Please try again.');
+        return;
+      }
+    }
 
     try {
-      const updatedDiagram = await addNode(sessionId, node);
+      const updatedDiagram = await addNode(currentSessionId, node);
       setDiagram(updatedDiagram);
 
       // Add system message to chat
@@ -254,6 +345,16 @@ Feel free to explore the diagram and ask me anything!`;
         content: `*Added new node: **${node.label}** (${node.type})*`,
       };
       setMessages((prev) => [...prev, systemMessage]);
+
+      // Poll for session name if we just added the 5th node and no name yet
+      if (updatedDiagram.nodes.length === 5 && (!sessionName || sessionName === 'Untitled Design')) {
+        pollSessionName(currentSessionId, (name) => {
+          console.log('Session name updated after adding 5th node:', name);
+          setSessionName(name);
+        }).catch(error => {
+          console.error('Failed to poll session name:', error);
+        });
+      }
     } catch (error) {
       console.error('Failed to add node:', error);
       alert('Failed to add node. Please try again.');
@@ -341,15 +442,82 @@ Feel free to explore the diagram and ask me anything!`;
     }
   }, [sessionId]);
 
-  const handleNewDesign = () => {
-    setDiagram(null);
-    setSessionId(null);
-    setSelectedNode(null);
-    setMessages([]);
-    setDesignDoc(null);
-    setDesignDocOpen(false);
-    navigate('/');
+  // Helper function to check if current session is pristine (empty)
+  const isSessionPristine = useCallback(() => {
+    const hasNodes = diagram?.nodes?.length > 0;
+    const hasEdges = diagram?.edges?.length > 0;
+    const hasMessages = messages.length > 0;
+    const hasDesignDoc = !!designDoc;
+
+    return !hasNodes && !hasEdges && !hasMessages && !hasDesignDoc;
+  }, [diagram, messages, designDoc]);
+
+  const handleNewDesign = async () => {
+    try {
+      // Check if current session is already pristine (empty)
+      if (sessionId && isSessionPristine()) {
+        console.log('Current session is already empty, reusing:', sessionId);
+        // Just reset the UI state - no need to create a new session
+        setSelectedNode(null);
+        setDesignDocOpen(false);
+        return;
+      }
+
+      // Create a new blank session only if current one has content
+      const newSession = await createBlankSession();
+
+      // Reset all state to blank
+      setSessionId(newSession.session_id);
+      setDiagram(newSession.diagram);
+      setSelectedNode(null);
+      setMessages([]);
+      setDesignDoc(null);
+      setDesignDocOpen(false);
+
+      // Navigate to the new session
+      navigate(`/session/${newSession.session_id}`);
+
+      console.log('Created new design session:', newSession.session_id);
+    } catch (error) {
+      console.error('Failed to create new session:', error);
+      alert('Failed to create new design. Please try again.');
+    }
   };
+
+  const handleSessionDeleted = useCallback(async (deletedSessionId) => {
+    console.log('Current session was deleted:', deletedSessionId);
+
+    // Close the session history sidebar
+    setSessionHistoryOpen(false);
+
+    // Create a new blank session and reset to fresh state
+    try {
+      const newSession = await createBlankSession();
+
+      // Reset all state to blank
+      setSessionId(newSession.session_id);
+      setDiagram(newSession.diagram);
+      setSelectedNode(null);
+      setMessages([]);
+      setDesignDoc(null);
+      setDesignDocOpen(false);
+
+      // Navigate to the new session
+      navigate(`/session/${newSession.session_id}`);
+
+      console.log('Created new session after deletion:', newSession.session_id);
+    } catch (error) {
+      console.error('Failed to create new session after deletion:', error);
+      // If we can't create a new session, at least reset to the landing page
+      setSessionId(null);
+      setDiagram(null);
+      setSelectedNode(null);
+      setMessages([]);
+      setDesignDoc(null);
+      setDesignDocOpen(false);
+      navigate('/');
+    }
+  }, [navigate]);
 
   const handleCreateDesignDoc = async () => {
     if (!sessionId) return;
@@ -438,8 +606,15 @@ Feel free to explore the diagram and ask me anything!`;
   };
 
   const handleOpenNodePalette = (nodeType) => {
+    // Always open the AddNodeModal, just like the "+ Add Node" button
+    setPreSelectedNodeType(nodeType || null);
+    setShowAddNodeModal(true);
+  };
+
+  const handleSelectNodeType = (nodeType) => {
     setPreSelectedNodeType(nodeType);
     setShowAddNodeModal(true);
+    setNodePaletteOpen(false);
   };
 
   // Wrap setDesignDocWidth in useCallback to prevent unnecessary re-renders
@@ -460,6 +635,13 @@ Feel free to explore the diagram and ask me anything!`;
   // Handler for loading a session from history
   const handleLoadSession = useCallback(async (sessionId) => {
     await loadSession(sessionId);
+  }, []);
+
+  // Handler for example prompt click
+  const handleExampleClick = useCallback((prompt) => {
+    setExamplePrompt(prompt);
+    // Reset after a brief delay to allow the effect to trigger
+    setTimeout(() => setExamplePrompt(null), 100);
   }, []);
 
   // Helper function to convert base64 to blob
@@ -549,8 +731,8 @@ Feel free to explore the diagram and ask me anything!`;
       <header className="app-header">
         <div
           className="app-title"
-          onClick={diagram ? handleNewDesign : undefined}
-          style={{ cursor: diagram ? 'pointer' : 'default' }}
+          onClick={isSignedIn ? handleNewDesign : undefined}
+          style={{ cursor: isSignedIn ? 'pointer' : 'default' }}
         >
           <div className="title-with-logo">
             <img src="/InfraSketchLogoTransparent_01.png" alt="InfraSketch Logo" className="app-logo" />
@@ -562,21 +744,21 @@ Feel free to explore the diagram and ask me anything!`;
         </div>
         <div className="header-right">
           <div className="header-buttons">
-            <button
-              className={`history-toggle-button ${sessionHistoryOpen ? 'active' : ''}`}
-              onClick={() => setSessionHistoryOpen(!sessionHistoryOpen)}
-              title={sessionHistoryOpen ? 'Close history' : 'Open history'}
-              aria-label={sessionHistoryOpen ? 'Close session history' : 'Open session history'}
-              aria-expanded={sessionHistoryOpen}
-            >
-              {sessionHistoryOpen ? '✕' : '☰'}
-            </button>
-            {diagram && (
+            {isSignedIn && (
               <>
+                <button
+                  className={`history-toggle-button ${sessionHistoryOpen ? 'active' : ''}`}
+                  onClick={() => setSessionHistoryOpen(!sessionHistoryOpen)}
+                  title={sessionHistoryOpen ? 'Close history' : 'Open history'}
+                  aria-label={sessionHistoryOpen ? 'Close session history' : 'Open session history'}
+                  aria-expanded={sessionHistoryOpen}
+                >
+                  {sessionHistoryOpen ? '✕' : '☰'}
+                </button>
                 <button
                   className="create-design-doc-button"
                   onClick={handleCreateDesignDoc}
-                  disabled={designDocLoading}
+                  disabled={designDocLoading || !diagram}
                 >
                   {designDocLoading ? 'Generating...' : (designDoc && !designDocOpen ? 'Open Design Doc' : 'Create Design Doc')}
                 </button>
@@ -623,6 +805,9 @@ Feel free to explore the diagram and ask me anything!`;
             onClose={() => setSessionHistoryOpen(false)}
             onSessionSelect={handleLoadSession}
             onWidthChange={handleSessionHistorySidebarWidthChange}
+            currentSessionId={sessionId}
+            sessionNameUpdated={sessionName}
+            onSessionDeleted={handleSessionDeleted}
           />
         )}
 
@@ -643,13 +828,12 @@ Feel free to explore the diagram and ask me anything!`;
         <div
           className="main-area"
           style={{
-            marginLeft: diagram ? `${(sessionHistoryOpen ? sessionHistorySidebarWidth : 0) + (designDocOpen ? designDocWidth : 0)}px` : '0px',
+            marginLeft: isSignedIn ? `${(sessionHistoryOpen ? sessionHistorySidebarWidth : 0) + (designDocOpen ? designDocWidth : 0)}px` : '0px',
             display: isMobile && (sessionHistoryOpen || designDocOpen || selectedNode) ? 'none' : 'flex'
           }}
         >
-          {!diagram && !loading && <LandingPage onGenerate={handleGenerate} loading={loading} />}
-          {loading && <LoadingAnimation />}
-          {diagram && (
+          {!isSignedIn && <LandingPage onGenerate={handleSendMessage} loading={loading} />}
+          {isSignedIn && (
             <DiagramCanvas
               diagram={diagram}
               loading={loading}
@@ -662,23 +846,29 @@ Feel free to explore the diagram and ask me anything!`;
               onLayoutReady={(layoutFn) => setApplyLayoutFn(() => layoutFn)}
               onOpenNodePalette={handleOpenNodePalette}
               onExportPng={handleExportPng}
+              onExampleClick={handleExampleClick}
               designDocOpen={designDocOpen}
               designDocWidth={designDocWidth}
-              chatPanelOpen={!!diagram}
+              chatPanelOpen={true}
               chatPanelWidth={chatPanelWidth}
             />
           )}
         </div>
 
-        {diagram && (!isMobile || selectedNode) && (
+        {isSignedIn && (!isMobile || selectedNode) && (
           <ChatPanel
             selectedNode={selectedNode}
             messages={messages}
             onSendMessage={handleSendMessage}
             loading={chatLoading}
+            loadingStepText={loadingStepText}
             diagram={diagram}
             onWidthChange={handleChatPanelWidthChange}
             onClose={() => setSelectedNode(null)}
+            onExitNodeFocus={handleExitNodeFocus}
+            examplePrompt={examplePrompt}
+            currentModel={currentModel}
+            onModelChange={setCurrentModel}
           />
         )}
       </div>
@@ -692,6 +882,20 @@ Feel free to explore the diagram and ask me anything!`;
         onAdd={handleAddNode}
         preSelectedType={preSelectedNodeType}
       />
+
+      {isSignedIn && (
+        <NodePalette
+          isOpen={nodePaletteOpen}
+          onClose={() => setNodePaletteOpen(false)}
+          onSelectType={handleSelectNodeType}
+          designDocOpen={designDocOpen}
+          designDocWidth={designDocWidth}
+          chatPanelOpen={!!diagram}
+          chatPanelWidth={chatPanelWidth}
+          sessionHistoryOpen={sessionHistoryOpen}
+          sessionHistorySidebarWidth={sessionHistorySidebarWidth}
+        />
+      )}
     </div>
   );
 }

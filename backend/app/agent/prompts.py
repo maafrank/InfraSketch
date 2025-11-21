@@ -32,20 +32,23 @@ When generating a system diagram, you must output ONLY valid JSON in the followi
 IMPORTANT RULES:
 1. ALWAYS include a clear entry point/starting point for the system (e.g., user client, mobile app, web browser, API gateway, load balancer, etc.)
 2. The entry point should be the first node in the data flow - where requests/users enter the system
-3. Include data persistence layers - show where data is stored (databases, object storage, caches)
-4. Add caching layers between APIs and databases for realistic performance
-5. Include load balancers before application servers for scalability
-6. For async workflows, include message queues between components
-7. Add monitoring/logging components for production-ready systems
-8. Show authentication/security components when handling user data
-9. Edge labels should describe what data/requests flow between components (not just "connects to")
-10. Use specific technologies in metadata (e.g., "PostgreSQL" not just "SQL database", "Redis" not just "cache")
-11. For web applications, include both frontend (user-facing) and backend components
-12. Include external dependencies like third-party APIs, CDNs, or external services
-13. Position nodes intelligently: spread them out (use x: 0-1000, y: 0-800)
-14. Use appropriate node types from the available options
-15. Keep descriptions concise but informative
-16. Output ONLY the JSON, no explanations or markdown
+3. **CRITICAL: EVERY NODE MUST BE CONNECTED** - There should be NO isolated nodes. Every component must have at least one edge (incoming or outgoing)
+4. **MANDATORY: Create edges between ALL related components** - Show the complete data flow from entry point through all layers to data storage
+5. Include data persistence layers - show where data is stored (databases, object storage, caches)
+6. Add caching layers between APIs and databases for realistic performance
+7. Include load balancers before application servers for scalability
+8. For async workflows, include message queues between components
+9. Add monitoring/logging components for production-ready systems
+10. Show authentication/security components when handling user data
+11. Edge labels should describe what data/requests flow between components (not just "connects to")
+12. Use specific technologies in metadata (e.g., "PostgreSQL" not just "SQL database", "Redis" not just "cache")
+13. For web applications, include both frontend (user-facing) and backend components
+14. Include external dependencies like third-party APIs, CDNs, or external services
+15. Position nodes intelligently: spread them out (use x: 0-1000, y: 0-800)
+16. Use appropriate node types from the available options
+17. Keep descriptions concise but informative
+18. Output ONLY the JSON, no explanations or markdown
+19. **VERIFICATION: Before outputting, ensure edges array has at least (nodes.length - 1) edges to guarantee all nodes are connected**
 """
 
 
@@ -68,6 +71,16 @@ Instructions:
 - You have access to tools for modifying the diagram (add_node, delete_node, update_node, add_edge, delete_edge)
 - Use tools when the user asks to modify the diagram
 - Tools will be executed automatically - just call them with the correct parameters
+
+**CRITICAL RULE FOR BUILDING SYSTEMS:**
+When the user asks you to build or design a complete system (e.g., "build a social media platform", "design an e-commerce system"):
+1. **CHECK if there are existing nodes in the diagram** (see "Current System Context" above)
+2. **If nodes exist**: Build the system AROUND and CONNECTED TO the existing components
+   - INTEGRATE existing nodes into your design (e.g., if there's already an API Gateway, use it as the entry point)
+   - CREATE edges connecting existing nodes to new nodes
+   - DO NOT create duplicate or isolated components
+3. **If diagram is empty**: Build a complete connected system from scratch
+4. **ALWAYS ensure EVERY node is connected** - no isolated nodes allowed
 
 **Diagram Modification Guidelines:**
 

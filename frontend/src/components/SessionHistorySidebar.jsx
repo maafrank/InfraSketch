@@ -1,14 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getUserSessions } from '../api/client';
+import { getUserSessions, renameSession, deleteSession } from '../api/client';
 import './SessionHistorySidebar.css';
 
-export default function SessionHistorySidebar({ isOpen, onClose, onSessionSelect, onWidthChange }) {
+export default function SessionHistorySidebar({ isOpen, onClose, onSessionSelect, onWidthChange, currentSessionId, sessionNameUpdated, onSessionDeleted }) {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [width, setWidth] = useState(300);
   const [isResizing, setIsResizing] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [contextMenu, setContextMenu] = useState(null);
+  const [editingSessionId, setEditingSessionId] = useState(null);
+  const [editingName, setEditingName] = useState('');
 
   // Mobile detection
   useEffect(() => {
@@ -26,6 +29,14 @@ export default function SessionHistorySidebar({ isOpen, onClose, onSessionSelect
       loadSessions();
     }
   }, [isOpen]);
+
+  // Reload sessions when session name is updated (for current session)
+  useEffect(() => {
+    if (isOpen && sessionNameUpdated && currentSessionId) {
+      console.log('Session name updated, refreshing sidebar:', sessionNameUpdated);
+      loadSessions();
+    }
+  }, [sessionNameUpdated, currentSessionId, isOpen]);
 
   const loadSessions = async () => {
     setLoading(true);
@@ -120,6 +131,8 @@ export default function SessionHistorySidebar({ isOpen, onClose, onSessionSelect
     const diffMs = now - date;
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
+    // Handle future dates or invalid timestamps
+    if (diffDays < 0) return 'Just now';
     if (diffDays === 0) return 'Today';
     if (diffDays === 1) return 'Yesterday';
     if (diffDays < 7) return `${diffDays} days ago`;
@@ -135,6 +148,69 @@ export default function SessionHistorySidebar({ isOpen, onClose, onSessionSelect
     if (model?.includes('sonnet')) return 'Sonnet';
     return model || 'Unknown';
   };
+
+  const handleContextMenu = (e, session) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      sessionId: session.session_id,
+      sessionName: session.name,
+    });
+  };
+
+  const handleRename = () => {
+    if (contextMenu) {
+      setEditingSessionId(contextMenu.sessionId);
+      setEditingName(contextMenu.sessionName || 'Untitled Design');
+      setContextMenu(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (contextMenu && window.confirm('Are you sure you want to delete this session?')) {
+      try {
+        const deletedSessionId = contextMenu.sessionId;
+        await deleteSession(deletedSessionId);
+        await loadSessions(); // Reload after delete
+        setContextMenu(null);
+
+        // If the deleted session was the current session, notify parent to reset
+        if (deletedSessionId === currentSessionId && onSessionDeleted) {
+          onSessionDeleted(deletedSessionId);
+        }
+      } catch (error) {
+        console.error('Failed to delete session:', error);
+        alert('Failed to delete session. Please try again.');
+      }
+    }
+  };
+
+  const handleSaveRename = async (sessionId) => {
+    try {
+      await renameSession(sessionId, editingName);
+      setEditingSessionId(null);
+      await loadSessions(); // Reload after rename
+    } catch (error) {
+      console.error('Failed to rename session:', error);
+      alert('Failed to rename session. Please try again.');
+    }
+  };
+
+  const handleCancelRename = () => {
+    setEditingSessionId(null);
+    setEditingName('');
+  };
+
+  // Close context menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setContextMenu(null);
+    if (contextMenu) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [contextMenu]);
 
   if (!isOpen) return null;
 
@@ -183,8 +259,9 @@ export default function SessionHistorySidebar({ isOpen, onClose, onSessionSelect
             {sessions.map((session) => (
               <div
                 key={session.session_id}
-                className="session-list-item"
+                className={`session-list-item ${currentSessionId === session.session_id ? 'active' : ''}`}
                 onClick={() => handleSessionClick(session.session_id)}
+                onContextMenu={(e) => handleContextMenu(e, session)}
               >
                 <div className="session-item-header">
                   <span className="session-date-compact">
@@ -193,9 +270,26 @@ export default function SessionHistorySidebar({ isOpen, onClose, onSessionSelect
                   {session.has_design_doc && <span className="doc-badge">📄</span>}
                 </div>
 
-                <div className="session-name-compact">
-                  {session.name || 'Untitled Design'}
-                </div>
+                {editingSessionId === session.session_id ? (
+                  <div className="session-name-edit">
+                    <input
+                      type="text"
+                      value={editingName}
+                      onChange={(e) => setEditingName(e.target.value)}
+                      onBlur={() => handleSaveRename(session.session_id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveRename(session.session_id);
+                        if (e.key === 'Escape') handleCancelRename();
+                      }}
+                      autoFocus
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                ) : (
+                  <div className="session-name-compact">
+                    {session.name || 'Untitled Design'}
+                  </div>
+                )}
 
                 <div className="session-stats-compact">
                   <span>{session.node_count} nodes</span>
@@ -218,6 +312,21 @@ export default function SessionHistorySidebar({ isOpen, onClose, onSessionSelect
           className="resize-handle-right"
           onMouseDown={() => setIsResizing(true)}
         />
+      )}
+
+      {/* Context menu */}
+      {contextMenu && (
+        <div
+          className="session-context-menu"
+          style={{
+            position: 'fixed',
+            left: `${contextMenu.x}px`,
+            top: `${contextMenu.y}px`,
+          }}
+        >
+          <button onClick={handleRename}>Rename</button>
+          <button onClick={handleDelete} className="delete-button">Delete</button>
+        </div>
       )}
     </div>
   );
