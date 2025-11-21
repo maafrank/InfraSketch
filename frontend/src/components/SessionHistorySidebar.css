@@ -68,18 +68,28 @@
 }
 
 .close-button {
-  background: none;
-  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: #1a1a1a;
+  border: 2px solid #1a1a1a;
+  border-radius: 8px;
+  padding: 0.25rem;
   font-size: 1.25rem;
   cursor: pointer;
-  color: var(--text-secondary);
-  padding: 0.25rem;
   line-height: 1;
-  transition: color 0.2s;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .close-button:hover {
-  color: var(--text-primary);
+  background: var(--text-inverse);
+  color: var(--brand-purple);
+  border-color: #1a1a1a;
+  transform: translateY(-2px);
 }
 
 /* Content Area */
