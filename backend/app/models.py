@@ -21,7 +21,7 @@ class Node(BaseModel):
     inputs: List[str] = Field(default_factory=list)
     outputs: List[str] = Field(default_factory=list)
     metadata: NodeMetadata = Field(default_factory=NodeMetadata)
-    position: NodePosition
+    position: NodePosition = Field(default_factory=lambda: NodePosition(x=0, y=0))
 
 
 class Edge(BaseModel):

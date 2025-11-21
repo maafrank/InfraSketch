@@ -257,6 +257,13 @@ body {
   resize: vertical;
   margin-bottom: 1rem;
   transition: border-color 0.2s;
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+/* Dark mode: tone down the text brightness */
+[data-theme="dark"] .landing-textarea {
+  color: var(--text-secondary);
 }
 
 .landing-textarea:focus {
@@ -937,6 +944,7 @@ body {
 
 .floating-edit-button,
 .floating-layout-button,
+.floating-direction-button,
 .floating-camera-button {
   width: 56px;
   height: 56px;
@@ -959,12 +967,17 @@ body {
   background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
 }
 
+.floating-direction-button {
+  background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%);
+}
+
 .floating-camera-button {
   background: linear-gradient(135deg, #f6ad55 0%, #ed8936 100%);
 }
 
 .floating-edit-button:hover,
 .floating-layout-button:hover,
+.floating-direction-button:hover,
 .floating-camera-button:hover {
   transform: scale(1.1);
   box-shadow: 0 6px 20px var(--btn-hover-shadow);
@@ -972,6 +985,7 @@ body {
 
 .floating-edit-button:active,
 .floating-layout-button:active,
+.floating-direction-button:active,
 .floating-camera-button:active {
   transform: scale(0.95);
 }
@@ -1619,11 +1633,15 @@ body {
 
 .react-flow__edge-text {
   font-size: 12px;
+  font-weight: 500;
 }
 
 .react-flow__edge-textbg {
   fill: var(--bg-tertiary) !important;
-  fill-opacity: 0.9 !important;
+  fill-opacity: 0.95 !important;
+  /* Add padding around text */
+  rx: 4;
+  ry: 4;
 }
 
 .react-flow__edge-text {

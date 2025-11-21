@@ -316,7 +316,7 @@ The backend exposes these REST endpoints (all under `/api` prefix):
     "inputs": List[str],
     "outputs": List[str],
     "metadata": {"technology": str, "notes": str},
-    "position": {"x": float, "y": float}
+    "position": {"x": float, "y": float}  # Optional, defaults to {x: 0, y: 0}. Positions are recalculated by dagre layout algorithm anyway.
 }
 ```
 
