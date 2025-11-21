@@ -17,10 +17,10 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
   // Configure graph layout
   dagreGraph.setGraph({
     rankdir: direction,
-    nodesep: 80,  // Horizontal spacing between nodes
-    ranksep: 120, // Vertical spacing between ranks
-    marginx: 50,
-    marginy: 50
+    nodesep: 50,  // Horizontal spacing between nodes
+    ranksep: 80,  // Vertical spacing between ranks
+    marginx: 30,
+    marginy: 30
   });
 
   // Add nodes to dagre graph

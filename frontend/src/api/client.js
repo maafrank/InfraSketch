@@ -58,11 +58,12 @@ export const generateDiagram = async (prompt, model = null) => {
   return response.data;
 };
 
-export const sendChatMessage = async (sessionId, message, nodeId = null) => {
+export const sendChatMessage = async (sessionId, message, nodeId = null, model = null) => {
   const response = await client.post('/chat', {
     session_id: sessionId,
     message,
     node_id: nodeId,
+    model,
   });
   return response.data;
 };
@@ -175,4 +176,64 @@ export const exportDesignDoc = async (sessionId, format = 'pdf', diagramImage = 
 export const getUserSessions = async () => {
   const response = await client.get('/user/sessions');
   return response.data;
+};
+
+export const renameSession = async (sessionId, name) => {
+  const response = await client.patch(`/session/${sessionId}/name`, { name });
+  return response.data;
+};
+
+export const deleteSession = async (sessionId) => {
+  const response = await client.delete(`/session/${sessionId}`);
+  return response.data;
+};
+
+export const createBlankSession = async () => {
+  const response = await client.post('/session/create-blank');
+  return response.data;
+};
+
+/**
+ * Poll session to wait for name generation to complete.
+ * Background task generates name after diagram creation.
+ *
+ * @param {string} sessionId - Session ID to poll
+ * @param {function} onUpdate - Callback when name is generated (receives session name)
+ * @param {number} maxWaitTime - Max time to wait in milliseconds (default: 10 seconds)
+ * @returns {Promise<{success: boolean, name: string | null}>}
+ */
+export const pollSessionName = async (sessionId, onUpdate = null, maxWaitTime = 10000) => {
+  const startTime = Date.now();
+  const pollInterval = 1000; // Poll every 1 second
+
+  while (Date.now() - startTime < maxWaitTime) {
+    try {
+      const session = await getSession(sessionId);
+
+      // Check if name has been generated (not "Untitled Design" and name_generated is true)
+      if (session.name && session.name !== 'Untitled Design' && session.name_generated !== false) {
+        console.log('Session name generated:', session.name);
+        if (onUpdate) {
+          onUpdate(session.name);
+        }
+        return {
+          success: true,
+          name: session.name,
+        };
+      }
+    } catch (error) {
+      console.error('Error polling session name:', error);
+      // Continue polling even on error (session might not be saved yet)
+    }
+
+    // Wait before next poll
+    await new Promise(resolve => setTimeout(resolve, pollInterval));
+  }
+
+  // Timeout - return whatever name we have (might be null or "Untitled Design")
+  console.log('Session name polling timed out');
+  return {
+    success: false,
+    name: null,
+  };
 };

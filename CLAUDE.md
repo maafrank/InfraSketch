@@ -117,10 +117,11 @@ Instead of parsing JSON from Claude's responses, the agent uses **Claude's nativ
 - `utils/diagram_export.py` - PDF/image generation utilities
 
 **Frontend (`frontend/src/`)**:
-- `App.jsx` - Main component managing state (diagram, sessionId, selectedNode, messages, designDoc, designDocLoading, chatPanelWidth)
+- `App.jsx` - Main component managing state (diagram, sessionId, selectedNode, messages, designDoc, designDocLoading, chatPanelWidth, sessionHistoryOpen)
 - `components/DiagramCanvas.jsx` - React Flow canvas with auto-layout using dagre, supports drag connections between nodes
 - `components/ChatPanel.jsx` - Chat UI for node-focused conversations, resizable with width tracking
 - `components/DesignDocPanel.jsx` - Editable design doc panel with TipTap editor, shows loading overlay during generation, resizable with width tracking
+- `components/SessionHistorySidebar.jsx` - Left sidebar showing user's saved sessions, supports rename/delete, resizable with width tracking
 - `components/NodePalette.jsx` - Bottom toolbar for adding nodes, slides up from bottom, resizable vertically, adapts to both side panels
 - `components/CustomNode.jsx` - Styled node component with color coding by type
 - `components/InputPanel.jsx` - Initial prompt input for generating diagrams
@@ -128,7 +129,7 @@ Instead of parsing JSON from Claude's responses, the agent uses **Claude's nativ
 - `components/AddNodeModal.jsx` - Modal for manually adding nodes (opened from NodePalette or header button)
 - `components/ExportButton.jsx` - Export dropdown with PNG/PDF/Markdown options, includes screenshot capture
 - `utils/layout.js` - Auto-layout logic using dagre algorithm
-- `api/client.js` - Axios client for backend API, includes `pollDesignDocStatus()` for async generation
+- `api/client.js` - Axios client for backend API, includes `pollDesignDocStatus()` for async generation, `getUserSessions()`, `renameSession()`, `deleteSession()`
 
 ### LangGraph Agent Implementation
 
@@ -239,23 +240,43 @@ The backend exposes these REST endpoints (all under `/api` prefix):
 **GET `/api/session/{session_id}`** - Retrieve session state
 - Response: `SessionState` object
 
+**POST `/api/session/create-blank`** - Create a new blank session with empty diagram
+- Response: `{ "session_id": string, "diagram": Diagram }`
+- Used when starting a fresh design without initial prompt
+
+**PATCH `/api/session/{session_id}/name`** - Rename a session
+- Request body: `{ "name": string }`
+- Response: `{ "success": boolean, "name": string }`
+
+**DELETE `/api/session/{session_id}`** - Delete a session
+- Response: `{ "success": boolean, "message": string }`
+
+**GET `/api/user/sessions`** - Get all sessions for authenticated user
+- Response: Array of session metadata sorted by most recent first
+- Each session includes: `session_id`, `name`, `created_at`, `updated_at`, `node_count`, `edge_count`
+
 **POST `/api/session/{session_id}/nodes`** - Manually add a node
 - Request: `Node` object
 - Response: Updated `Diagram`
+- Persists to DynamoDB/in-memory storage after adding
 
 **DELETE `/api/session/{session_id}/nodes/{node_id}`** - Delete node and connected edges
 - Response: Updated `Diagram`
+- Persists to DynamoDB/in-memory storage after deletion
 
 **PATCH `/api/session/{session_id}/nodes/{node_id}`** - Update node properties
 - Request: Updated `Node` object
 - Response: Updated `Diagram`
+- Persists to DynamoDB/in-memory storage after update
 
 **POST `/api/session/{session_id}/edges`** - Manually add an edge
 - Request: `Edge` object
 - Response: Updated `Diagram`
+- Persists to DynamoDB/in-memory storage after adding
 
 **DELETE `/api/session/{session_id}/edges/{edge_id}`** - Delete edge
 - Response: Updated `Diagram`
+- Persists to DynamoDB/in-memory storage after deletion
 
 **POST `/api/session/{session_id}/design-doc/generate`** - Start background design document generation
 - Request body: `{ "diagram_image": base64_png_string? }` (optional screenshot)
@@ -324,12 +345,16 @@ The backend exposes these REST endpoints (all under `/api` prefix):
 ```python
 {
     "session_id": str,
+    "user_id": str,  # Clerk user ID - links session to authenticated user
     "diagram": Diagram,
     "messages": List[Message],
     "current_node": Optional[str],
     "design_doc": Optional[str],  # Generated markdown content
     "design_doc_status": DesignDocStatus,  # Generation status tracking
-    "model": str  # Model used for this session (e.g., "claude-haiku-4-5-20251001")
+    "model": str,  # Model used for this session (e.g., "claude-haiku-4-5-20251001")
+    "created_at": Optional[datetime],  # When session was created (for sorting in history)
+    "name": Optional[str],  # Concise session name (e.g., "E-commerce Platform", default: "Untitled Design")
+    "name_generated": bool  # Prevents re-generating name once manually set
 }
 ```
 
@@ -437,6 +462,8 @@ Users can now select their preferred AI model at diagram generation time via a d
 - `designDoc` - generated design document markdown content
 - `designDocOpen` - whether design doc panel is visible
 - `designDocLoading` - whether design doc is currently being generated (shows loading overlay)
+- `sessionHistoryOpen` - whether session history sidebar is visible
+- `sessionName` - current session name (displayed in header, editable)
 - `isMobile` - mobile viewport detection (≤768px)
 
 When `diagram` prop changes in `DiagramCanvas.jsx`, the `useEffect` hook:
@@ -455,15 +482,22 @@ When `diagram` prop changes in `DiagramCanvas.jsx`, the `useEffect` hook:
 - Click "Add Node" button (header) → Opens modal for manual node creation
 - Click "Create Design Doc" button → Starts async generation, opens panel with loading overlay
 - Click "New Design" button → Clears session and starts fresh
+- Click "📋 History" button → Opens session history sidebar (left side)
+- Click session in history → Loads that session's diagram
+- Right-click session in history → Context menu to rename or delete
+- Click session name in header → Edit session name inline
 - Drag palette top edge → Resize palette height (min: 60px, max: 800px)
 - Drag chat panel left edge → Resize chat panel width
 - Drag design doc panel right edge → Resize design doc panel width
+- Drag session history right edge → Resize sidebar width
 
 **User Interactions (Mobile ≤768px):**
 - Click node → Opens chat panel as fullscreen modal (hides diagram)
 - Click X in chat header → Returns to diagram
 - Click "Create Design Doc" → Opens design doc as fullscreen modal (hides diagram)
 - Click X in design doc header → Returns to diagram
+- Click "📋 History" → Opens session history as fullscreen modal (hides diagram)
+- Click X in history header → Returns to diagram
 - Node palette → Fullscreen width, 2-column grid on phones (<480px)
 - React Flow controls → Hidden (use pinch-to-zoom instead)
 - All panels → Non-resizable on mobile
@@ -562,6 +596,7 @@ The app uses a hybrid CSS + JavaScript approach for mobile optimization:
 **Mobile Components:**
 - `ChatPanel` - Adds `mobile-modal` class when `window.innerWidth ≤ 768`
 - `DesignDocPanel` - Adds `mobile-modal` class when `window.innerWidth ≤ 768`
+- `SessionHistorySidebar` - Adds `mobile-modal` class when `window.innerWidth ≤ 768`
 - `App.jsx` - Hides diagram when mobile panels are open (fullscreen modal behavior)
 - `NodePalette` - Uses CSS-only responsive grid (no JS changes needed)
 
@@ -569,6 +604,32 @@ The app uses a hybrid CSS + JavaScript approach for mobile optimization:
 - Chrome DevTools → Toggle Device Toolbar (Cmd+Shift+M)
 - Test breakpoints: 375px (iPhone SE), 768px (iPad), 1024px (iPad Pro)
 - Verify touch targets are ≥44px
+
+## Session History Feature
+
+**Overview:**
+Users can save, view, and manage multiple design sessions. The session history sidebar provides access to all previously created diagrams with metadata.
+
+**Key Features:**
+- **Session List**: Shows all user sessions sorted by most recent first
+- **Session Metadata**: Displays session name, node count, edge count, and last updated timestamp
+- **Rename Sessions**: Click session name in header or right-click in history sidebar
+- **Delete Sessions**: Right-click session in history sidebar to delete
+- **Load Sessions**: Click any session to load its diagram and conversation history
+- **Auto-Save**: Session names and changes are automatically persisted to DynamoDB
+
+**Architecture:**
+- **Frontend**: `SessionHistorySidebar.jsx` component with resizable width, context menu support
+- **Backend**: `/user/sessions` endpoint queries DynamoDB for all sessions owned by authenticated user
+- **Storage**: Sessions are keyed by `user_id` in DynamoDB for multi-user support
+- **Ownership**: Clerk JWT provides `user_id` for session ownership verification
+
+**Implementation Details:**
+- Default session name: "Untitled Design"
+- Sessions can be renamed inline by clicking the header title or via right-click menu
+- Delete operation removes session from DynamoDB and refreshes sidebar
+- Loading a session fetches full state including diagram, messages, design doc
+- Sidebar width: Default 300px, Min 200px, Max 500px (desktop), fullscreen on mobile
 
 ## Important Implementation Details
 
@@ -607,7 +668,7 @@ All resizable panels (DesignDocPanel, ChatPanel, NodePalette) use a consistent p
 - **Finalize node** syncs state with session after tool execution
 - Frontend receives updated diagram from state
 - Agent-generated updates flow through `/api/chat` → tools → session → state
-- Manual updates flow through CRUD endpoints → session
+- Manual updates flow through CRUD endpoints → session (all CRUD endpoints call `session_manager.update_diagram()` to persist changes to DynamoDB/in-memory storage)
 
 **Tool-Based Updates:**
 - Claude calls tools (e.g., `add_node`, `update_design_doc_section`)

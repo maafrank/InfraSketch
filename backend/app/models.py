@@ -78,6 +78,7 @@ class ChatRequest(BaseModel):
     session_id: str
     message: str
     node_id: Optional[str] = None
+    model: Optional[str] = None  # Allow changing model mid-session
 
 
 class ChatResponse(BaseModel):

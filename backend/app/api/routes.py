@@ -33,6 +33,36 @@ import time
 router = APIRouter()
 
 
+def generate_system_overview(diagram: Diagram) -> str:
+    """
+    Generate a formatted system overview message from a diagram.
+    This is what the user sees in chat after diagram generation.
+
+    Args:
+        diagram: The generated diagram
+
+    Returns:
+        Formatted markdown system overview message
+    """
+    node_count = len(diagram.nodes)
+    node_types = sorted(set(node.type for node in diagram.nodes))
+
+    overview = f"""## System Overview
+I've generated a system architecture with {node_count} components.
+
+**Component Types**
+{chr(10).join(f"- {node_type}" for node_type in node_types)}
+
+**What's Next?**
+- Click any node to focus the conversation on that component
+- Ask questions about the overall system design
+- Request changes to add, remove, or modify components
+
+Feel free to explore the diagram and ask me anything!"""
+
+    return overview
+
+
 def verify_session_access(session_id: str, user_id: str, http_request: Request) -> SessionState:
     """
     Helper function to verify user has access to a session.
@@ -65,8 +95,24 @@ class ExportRequest(BaseModel):
     diagram_image: str | None = None  # Base64 encoded PNG from frontend
 
 
-def _generate_session_name_background(session_id: str, prompt: str, model: str):
-    """Background task to generate session name from initial prompt."""
+def _should_generate_session_name(session) -> bool:
+    """Check if session needs a name generated."""
+    # Skip if already generated
+    if session.name_generated:
+        return False
+
+    # Skip if name is set to something other than None or "Untitled Design"
+    if session.name and session.name != "Untitled Design":
+        return False
+
+    return True
+
+
+def _generate_session_name_from_content(session_id: str, model: str):
+    """
+    Background task to generate session name from session content.
+    Uses first message or node descriptions if no messages exist.
+    """
     import os
 
     try:
@@ -75,8 +121,73 @@ def _generate_session_name_background(session_id: str, prompt: str, model: str):
             print(f"Session {session_id} not found for name generation")
             return
 
-        # Skip if already generated (should never happen, but safety check)
-        if session.name_generated:
+        # Skip if already generated
+        if not _should_generate_session_name(session):
+            print(f"Session {session_id} already has a name: {session.name}")
+            return
+
+        print(f"\n=== BACKGROUND: GENERATE SESSION NAME ===")
+        print(f"Session ID: {session_id}")
+
+        # Build prompt from session content
+        # Priority: 1) First user message, 2) Node descriptions
+        prompt = None
+
+        if session.messages:
+            # Find first user message
+            for msg in session.messages:
+                if msg.role == "user":
+                    prompt = msg.content
+                    print(f"Using first user message: {prompt[:100]}...")
+                    break
+
+        if not prompt and session.diagram and session.diagram.nodes:
+            # Use node descriptions/labels
+            node_descriptions = [f"{node.label}: {node.description}" for node in session.diagram.nodes[:5]]
+            prompt = "System with: " + ", ".join(node_descriptions)
+            print(f"Using node descriptions: {prompt[:100]}...")
+
+        if not prompt:
+            print("No content available for name generation, skipping")
+            return
+
+        # Get API key from environment or secrets
+        from app.utils.secrets import get_anthropic_api_key
+        api_key = get_anthropic_api_key()
+
+        # Generate name using LLM
+        import asyncio
+        name = asyncio.run(generate_session_name(prompt, api_key, model))
+
+        # Update session using proper method
+        session_manager.update_session_name(session_id, name)
+
+        print(f"Generated name: {name}")
+        print(f"=========================================\n")
+
+    except Exception as e:
+        import traceback
+        print(f"Error generating session name: {e}")
+        print(traceback.format_exc())
+        # Set fallback name so we don't retry
+        try:
+            session_manager.update_session_name(session_id, "Untitled Design")
+        except:
+            pass
+
+
+def _generate_session_name_background(session_id: str, prompt: str, model: str):
+    """Background task to generate session name from initial prompt (used by /generate endpoint)."""
+    import os
+
+    try:
+        session = session_manager.get_session(session_id)
+        if not session:
+            print(f"Session {session_id} not found for name generation")
+            return
+
+        # Skip if already generated
+        if not _should_generate_session_name(session):
             print(f"Session {session_id} already has a name: {session.name}")
             return
 
@@ -138,19 +249,17 @@ async def generate_diagram(request: GenerateRequest, http_request: Request, back
         # Create session with user_id
         session_id = session_manager.create_session(diagram, user_id=user_id, model=model)
 
-        # Add messages to session (user + assistant)
+        # Add messages to session (user + formatted assistant overview)
         session_manager.add_message(
             session_id,
             Message(role="user", content=request.prompt)
         )
-        # Add assistant response if present in messages
-        if result.get("messages"):
-            last_msg = result["messages"][-1]
-            if isinstance(last_msg, AIMessage):
-                session_manager.add_message(
-                    session_id,
-                    Message(role="assistant", content=last_msg.content)
-                )
+        # Generate and store formatted system overview instead of raw JSON
+        system_overview = generate_system_overview(diagram)
+        session_manager.add_message(
+            session_id,
+            Message(role="assistant", content=system_overview)
+        )
 
         # Generate session name in background
         background_tasks.add_task(_generate_session_name_background, session_id, request.prompt, model)
@@ -181,7 +290,7 @@ async def generate_diagram(request: GenerateRequest, http_request: Request, back
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest, http_request: Request):
+async def chat(request: ChatRequest, http_request: Request, background_tasks: BackgroundTasks):
     """Continue conversation about diagram/node."""
     start_time = time.time()
     user_ip = http_request.client.host if http_request.client else None
@@ -200,6 +309,10 @@ async def chat(request: ChatRequest, http_request: Request):
         # Verify ownership
         if not session_manager.verify_ownership(request.session_id, user_id):
             raise HTTPException(status_code=403, detail="You don't have permission to access this session")
+
+        # Check if this is the first message and name hasn't been generated
+        is_first_message = len(session.messages) == 0
+        needs_name = is_first_message and _should_generate_session_name(session)
 
         # Update current node if provided
         if request.node_id:
@@ -221,6 +334,13 @@ async def chat(request: ChatRequest, http_request: Request):
         old_diagram_dict = session.diagram.model_dump()
         old_design_doc = session.design_doc
 
+        # Use model from request if provided, otherwise use session's model
+        model_to_use = request.model if request.model else session.model
+
+        # Update session model if changed
+        if request.model and request.model != session.model:
+            session_manager.update_model(request.session_id, request.model)
+
         # Run agent with message-based state
         result = agent_graph.invoke({
             "messages": langchain_messages,
@@ -228,7 +348,7 @@ async def chat(request: ChatRequest, http_request: Request):
             "design_doc": session.design_doc,
             "node_id": request.node_id,
             "session_id": request.session_id,
-            "model": session.model,
+            "model": model_to_use,
         })
 
         # Add user message to session
@@ -282,6 +402,10 @@ async def chat(request: ChatRequest, http_request: Request):
             user_ip=user_ip,
         )
 
+        # Generate session name in background if this was the first message
+        if needs_name:
+            background_tasks.add_task(_generate_session_name_from_content, request.session_id, session.model)
+
         return ChatResponse(
             response=response_text,
             diagram=response_diagram,
@@ -319,8 +443,98 @@ async def get_session(session_id: str, http_request: Request):
     return session
 
 
+@router.patch("/session/{session_id}/name")
+async def rename_session(session_id: str, request: dict, http_request: Request):
+    """Rename a session."""
+    user_id = getattr(http_request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
+
+    session = session_manager.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    if not session_manager.verify_ownership(session_id, user_id):
+        raise HTTPException(status_code=403, detail="You don't have permission to modify this session")
+
+    new_name = request.get("name", "").strip()
+    if not new_name:
+        raise HTTPException(status_code=400, detail="Session name cannot be empty")
+
+    # Update session name using the proper method
+    success = session_manager.update_session_name(session_id, new_name)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to update session name")
+
+    return {"success": True, "name": new_name}
+
+
+@router.delete("/session/{session_id}")
+async def delete_session(session_id: str, http_request: Request):
+    """Delete a session."""
+    user_id = getattr(http_request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
+
+    session = session_manager.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    if not session_manager.verify_ownership(session_id, user_id):
+        raise HTTPException(status_code=403, detail="You don't have permission to delete this session")
+
+    # Delete the session
+    session_manager.delete_session(session_id)
+
+    # Log event
+    user_ip = http_request.client.host if http_request.client else None
+    log_event(
+        EventType.API_REQUEST,
+        session_id=session_id,
+        user_ip=user_ip,
+        metadata={"action": "delete_session"},
+    )
+
+    return {"success": True, "message": "Session deleted successfully"}
+
+
+@router.post("/session/create-blank")
+async def create_blank_session(http_request: Request):
+    """Create a new blank session with empty diagram."""
+    user_id = getattr(http_request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
+
+    # Create empty diagram
+    empty_diagram = Diagram(nodes=[], edges=[])
+
+    # Create session with default model
+    session_id = session_manager.create_session(
+        empty_diagram,
+        user_id=user_id,
+        model="claude-haiku-4-5"
+    )
+
+    # Set a default name
+    session_manager.update_session_name(session_id, "Untitled Design")
+
+    # Log event
+    user_ip = http_request.client.host if http_request.client else None
+    log_event(
+        EventType.API_REQUEST,
+        session_id=session_id,
+        user_ip=user_ip,
+        metadata={"action": "create_blank_session"},
+    )
+
+    return {
+        "session_id": session_id,
+        "diagram": empty_diagram
+    }
+
+
 @router.post("/session/{session_id}/nodes", response_model=Diagram)
-async def add_node(session_id: str, node: Node, http_request: Request):
+async def add_node(session_id: str, node: Node, http_request: Request, background_tasks: BackgroundTasks):
     """Add a new node to the diagram."""
     # Extract user_id and verify ownership
     user_id = getattr(http_request.state, "user_id", None)
@@ -338,8 +552,19 @@ async def add_node(session_id: str, node: Node, http_request: Request):
     if any(n.id == node.id for n in session.diagram.nodes):
         raise HTTPException(status_code=400, detail=f"Node with id '{node.id}' already exists")
 
+    # Check current node count before adding
+    nodes_before = len(session.diagram.nodes)
+
     # Add node to diagram
     session.diagram.nodes.append(node)
+
+    # Persist to storage (critical for DynamoDB in production)
+    session_manager.update_diagram(session_id, session.diagram)
+
+    # Check if we just added the 5th node and name hasn't been generated
+    nodes_after = len(session.diagram.nodes)
+    if nodes_after == 5 and _should_generate_session_name(session):
+        background_tasks.add_task(_generate_session_name_from_content, session_id, session.model)
 
     # Log event
     user_ip = http_request.client.host if http_request.client else None
@@ -372,6 +597,9 @@ async def delete_node(session_id: str, node_id: str, http_request: Request):
         e for e in session.diagram.edges
         if e.source != node_id and e.target != node_id
     ]
+
+    # Persist to storage (critical for DynamoDB in production)
+    session_manager.update_diagram(session_id, session.diagram)
 
     # Log event
     user_ip = http_request.client.host if http_request.client else None
@@ -406,6 +634,9 @@ async def update_node(session_id: str, node_id: str, updated_node: Node, http_re
     if not node_found:
         raise HTTPException(status_code=404, detail=f"Node '{node_id}' not found")
 
+    # Persist to storage (critical for DynamoDB in production)
+    session_manager.update_diagram(session_id, session.diagram)
+
     return session.diagram
 
 
@@ -429,6 +660,9 @@ async def add_edge(session_id: str, edge: Edge, http_request: Request):
     # Add edge to diagram
     session.diagram.edges.append(edge)
 
+    # Persist to storage (critical for DynamoDB in production)
+    session_manager.update_diagram(session_id, session.diagram)
+
     return session.diagram
 
 
@@ -444,6 +678,9 @@ async def delete_edge(session_id: str, edge_id: str, http_request: Request):
 
     if len(session.diagram.edges) == original_count:
         raise HTTPException(status_code=404, detail=f"Edge '{edge_id}' not found")
+
+    # Persist to storage (critical for DynamoDB in production)
+    session_manager.update_diagram(session_id, session.diagram)
 
     return session.diagram
 

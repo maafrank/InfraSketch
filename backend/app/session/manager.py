@@ -2,7 +2,7 @@ from typing import Dict, Optional, List
 import os
 import uuid
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from app.models import SessionState, Diagram, Message, DesignDocStatus
 
 
@@ -42,7 +42,7 @@ class SessionManager:
             messages=[],
             current_node=None,
             model=model,
-            created_at=datetime.now()
+            created_at=datetime.now(timezone.utc)
         )
 
         # Save to appropriate storage
@@ -197,6 +197,38 @@ class SessionManager:
         if self.is_lambda:
             return self.storage.save_session(session)
         return True
+
+    def update_model(self, session_id: str, model: str) -> bool:
+        """Update AI model for a session."""
+        session = self.get_session(session_id)
+        if not session:
+            return False
+        session.model = model
+
+        # Save updated session
+        if self.is_lambda:
+            return self.storage.save_session(session)
+        return True
+
+    def delete_session(self, session_id: str) -> bool:
+        """
+        Delete a session from storage.
+
+        Args:
+            session_id: UUID of the session to delete
+
+        Returns:
+            True if session was deleted successfully, False otherwise
+        """
+        if self.is_lambda:
+            # Use DynamoDB delete
+            return self.storage.delete_session(session_id)
+        else:
+            # Delete from in-memory storage
+            if session_id in self.sessions:
+                del self.sessions[session_id]
+                return True
+            return False
 
 
 # Global session manager instance

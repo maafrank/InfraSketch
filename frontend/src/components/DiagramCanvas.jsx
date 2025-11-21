@@ -11,14 +11,36 @@ import {
 import 'reactflow/dist/style.css';
 import NodeTooltip from './NodeTooltip';
 import CustomNode from './CustomNode';
-import NodePalette from './NodePalette';
 import { getLayoutedElements } from '../utils/layout';
 
 const nodeTypes = {
   custom: CustomNode,
 };
 
-function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAddEdge, onDeleteEdge, onReactFlowInit, onUpdateNode, onOpenNodePalette, onLayoutReady, onExportPng, designDocOpen, designDocWidth, chatPanelOpen, chatPanelWidth }) {
+const EXAMPLE_PROMPTS = [
+  {
+    title: "Video Streaming Platform",
+    prompt: "Build a scalable video streaming platform with CDN, transcoding, and personalized recommendations",
+    icon: "🎬"
+  },
+  {
+    title: "E-Commerce System",
+    prompt: "Design a microservices-based e-commerce platform with payment processing, inventory management, and order tracking",
+    icon: "🛒"
+  },
+  {
+    title: "Real-Time Chat App",
+    prompt: "Create a real-time chat application with WebSocket connections, message queues, and presence detection",
+    icon: "💬"
+  },
+  {
+    title: "Data Analytics Pipeline",
+    prompt: "Build a data analytics pipeline with stream processing, data warehousing, and real-time dashboards",
+    icon: "📊"
+  }
+];
+
+function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAddEdge, onDeleteEdge, onReactFlowInit, onUpdateNode, onOpenNodePalette, onLayoutReady, onExportPng, onExampleClick, designDocOpen, designDocWidth, chatPanelOpen, chatPanelWidth }) {
   const reactFlowInstance = useReactFlow();
 
   // Pass the React Flow instance to parent
@@ -34,7 +56,6 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [contextMenu, setContextMenu] = useState(null);
   const [selectedEdge, setSelectedEdge] = useState(null);
-  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const isTooltipHoveredRef = useRef(false);
   const hideTooltipTimeoutRef = useRef(null);
 
@@ -252,17 +273,37 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
     }
   }, [onDeleteEdge, onAddEdge]);
 
-  const handleSelectNodeType = useCallback((nodeType) => {
-    // Keep palette open - only close when user clicks X or backdrop
-    if (onOpenNodePalette) {
-      onOpenNodePalette(nodeType);
-    }
-  }, [onOpenNodePalette]);
-
-  if (!diagram && !loading) {
+  // Show empty state if no diagram or diagram has no nodes
+  const hasNodes = diagram?.nodes?.length > 0;
+  if (!hasNodes && !loading) {
     return (
       <div className="diagram-canvas-empty">
-        <p>Enter a system description to generate a diagram</p>
+        <h2>Start Building Your System Design</h2>
+        <p>Add components manually or describe your system in the chat</p>
+        <div className="empty-state-actions">
+          <button onClick={() => onOpenNodePalette && onOpenNodePalette()} className="primary-action">
+            Add Component
+          </button>
+          <span className="action-separator">or</span>
+          <span className="chat-hint">Use the chat to describe your system →</span>
+        </div>
+
+        {/* Example Prompts */}
+        <div className="empty-state-examples">
+          <p className="examples-label">Or try an example:</p>
+          <div className="examples-grid">
+            {EXAMPLE_PROMPTS.map((example, index) => (
+              <button
+                key={index}
+                onClick={() => onExampleClick && onExampleClick(example.prompt)}
+                className="example-card"
+              >
+                <span className="example-icon">{example.icon}</span>
+                <span className="example-title">{example.title}</span>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -300,11 +341,31 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
         <Controls />
       </ReactFlow>
 
+      {/* Empty state message */}
+      {nodes.length === 0 && (
+        <div className="canvas-empty-state">
+          <div className="empty-state-content">
+            <h3>Start Building Your System Design</h3>
+            <p>Add components manually or describe your system in the chat</p>
+            <div className="empty-state-actions">
+              <button
+                className="empty-state-button primary"
+                onClick={() => onOpenNodePalette && onOpenNodePalette()}
+              >
+                Add Component
+              </button>
+              <span className="empty-state-divider">or</span>
+              <span className="empty-state-hint">Use the chat to describe your system →</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Floating action buttons */}
       <div className="floating-buttons">
         <button
           className="floating-edit-button"
-          onClick={() => setIsPaletteOpen(true)}
+          onClick={() => onOpenNodePalette && onOpenNodePalette()}
           title="Add component"
         >
           <svg
@@ -362,17 +423,6 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
           </svg>
         </button>
       </div>
-
-      {/* Node palette */}
-      <NodePalette
-        isOpen={isPaletteOpen}
-        onClose={() => setIsPaletteOpen(false)}
-        onSelectType={handleSelectNodeType}
-        designDocOpen={designDocOpen}
-        designDocWidth={designDocWidth}
-        chatPanelOpen={chatPanelOpen}
-        chatPanelWidth={chatPanelWidth}
-      />
 
       {hoveredNode && (
         <div

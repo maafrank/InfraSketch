@@ -69,13 +69,18 @@ export default function DesignDocPanel({
 
   // Update editor content when designDoc prop changes (from chat updates)
   useEffect(() => {
-    if (editor && designDoc) {
-      // Convert markdown to HTML for Tiptap
-      const htmlContent = marked.parse(designDoc);
+    if (editor) {
+      if (designDoc) {
+        // Convert markdown to HTML for Tiptap
+        const htmlContent = marked.parse(designDoc);
 
-      // Only update if content is different (avoid infinite loops)
-      if (editor.getHTML() !== htmlContent) {
-        editor.commands.setContent(htmlContent);
+        // Only update if content is different (avoid infinite loops)
+        if (editor.getHTML() !== htmlContent) {
+          editor.commands.setContent(htmlContent);
+        }
+      } else {
+        // Clear editor content when designDoc is null (switching to session without doc)
+        editor.commands.setContent('');
       }
     }
   }, [designDoc, editor]);
