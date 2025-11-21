@@ -11,6 +11,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Hide React Flow attribution box */
+.react-flow__attribution {
+  display: none !important;
+}
+
 .app {
   height: 100vh;
   display: flex;
@@ -104,8 +109,8 @@ body {
 .create-design-doc-button {
   padding: 0.75rem 1.5rem;
   background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 2px solid white;
+  color: #1a1a1a;
+  border: 2px solid #1a1a1a;
   border-radius: 8px;
   font-size: 1rem;
   font-weight: 600;
@@ -120,6 +125,7 @@ body {
 .create-design-doc-button:hover:not(:disabled) {
   background: var(--text-inverse);
   color: var(--brand-purple);
+  border-color: #1a1a1a;
   transform: translateY(-2px);
 }
 
@@ -1086,12 +1092,12 @@ body {
 .node-label {
   font-weight: 600;
   font-size: 0.95rem;
-  color: var(--text-primary);
+  color: #1a1a1a;
 }
 
 .node-type-badge {
   font-size: 0.75rem;
-  color: var(--text-primary);
+  color: #1a1a1a;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight: 500;
@@ -1297,15 +1303,30 @@ body {
 }
 
 .model-select {
-  padding: 6px 12px;
+  padding: 6px 32px 6px 12px;
   font-size: 0.9rem;
   font-weight: 500;
   border-radius: 4px;
-  border: 1px solid var(--border-color);
-  background-color: var(--bg-tertiary);
+  border: 1px solid #000;
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--text-primary);
   cursor: pointer;
   transition: border-color 0.2s;
   min-width: 180px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23000' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+/* Dark mode styles */
+.dark .model-select {
+  border: 1px solid #fff;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23fff' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
 }
 
 .model-select:hover:not(:disabled) {
@@ -1322,6 +1343,11 @@ body {
   opacity: 0.6;
   cursor: not-allowed;
   background-color: var(--bg-secondary);
+}
+
+.model-select option {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .chat-messages {
@@ -1443,7 +1469,7 @@ body {
 }
 
 .message.system .message-content {
-  background: #f7fafc;
+  background: var(--bg-secondary);
   color: var(--text-tertiary);
   align-self: center;
   max-width: 90%;
@@ -1464,9 +1490,9 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1rem;
-  background: #f0f4ff;
-  border-top: 1px solid #c3dafe;
-  border-bottom: 1px solid #c3dafe;
+  background: var(--brand-purple-lightest);
+  border-top: 1px solid var(--brand-purple-light);
+  border-bottom: 1px solid var(--brand-purple-light);
   font-size: 0.9rem;
   color: var(--text-primary);
 }
@@ -1684,9 +1710,9 @@ body {
 }
 
 .close-button {
-  background: transparent;
-  color: var(--text-muted);
-  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: #1a1a1a;
+  border: 2px solid #1a1a1a;
   width: 32px;
   height: 32px;
   display: flex;
@@ -1695,12 +1721,16 @@ body {
   cursor: pointer;
   font-size: 1.5rem;
   font-weight: normal;
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
   transition: all 0.2s;
 }
 
 .close-button:hover {
+  background: var(--text-inverse);
   color: var(--brand-purple);
-  transform: scale(1.1);
+  border-color: #1a1a1a;
+  transform: translateY(-2px);
 }
 
 .design-doc-toolbar {
@@ -2358,11 +2388,11 @@ body {
 
 /* History toggle button (hamburger menu) in header */
 .history-toggle-button {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid #1a1a1a;
+  color: #1a1a1a;
   padding: 8px 12px;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 18px;
   transition: all 0.2s;
@@ -2371,16 +2401,20 @@ body {
   justify-content: center;
   min-width: 40px;
   height: 40px;
+  backdrop-filter: blur(10px);
 }
 
 .history-toggle-button:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.4);
+  background: var(--text-inverse);
+  color: var(--brand-purple);
+  border-color: #1a1a1a;
+  transform: translateY(-2px);
 }
 
 .history-toggle-button.active {
-  background: rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.5);
+  background: var(--text-inverse);
+  color: var(--brand-purple);
+  border-color: #1a1a1a;
 }
 
 .history-toggle-button:active {
