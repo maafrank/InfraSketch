@@ -114,6 +114,8 @@ def delete_node(
     This tool automatically deletes ALL edges (connections) that are connected to this node,
     so you do NOT need to manually delete edges first.
 
+    If the node is a group, all child nodes are also deleted (cascade delete).
+
     CRITICAL: You MUST use the EXACT node_id from the "Nodes (with exact IDs)" section in the
     diagram context. Do NOT guess or make up node IDs. If unsure about the node_id, ask the user.
 
@@ -130,37 +132,43 @@ def delete_node(
     if not session:
         return {"success": False, "error": f"Session {session_id} not found"}
 
-    # Find node
-    original_count = len(session.diagram.nodes)
-    node_label = None
-    for n in session.diagram.nodes:
-        if n.id == node_id:
-            node_label = n.label
-            break
-
-    session.diagram.nodes = [
-        n for n in session.diagram.nodes if n.id != node_id
-    ]
-
-    if len(session.diagram.nodes) == original_count:
+    # Find the node to delete
+    node_to_delete = next((n for n in session.diagram.nodes if n.id == node_id), None)
+    if not node_to_delete:
         return {"success": False, "error": f"Node '{node_id}' not found"}
 
-    # Remove edges connected to this node
+    # Collect all node IDs to delete (group + children if applicable)
+    nodes_to_delete = [node_id]
+    child_count = 0
+    if node_to_delete.is_group and node_to_delete.child_ids:
+        nodes_to_delete.extend(node_to_delete.child_ids)
+        child_count = len(node_to_delete.child_ids)
+
+    # Remove all nodes (group and children)
+    session.diagram.nodes = [
+        n for n in session.diagram.nodes if n.id not in nodes_to_delete
+    ]
+
+    # Remove edges connected to any deleted node
     edges_removed = len([
         e for e in session.diagram.edges
-        if e.source == node_id or e.target == node_id
+        if e.source in nodes_to_delete or e.target in nodes_to_delete
     ])
     session.diagram.edges = [
         e for e in session.diagram.edges
-        if e.source != node_id and e.target != node_id
+        if e.source not in nodes_to_delete and e.target not in nodes_to_delete
     ]
 
     # Persist to storage
     session_manager.update_diagram(session_id, session.diagram)
 
+    message = f"Deleted node '{node_to_delete.label or node_id}' and {edges_removed} connected edge(s)"
+    if child_count > 0:
+        message += f" (also deleted {child_count} child node(s) from the group)"
+
     return {
         "success": True,
-        "message": f"Deleted node '{node_label or node_id}' and {edges_removed} connected edge(s)"
+        "message": message
     }
 
 
@@ -556,7 +564,316 @@ def replace_entire_design_doc(
     }
 
 
+@tool
+def create_group(
+    child_node_ids: List[str],
+    label: Optional[str] = None,
+    session_id: str = None,  # Injected by tools_node
+) -> dict[str, Any]:
+    """
+    Group multiple nodes together into a collapsible group.
+
+    Use this tool when the user wants to organize related components together,
+    such as grouping databases, grouping backend services, etc.
+
+    The group will start collapsed by default and will inherit all connections
+    from its child nodes.
+
+    CRITICAL: You MUST use EXACT node_ids from the "Nodes (with exact IDs)" section.
+
+    Args:
+        child_node_ids: List of EXACT node IDs to group together. Must have at least 2 nodes.
+                       Example: ["redis-cache-1", "postgres-db-1"]
+        label: Optional custom label for the group. If not provided, an AI-generated
+               description will be created based on the grouped components.
+
+    Returns:
+        Dict with success status, group_id, and message
+    """
+    import uuid
+    from app.api.routes import generate_group_description_ai
+
+    # Get session
+    session = session_manager.get_session(session_id)
+    if not session:
+        return {"success": False, "error": f"Session {session_id} not found"}
+
+    # Validate: need at least 2 nodes
+    if len(child_node_ids) < 2:
+        return {"success": False, "error": "Need at least 2 nodes to create a group"}
+
+    # Validate: all nodes exist
+    existing_node_ids = {n.id for n in session.diagram.nodes}
+    for node_id in child_node_ids:
+        if node_id not in existing_node_ids:
+            return {"success": False, "error": f"Node '{node_id}' not found"}
+
+    # Get child nodes
+    child_nodes = [n for n in session.diagram.nodes if n.id in child_node_ids]
+
+    # Validate: prevent nested groups
+    for node in child_nodes:
+        if node.parent_id:
+            return {
+                "success": False,
+                "error": f"Cannot group node '{node.id}' because it already belongs to group '{node.parent_id}'"
+            }
+
+    # Generate group ID
+    group_id = f"group-{uuid.uuid4().hex[:8]}"
+
+    # Determine group type
+    child_types = [n.type for n in child_nodes]
+    if len(set(child_types)) == 1:
+        group_type = child_types[0]
+        default_label = f"Group ({len(child_nodes)} {group_type}s)"
+    else:
+        group_type = "group"
+        default_label = f"Group ({len(child_nodes)} nodes)"
+
+    # Use provided label or generate one with AI
+    if label:
+        group_label = label
+        group_description = f"Collapsible group containing {len(child_nodes)} nodes"
+        group_metadata = NodeMetadata(child_types=child_types)
+    else:
+        # Try AI generation
+        ai_result = generate_group_description_ai(child_nodes, session.model)
+        if ai_result:
+            group_label = ai_result.get("label", default_label)
+            group_description = ai_result.get("description", f"Collapsible group containing {len(child_nodes)} nodes")
+            group_metadata = NodeMetadata(
+                technology=ai_result.get("technology"),
+                notes=ai_result.get("notes"),
+                child_types=child_types
+            )
+        else:
+            group_label = default_label
+            group_description = f"Collapsible group containing {len(child_nodes)} nodes"
+            group_metadata = NodeMetadata(child_types=child_types)
+
+    # Calculate average position
+    avg_x = sum(n.position.x for n in child_nodes) / len(child_nodes)
+    avg_y = sum(n.position.y for n in child_nodes) / len(child_nodes)
+
+    # Create group node
+    group_node = Node(
+        id=group_id,
+        type=group_type,
+        label=group_label,
+        description=group_description,
+        inputs=[],
+        outputs=[],
+        metadata=group_metadata,
+        position=NodePosition(x=avg_x, y=avg_y),
+        is_group=True,
+        is_collapsed=True,
+        child_ids=child_node_ids,
+        parent_id=None
+    )
+
+    # Update child nodes to reference parent
+    for node in session.diagram.nodes:
+        if node.id in child_node_ids:
+            node.parent_id = group_id
+
+    # Add group node
+    session.diagram.nodes.append(group_node)
+
+    # Inherit edges from children
+    child_node_ids_set = set(child_node_ids)
+    new_edges = []
+    edges_to_remove = []
+
+    for edge in session.diagram.edges:
+        is_internal = edge.source in child_node_ids_set and edge.target in child_node_ids_set
+        if is_internal:
+            continue
+
+        if edge.source in child_node_ids_set:
+            edges_to_remove.append(edge.id)
+            new_edge_id = f"{group_id}-to-{edge.target}"
+            if not any(e.id == new_edge_id for e in session.diagram.edges) and not any(e.id == new_edge_id for e in new_edges):
+                new_edges.append(Edge(
+                    id=new_edge_id,
+                    source=group_id,
+                    target=edge.target,
+                    label=edge.label,
+                    type=edge.type
+                ))
+        elif edge.target in child_node_ids_set:
+            edges_to_remove.append(edge.id)
+            new_edge_id = f"{edge.source}-to-{group_id}"
+            if not any(e.id == new_edge_id for e in session.diagram.edges) and not any(e.id == new_edge_id for e in new_edges):
+                new_edges.append(Edge(
+                    id=new_edge_id,
+                    source=edge.source,
+                    target=group_id,
+                    label=edge.label,
+                    type=edge.type
+                ))
+
+    # Update edges
+    session.diagram.edges = [e for e in session.diagram.edges if e.id not in edges_to_remove]
+    session.diagram.edges.extend(new_edges)
+
+    # Persist
+    session_manager.update_diagram(session_id, session.diagram)
+
+    return {
+        "success": True,
+        "group_id": group_id,
+        "message": f"Created group '{group_label}' with {len(child_nodes)} nodes"
+    }
+
+
+@tool
+def add_to_group(
+    group_id: str,
+    node_id: str,
+    session_id: str = None,  # Injected by tools_node
+) -> dict[str, Any]:
+    """
+    Add a node to an existing group.
+
+    Use this tool when the user wants to add a component to an existing group
+    of related components.
+
+    CRITICAL: You MUST use EXACT node_ids and group_id from the diagram context.
+
+    Args:
+        group_id: The EXACT ID of the group to add to
+        node_id: The EXACT ID of the node to add to the group
+
+    Returns:
+        Dict with success status and message
+    """
+    # Get session
+    session = session_manager.get_session(session_id)
+    if not session:
+        return {"success": False, "error": f"Session {session_id} not found"}
+
+    # Find group node
+    group_node = next((n for n in session.diagram.nodes if n.id == group_id), None)
+    if not group_node:
+        return {"success": False, "error": f"Group '{group_id}' not found"}
+
+    if not group_node.is_group:
+        return {"success": False, "error": f"Node '{group_id}' is not a group"}
+
+    # Find node to add
+    node_to_add = next((n for n in session.diagram.nodes if n.id == node_id), None)
+    if not node_to_add:
+        return {"success": False, "error": f"Node '{node_id}' not found"}
+
+    # Validate: node not already in a group
+    if node_to_add.parent_id:
+        return {
+            "success": False,
+            "error": f"Node '{node_id}' already belongs to group '{node_to_add.parent_id}'"
+        }
+
+    # Add to group
+    if node_id not in group_node.child_ids:
+        group_node.child_ids.append(node_id)
+
+    node_to_add.parent_id = group_id
+
+    # Inherit edges from the added node
+    new_edges = []
+    edges_to_remove = []
+    all_child_ids = set(group_node.child_ids)
+
+    for edge in session.diagram.edges:
+        is_internal = edge.source in all_child_ids and edge.target in all_child_ids
+        if is_internal:
+            continue
+
+        if edge.source == node_id:
+            edges_to_remove.append(edge.id)
+            new_edge_id = f"{group_id}-to-{edge.target}"
+            if not any(e.id == new_edge_id for e in session.diagram.edges) and not any(e.id == new_edge_id for e in new_edges):
+                new_edges.append(Edge(
+                    id=new_edge_id,
+                    source=group_id,
+                    target=edge.target,
+                    label=edge.label,
+                    type=edge.type
+                ))
+        elif edge.target == node_id:
+            edges_to_remove.append(edge.id)
+            new_edge_id = f"{edge.source}-to-{group_id}"
+            if not any(e.id == new_edge_id for e in session.diagram.edges) and not any(e.id == new_edge_id for e in new_edges):
+                new_edges.append(Edge(
+                    id=new_edge_id,
+                    source=edge.source,
+                    target=group_id,
+                    label=edge.label,
+                    type=edge.type
+                ))
+
+    # Update edges
+    session.diagram.edges = [e for e in session.diagram.edges if e.id not in edges_to_remove]
+    session.diagram.edges.extend(new_edges)
+
+    # Persist
+    session_manager.update_diagram(session_id, session.diagram)
+
+    return {
+        "success": True,
+        "message": f"Added node '{node_to_add.label}' to group '{group_node.label}'"
+    }
+
+
+@tool
+def collapse_group(
+    group_id: str,
+    collapsed: bool,
+    session_id: str = None,  # Injected by tools_node
+) -> dict[str, Any]:
+    """
+    Collapse or expand a group to hide or show its child nodes.
+
+    Use this tool when the user wants to collapse a group to simplify the diagram
+    or expand it to see the details.
+
+    CRITICAL: You MUST use the EXACT group_id from the diagram context.
+
+    Args:
+        group_id: The EXACT ID of the group to collapse/expand
+        collapsed: True to collapse (hide children), False to expand (show children)
+
+    Returns:
+        Dict with success status and message
+    """
+    # Get session
+    session = session_manager.get_session(session_id)
+    if not session:
+        return {"success": False, "error": f"Session {session_id} not found"}
+
+    # Find group node
+    group_node = next((n for n in session.diagram.nodes if n.id == group_id), None)
+    if not group_node:
+        return {"success": False, "error": f"Group '{group_id}' not found"}
+
+    if not group_node.is_group:
+        return {"success": False, "error": f"Node '{group_id}' is not a group"}
+
+    # Update collapsed state
+    group_node.is_collapsed = collapsed
+
+    # Persist
+    session_manager.update_diagram(session_id, session.diagram)
+
+    action = "collapsed" if collapsed else "expanded"
+    return {
+        "success": True,
+        "message": f"Group '{group_node.label}' has been {action}"
+    }
+
+
 # Export tools as a list for binding to LLM
 diagram_tools = [add_node, delete_node, update_node, add_edge, delete_edge]
+group_tools = [create_group, add_to_group, collapse_group]
 design_doc_tools = [update_design_doc_section, replace_entire_design_doc]
-all_tools = diagram_tools + design_doc_tools
+all_tools = diagram_tools + group_tools + design_doc_tools
