@@ -17,6 +17,61 @@ const nodeTypes = {
   custom: CustomNode,
 };
 
+// Color map for node types (matches index.css variables)
+const COLOR_MAP = {
+  database: '#4A90E2',
+  cache: '#F5A623',
+  server: '#7ED321',
+  api: '#BD10E0',
+  loadbalancer: '#50E3C2',
+  queue: '#D0021B',
+  cdn: '#9013FE',
+  gateway: '#417505',
+  storage: '#B8E986',
+  service: '#8B572A',
+  group: '#ffffff', // Default for group (will be overridden by blending)
+};
+
+// Helper function to blend multiple hex colors by averaging RGB values
+function blendColors(hexColors) {
+  if (!hexColors || hexColors.length === 0) {
+    return COLOR_MAP.group; // Fallback
+  }
+
+  if (hexColors.length === 1) {
+    return hexColors[0]; // Single color, no blending needed
+  }
+
+  // Convert hex to RGB
+  const rgbs = hexColors.map(hex => {
+    const clean = hex.replace('#', '');
+    const r = parseInt(clean.slice(0, 2), 16);
+    const g = parseInt(clean.slice(2, 4), 16);
+    const b = parseInt(clean.slice(4, 6), 16);
+    return [r, g, b];
+  });
+
+  // Average the RGB values
+  const avgR = Math.round(rgbs.reduce((sum, rgb) => sum + rgb[0], 0) / rgbs.length);
+  const avgG = Math.round(rgbs.reduce((sum, rgb) => sum + rgb[1], 0) / rgbs.length);
+  const avgB = Math.round(rgbs.reduce((sum, rgb) => sum + rgb[2], 0) / rgbs.length);
+
+  // Adjust brightness if result is too dark (ensure readability)
+  const brightness = (avgR * 299 + avgG * 587 + avgB * 114) / 1000;
+  let finalR = avgR, finalG = avgG, finalB = avgB;
+
+  if (brightness < 80) {
+    // Too dark, lighten it
+    const factor = 80 / brightness;
+    finalR = Math.min(255, Math.round(avgR * factor));
+    finalG = Math.min(255, Math.round(avgG * factor));
+    finalB = Math.min(255, Math.round(avgB * factor));
+  }
+
+  // Convert back to hex
+  return `#${finalR.toString(16).padStart(2, '0')}${finalG.toString(16).padStart(2, '0')}${finalB.toString(16).padStart(2, '0')}`;
+}
+
 const EXAMPLE_PROMPTS = [
   {
     title: "Video Streaming Platform",
@@ -40,7 +95,7 @@ const EXAMPLE_PROMPTS = [
   }
 ];
 
-function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAddEdge, onDeleteEdge, onReactFlowInit, onUpdateNode, onOpenNodePalette, onLayoutReady, onExportPng, onExampleClick, designDocOpen, designDocWidth, chatPanelOpen, chatPanelWidth, layoutDirection = 'TB', onLayoutDirectionChange }) {
+function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAddEdge, onDeleteEdge, onReactFlowInit, onUpdateNode, onOpenNodePalette, onLayoutReady, onExportPng, onExampleClick, designDocOpen, designDocWidth, chatPanelOpen, chatPanelWidth, layoutDirection = 'TB', onLayoutDirectionChange, onMergeNodes, onToggleCollapse, onRegenerateDescription, mergingNodes = false }) {
   const reactFlowInstance = useReactFlow();
 
   // Pass the React Flow instance to parent
@@ -58,6 +113,12 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
   const [selectedEdge, setSelectedEdge] = useState(null);
   const isTooltipHoveredRef = useRef(false);
   const hideTooltipTimeoutRef = useRef(null);
+
+  // Drag-to-merge state
+  const [draggedNode, setDraggedNode] = useState(null);
+  const [dropTarget, setDropTarget] = useState(null);
+  const dropTargetTimeoutRef = useRef(null);
+  const isDraggingRef = useRef(false);
 
   // Function to apply layout to current nodes/edges
   const applyLayout = useCallback(() => {
@@ -83,35 +144,149 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
     }
   }, [onLayoutReady, applyLayout]);
 
+  // Separate effect to update drop target highlighting during drag (without recalculating layout)
+  useEffect(() => {
+    if (!isDraggingRef.current || !dropTarget) return;
+
+    // Only update the node data to show drop target, keep positions unchanged
+    setNodes((currentNodes) =>
+      currentNodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          isDropTarget: dropTarget?.id === node.id,
+        },
+      }))
+    );
+  }, [dropTarget, setNodes]);
+
   // Update nodes and edges when diagram changes
   useEffect(() => {
     if (!diagram) return;
+
+    // Skip updates while dragging to prevent node position reset
+    if (isDraggingRef.current) return;
 
     console.log('DiagramCanvas received diagram:', diagram);
     console.log('Number of nodes:', diagram.nodes?.length);
     console.log('Number of edges:', diagram.edges?.length);
 
-    const flowNodes = diagram.nodes.map((node) => ({
-      id: node.id,
-      type: 'custom',
-      position: node.position || { x: 0, y: 0 }, // Fallback position
-      data: {
-        label: node.label,
-        type: node.type,
-        description: node.description,
-        inputs: node.inputs,
-        outputs: node.outputs,
-        metadata: node.metadata,
-        onDelete: onDeleteNode,
-      },
-    }));
+    // First, create all flow nodes
+    const allFlowNodes = diagram.nodes.map((node) => {
+      // Calculate blended color for mixed-type groups
+      let blendedColor = null;
+      if (node.is_group && node.type === 'group' && node.metadata?.child_types) {
+        // Get unique child types
+        const uniqueTypes = [...new Set(node.metadata.child_types)];
+        // Map to colors
+        const colors = uniqueTypes.map(type => COLOR_MAP[type] || COLOR_MAP.group);
+        // Blend them
+        blendedColor = blendColors(colors);
+      }
 
-    const flowEdges = diagram.edges.map((edge) => ({
+      return {
+        id: node.id,
+        type: 'custom',
+        position: node.position || { x: 0, y: 0 },
+        data: {
+          label: node.label,
+          type: node.type,
+          description: node.description,
+          inputs: node.inputs,
+          outputs: node.outputs,
+          metadata: node.metadata,
+          onDelete: onDeleteNode,
+          onToggleCollapse: onToggleCollapse,
+          isDropTarget: dropTarget?.id === node.id,
+          is_group: node.is_group,
+          is_collapsed: node.is_collapsed,
+          child_ids: node.child_ids,
+          parent_id: node.parent_id,
+          blendedColor: blendedColor, // Pass calculated color to CustomNode
+        },
+        nodeData: node, // Keep reference to original node data
+      };
+    });
+
+    // Filter visible nodes based on collapsed groups
+    const visibleNodes = allFlowNodes.filter(node => {
+      // Hide expanded group nodes (only show collapsed groups)
+      if (node.nodeData.is_group && !node.nodeData.is_collapsed) {
+        return false;
+      }
+
+      const parentId = node.nodeData.parent_id;
+      if (!parentId) return true; // No parent, always visible
+
+      const parent = diagram.nodes.find(n => n.id === parentId);
+      if (!parent) return true; // Parent not found, show node
+
+      // Hide if parent is collapsed
+      return !parent.is_collapsed;
+    });
+
+    // Process edges: redirect through collapsed groups
+    let flowEdges = diagram.edges.map((edge) => {
+      let source = edge.source;
+      let target = edge.target;
+
+      // Check if source node is inside a collapsed group
+      const sourceNode = diagram.nodes.find(n => n.id === source);
+      if (sourceNode?.parent_id) {
+        const sourceParent = diagram.nodes.find(n => n.id === sourceNode.parent_id);
+        if (sourceParent?.is_collapsed) {
+          source = sourceParent.id;
+        }
+      }
+
+      // Check if target node is inside a collapsed group
+      const targetNode = diagram.nodes.find(n => n.id === target);
+      if (targetNode?.parent_id) {
+        const targetParent = diagram.nodes.find(n => n.id === targetNode.parent_id);
+        if (targetParent?.is_collapsed) {
+          target = targetParent.id;
+        }
+      }
+
+      return {
+        id: edge.id,
+        source: source,
+        target: target,
+        label: edge.label,
+        animated: edge.type === 'animated',
+        originalSource: edge.source,
+        originalTarget: edge.target,
+      };
+    });
+
+    // Filter out self-loops (same source and target after redirection)
+    flowEdges = flowEdges.filter(edge => edge.source !== edge.target);
+
+    // Deduplicate edges: merge multiple edges between same nodes
+    const edgeMap = new Map();
+    flowEdges.forEach(edge => {
+      const key = `${edge.source}-${edge.target}`;
+      if (edgeMap.has(key)) {
+        const existing = edgeMap.get(key);
+        // Merge labels
+        if (edge.label && !existing.labels.includes(edge.label)) {
+          existing.labels.push(edge.label);
+        }
+      } else {
+        edgeMap.set(key, {
+          ...edge,
+          labels: edge.label ? [edge.label] : [],
+        });
+      }
+    });
+
+    // Convert back to array with merged labels
+    const deduplicatedEdges = Array.from(edgeMap.values()).map(edge => ({
       id: edge.id,
       source: edge.source,
       target: edge.target,
-      label: edge.label,
-      animated: edge.type === 'animated',
+      label: edge.labels.length > 0 ? edge.labels.join(', ') : null,
+      animated: edge.animated,
       style: {
         stroke: selectedEdge === edge.id ? '#667eea' : '#888',
         strokeWidth: selectedEdge === edge.id ? 3 : 2,
@@ -123,14 +298,14 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
     }));
 
     // Apply auto-layout
-    const layoutedNodes = getLayoutedElements(flowNodes, flowEdges, layoutDirection);
+    const layoutedNodes = getLayoutedElements(visibleNodes, deduplicatedEdges, layoutDirection);
 
     console.log('Setting layoutedNodes:', layoutedNodes);
-    console.log('Setting flowEdges:', flowEdges);
+    console.log('Setting deduplicatedEdges:', deduplicatedEdges);
 
     setNodes(layoutedNodes);
-    setEdges(flowEdges);
-  }, [diagram, setNodes, setEdges, onDeleteNode, selectedEdge, layoutDirection]);
+    setEdges(deduplicatedEdges);
+  }, [diagram, setNodes, setEdges, onDeleteNode, onToggleCollapse, selectedEdge, layoutDirection, dropTarget]);
 
   // Re-layout when panels open/close or resize (debounced)
   useEffect(() => {
@@ -273,6 +448,109 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
     }
   }, [onDeleteEdge, onAddEdge]);
 
+  // Helper function to check if two rectangles actually overlap
+  const checkOverlap = useCallback((rect1, rect2) => {
+    // Check if rectangles overlap at all
+    const horizontalOverlap = rect1.left < rect2.right && rect1.right > rect2.left;
+    const verticalOverlap = rect1.top < rect2.bottom && rect1.bottom > rect2.top;
+
+    if (!horizontalOverlap || !verticalOverlap) {
+      return false;
+    }
+
+    // Calculate overlap area
+    const xOverlap = Math.max(0, Math.min(rect1.right, rect2.right) - Math.max(rect1.left, rect2.left));
+    const yOverlap = Math.max(0, Math.min(rect1.bottom, rect2.bottom) - Math.max(rect1.top, rect2.top));
+    const overlapArea = xOverlap * yOverlap;
+
+    // Calculate area of the smaller rectangle
+    const rect1Area = (rect1.right - rect1.left) * (rect1.bottom - rect1.top);
+    const rect2Area = (rect2.right - rect2.left) * (rect2.bottom - rect2.top);
+    const smallerArea = Math.min(rect1Area, rect2Area);
+
+    // Require at least 25% overlap of the smaller node
+    return overlapArea / smallerArea > 0.25;
+  }, []);
+
+  // Drag-to-merge handlers
+  const handleNodeDragStart = useCallback((event, node) => {
+    isDraggingRef.current = true;
+    setDraggedNode(node);
+    setDropTarget(null);
+  }, []);
+
+  const handleNodeDrag = useCallback((event, node) => {
+    if (!node) return;
+
+    // Clear any pending timeout
+    if (dropTargetTimeoutRef.current) {
+      clearTimeout(dropTargetTimeoutRef.current);
+    }
+
+    // Get the dragged node's element
+    const draggedElement = document.querySelector(`[data-id="${node.id}"]`);
+    if (!draggedElement) return;
+
+    const draggedBounds = draggedElement.getBoundingClientRect();
+
+    // Find overlapping node with the MOST overlap
+    let bestMatch = null;
+    let maxOverlap = 0;
+
+    nodes.forEach(n => {
+      if (n.id === node.id) return; // Don't collide with self
+      if (n.data.type === 'group' && diagram?.nodes?.find(dn => dn.id === n.id)?.parent_id) {
+        // Don't merge with groups that are children of other groups
+        return;
+      }
+
+      const nodeElement = document.querySelector(`[data-id="${n.id}"]`);
+      if (!nodeElement) return;
+
+      const nodeBounds = nodeElement.getBoundingClientRect();
+
+      // Check for actual overlap
+      const horizontalOverlap = draggedBounds.left < nodeBounds.right && draggedBounds.right > nodeBounds.left;
+      const verticalOverlap = draggedBounds.top < nodeBounds.bottom && draggedBounds.bottom > nodeBounds.top;
+
+      if (horizontalOverlap && verticalOverlap) {
+        // Calculate overlap area
+        const xOverlap = Math.max(0, Math.min(draggedBounds.right, nodeBounds.right) - Math.max(draggedBounds.left, nodeBounds.left));
+        const yOverlap = Math.max(0, Math.min(draggedBounds.bottom, nodeBounds.bottom) - Math.max(draggedBounds.top, nodeBounds.top));
+        const overlapArea = xOverlap * yOverlap;
+
+        // Calculate percentage based on smaller node
+        const draggedArea = (draggedBounds.right - draggedBounds.left) * (draggedBounds.bottom - draggedBounds.top);
+        const targetArea = (nodeBounds.right - nodeBounds.left) * (nodeBounds.bottom - nodeBounds.top);
+        const smallerArea = Math.min(draggedArea, targetArea);
+        const overlapPercent = overlapArea / smallerArea;
+
+        // Very low threshold (5%) for very easy triggering
+        if (overlapPercent > 0.05 && overlapArea > maxOverlap) {
+          maxOverlap = overlapArea;
+          bestMatch = n;
+        }
+      }
+    });
+
+    // Debounce: only update after 50ms of no movement to reduce flickering
+    dropTargetTimeoutRef.current = setTimeout(() => {
+      setDropTarget(bestMatch);
+    }, 50);
+  }, [nodes, diagram]);
+
+  const handleNodeDragStop = useCallback(async (event, node) => {
+    isDraggingRef.current = false;
+
+    if (dropTarget && onMergeNodes && node.id !== dropTarget.id) {
+      // User dropped node onto another node - merge them
+      await onMergeNodes(node.id, dropTarget.id);
+    }
+
+    setDraggedNode(null);
+    setDropTarget(null);
+  }, [dropTarget, onMergeNodes]);
+
   // Show empty state if no diagram or diagram has no nodes
   const hasNodes = diagram?.nodes?.length > 0;
   if (!hasNodes && !loading) {
@@ -313,7 +591,17 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
   }
 
   return (
-    <div className="diagram-canvas">
+    <div className="diagram-canvas" style={{ cursor: mergingNodes ? 'wait' : 'default' }}>
+      {/* Merging toast notification */}
+      {mergingNodes && (
+        <div className="merge-loading-toast">
+          <div className="merge-loading-content">
+            <div className="merge-loading-spinner"></div>
+            <span>AI analyzing group... (1-2s)</span>
+          </div>
+        </div>
+      )}
+
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -328,8 +616,12 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
         onNodeContextMenu={handleNodeContextMenu}
         onNodeMouseEnter={handleNodeMouseEnter}
         onNodeMouseLeave={handleNodeMouseLeave}
+        onNodeDragStart={handleNodeDragStart}
+        onNodeDrag={handleNodeDrag}
+        onNodeDragStop={handleNodeDragStop}
         onPaneClick={handlePaneClick}
         nodeTypes={nodeTypes}
+        nodesDraggable={!mergingNodes}
         fitView
         minZoom={0.1}
         maxZoom={2}
@@ -484,6 +776,7 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
           <NodeTooltip
             node={hoveredNode}
             onSave={onUpdateNode}
+            onRegenerateDescription={onRegenerateDescription}
             edges={edges}
             nodes={nodes}
           />

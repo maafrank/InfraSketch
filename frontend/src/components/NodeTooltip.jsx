@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 
-export default function NodeTooltip({ node, onSave, edges = [], nodes = [] }) {
+export default function NodeTooltip({ node, onSave, onRegenerateDescription, edges = [], nodes = [] }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
   const [editedData, setEditedData] = useState({
     label: node.data.label,
     description: node.data.description,
@@ -65,22 +66,60 @@ export default function NodeTooltip({ node, onSave, edges = [], nodes = [] }) {
     setIsEditing(false);
   };
 
+  const handleRegenerateDescription = async (e) => {
+    e.stopPropagation();
+
+    if (!onRegenerateDescription) {
+      console.error('onRegenerateDescription handler not provided');
+      return;
+    }
+
+    setIsRegenerating(true);
+
+    try {
+      const response = await onRegenerateDescription(node.id);
+      console.log('AI regeneration response:', response);
+      // The diagram will update automatically via App.jsx state management
+      // No need to manually update here
+    } catch (error) {
+      console.error('Failed to regenerate description:', error);
+      alert('Failed to regenerate description with AI. Please try again.');
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
+  // Check if node is a group (for showing AI regenerate button)
+  const isGroupNode = node.data.is_group === true;
+
   return (
     <div className="node-tooltip">
       <div className="tooltip-header">
         {!isEditing ? (
           <>
             <h4>{node.data.label}</h4>
-            <button
-              className="tooltip-edit-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsEditing(true);
-              }}
-              title="Edit node"
-            >
-              ✏️
-            </button>
+            <div className="tooltip-header-buttons">
+              {isGroupNode && onRegenerateDescription && (
+                <button
+                  className="tooltip-ai-btn"
+                  onClick={handleRegenerateDescription}
+                  disabled={isRegenerating}
+                  title="Regenerate description with AI"
+                >
+                  {isRegenerating ? '⏳' : '✨'}
+                </button>
+              )}
+              <button
+                className="tooltip-edit-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditing(true);
+                }}
+                title="Edit node"
+              >
+                ✏️
+              </button>
+            </div>
           </>
         ) : (
           <input

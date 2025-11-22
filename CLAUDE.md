@@ -278,6 +278,19 @@ The backend exposes these REST endpoints (all under `/api` prefix):
 - Response: Updated `Diagram`
 - Persists to DynamoDB/in-memory storage after deletion
 
+**POST `/api/session/{session_id}/groups`** - Create collapsible group from multiple nodes
+- Request: `{ "child_node_ids": ["node1", "node2", ...] }`
+- Response: `{ "diagram": Diagram, "group_id": string }`
+- Merges specified nodes into a parent group node
+- Group inherits all connections from children
+- If dragging onto existing group, adds to that group
+- Group starts collapsed by default
+
+**PATCH `/api/session/{session_id}/groups/{group_id}/collapse`** - Toggle group collapse state
+- Response: Updated `Diagram`
+- When collapsed: children hidden, edges route through parent
+- When expanded: children shown with visual grouping
+
 **POST `/api/session/{session_id}/design-doc/generate`** - Start background design document generation
 - Request body: `{ "diagram_image": base64_png_string? }` (optional screenshot)
 - Response: `{ "status": "started", "message": "..." }` (returns immediately)
@@ -310,13 +323,19 @@ The backend exposes these REST endpoints (all under `/api` prefix):
 ```python
 {
     "id": str,
-    "type": str,  # cache|database|api|server|loadbalancer|queue|cdn|gateway|storage|service
+    "type": str,  # cache|database|api|server|loadbalancer|queue|cdn|gateway|storage|service|group
     "label": str,
     "description": str,
     "inputs": List[str],
     "outputs": List[str],
     "metadata": {"technology": str, "notes": str},
-    "position": {"x": float, "y": float}  # Optional, defaults to {x: 0, y: 0}. Positions are recalculated by dagre layout algorithm anyway.
+    "position": {"x": float, "y": float},  # Optional, defaults to {x: 0, y: 0}. Positions are recalculated by dagre layout algorithm anyway.
+
+    # Collapsible group fields
+    "parent_id": Optional[str],  # ID of parent group (if this is a child)
+    "is_group": bool,  # True if this node can contain children (default: False)
+    "is_collapsed": bool,  # True if children are hidden (default: False, only relevant if is_group=True)
+    "child_ids": List[str]  # IDs of child nodes (default: [])
 }
 ```
 
@@ -338,6 +357,21 @@ The backend exposes these REST endpoints (all under `/api` prefix):
     "error": Optional[str],
     "started_at": Optional[float],  # Unix timestamp
     "completed_at": Optional[float]  # Unix timestamp
+}
+```
+
+**CreateGroupRequest** (for drag-to-merge):
+```python
+{
+    "child_node_ids": List[str]  # Node IDs to merge into a group
+}
+```
+
+**CreateGroupResponse**:
+```python
+{
+    "diagram": Diagram,
+    "group_id": str  # ID of created/updated group
 }
 ```
 
@@ -402,6 +436,24 @@ The backend exposes these REST endpoints (all under `/api` prefix):
 4. Check backend logs for "Missing or invalid Authorization header" or "Token validation failed"
 5. Ensure Clerk domain matches between frontend and backend (production vs development)
 6. Verify JWKS cache is not stale (refresh after 1 hour automatically)
+
+### Issue: Node won't merge into group when dragging
+**Cause**: Insufficient overlap or trying to merge incompatible nodes
+**Solution**:
+1. Ensure at least 5% overlap between dragged node and drop target
+2. Check browser console for "drop target" logs during drag
+3. Verify target isn't a group that has a `parent_id` (can't nest groups)
+4. Try dragging more slowly - drop target detection has 50ms debounce
+5. Look for visual feedback: drop target should show highlighted border during valid drag
+
+### Issue: Group collapse/expand not working
+**Cause**: Frontend state not syncing or missing `onToggleCollapse` handler
+**Solution**:
+1. Check backend logs for "PATCH /groups/{id}/collapse" request
+2. Verify `onToggleCollapse` prop is passed from App.jsx → DiagramCanvas → CustomNode
+3. Check if `is_collapsed` state is updating in backend response
+4. Refresh browser if React Flow state becomes stale
+5. Ensure group node has `is_group: true` in backend data model
 
 ## Model Configuration
 
@@ -477,6 +529,14 @@ When `diagram` prop changes in `DiagramCanvas.jsx`, the `useEffect` hook:
 - Right-click node → Context menu to delete
 - Drag from node handle → Create new connection
 - Right-click edge → Context menu to delete
+- **Drag node onto another node** → Merges them into collapsible group (requires 5% overlap)
+  - Visual feedback: drop target gets highlighted border during drag
+  - If dropped on existing group: adds to that group
+  - If dropped on regular node: creates new group containing both
+- **Click ▼/▶ button on group node** → Toggle collapse/expand
+  - Collapsed: children hidden, edges route through parent
+  - Expanded: children shown with visual grouping
+- **Click 📦 button on child node** → Collapses parent group (quick regroup)
 - Click floating pencil button → Opens NodePalette toolbar from bottom
 - Click node type in palette → Opens AddNodeModal with pre-selected type
 - Click "Add Node" button (header) → Opens modal for manual node creation
@@ -632,6 +692,42 @@ Users can save, view, and manage multiple design sessions. The session history s
 - Sidebar width: Default 300px, Min 200px, Max 500px (desktop), fullscreen on mobile
 
 ## Important Implementation Details
+
+**Collapsible Groups / Node Merging:**
+
+InfraSketch supports drag-to-merge functionality for organizing complex diagrams:
+
+**How it works:**
+- User drags one node and drops it onto another (requires 5% overlap)
+- Frontend sends `POST /session/{session_id}/groups` with `child_node_ids`
+- Backend creates a group node or adds to existing group
+- Group type inherits from children (if all same type, e.g., "3 databases"; otherwise generic "group")
+- Group starts collapsed by default
+
+**Group node structure:**
+- `is_group: true` - Identifies this as a container node
+- `is_collapsed: true/false` - Controls visibility of children
+- `child_ids: [...]` - Array of child node IDs
+- Children get `parent_id` set to group ID
+
+**Visual behavior:**
+- **Collapsed**: Children hidden, edges re-routed through parent, group shows count badge
+- **Expanded**: Children shown in visual cluster, parent acts as container
+- **Drop target highlighting**: Node gets animated border when being dragged over
+- **Controls**: ▼/▶ button to toggle collapse, 📦 button on children to collapse parent
+
+**Implementation files:**
+- `backend/app/api/routes.py:690-836` - Group creation and collapse endpoints
+- `frontend/src/components/DiagramCanvas.jsx:406-483` - Drag-to-merge detection with overlap calculation
+- `frontend/src/components/CustomNode.jsx:13-26,50-77` - Group rendering and controls
+- `frontend/src/App.jsx:454-471` - `handleMergeNodes()` API call
+
+**Key details:**
+- Overlap detection uses bounding box intersection (5% threshold for easy triggering)
+- Debounced drop target updates (50ms) to reduce flickering during drag
+- Groups can't be nested (groups with `parent_id` can't be drop targets)
+- Deleting a group deletes all children
+- Edge deduplication: multiple edges between same nodes get merged with combined labels
 
 **Panel Resizing Architecture:**
 All resizable panels (DesignDocPanel, ChatPanel, NodePalette) use a consistent performance-optimized pattern:

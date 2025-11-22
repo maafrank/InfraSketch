@@ -56,19 +56,52 @@ def generate_diagram_png(diagram: dict, output_path: Optional[str] = None) -> by
         font = ImageFont.load_default()
         title_font = ImageFont.load_default()
 
-    # Define colors for node types
+    # Define colors for node types (matches frontend COLOR_MAP)
     node_colors = {
-        "cache": "#FFA07A",
-        "database": "#87CEEB",
-        "api": "#98FB98",
-        "server": "#DDA0DD",
-        "loadbalancer": "#F0E68C",
-        "queue": "#FFB6C1",
-        "cdn": "#FFD700",
-        "gateway": "#20B2AA",
-        "storage": "#9370DB",
-        "service": "#90EE90"
+        "database": "#4A90E2",
+        "cache": "#F5A623",
+        "server": "#7ED321",
+        "api": "#BD10E0",
+        "loadbalancer": "#50E3C2",
+        "queue": "#D0021B",
+        "cdn": "#9013FE",
+        "gateway": "#417505",
+        "storage": "#B8E986",
+        "service": "#8B572A",
+        "group": "#ffffff"
     }
+
+    def blend_colors(hex_colors):
+        """Blend multiple hex colors by averaging RGB values."""
+        if not hex_colors or len(hex_colors) == 0:
+            return "#ffffff"
+        if len(hex_colors) == 1:
+            return hex_colors[0]
+
+        # Convert hex to RGB
+        rgbs = []
+        for hex_color in hex_colors:
+            clean = hex_color.replace('#', '')
+            r = int(clean[0:2], 16)
+            g = int(clean[2:4], 16)
+            b = int(clean[4:6], 16)
+            rgbs.append((r, g, b))
+
+        # Average RGB values
+        avg_r = round(sum(rgb[0] for rgb in rgbs) / len(rgbs))
+        avg_g = round(sum(rgb[1] for rgb in rgbs) / len(rgbs))
+        avg_b = round(sum(rgb[2] for rgb in rgbs) / len(rgbs))
+
+        # Adjust brightness if too dark
+        brightness = (avg_r * 299 + avg_g * 587 + avg_b * 114) / 1000
+        if brightness < 80:
+            factor = 80 / brightness
+            avg_r = min(255, round(avg_r * factor))
+            avg_g = min(255, round(avg_g * factor))
+            avg_b = min(255, round(avg_b * factor))
+
+        # Convert back to hex
+        return f"#{avg_r:02x}{avg_g:02x}{avg_b:02x}"
 
     # Node ID to position mapping
     node_positions = {}
@@ -112,7 +145,19 @@ def generate_diagram_png(diagram: dict, output_path: Optional[str] = None) -> by
         node_positions[node["id"]] = (x, y)
 
         node_type = node.get("type", "service")
-        color = node_colors.get(node_type, "#E0E0E0")
+
+        # Check for blended color (mixed-type groups)
+        is_group = node.get("is_group", False)
+        metadata = node.get("metadata", {})
+        child_types = metadata.get("child_types", [])
+
+        if is_group and node_type == "group" and child_types:
+            # Blend colors from child types
+            unique_types = list(set(child_types))
+            colors_to_blend = [node_colors.get(t, node_colors["group"]) for t in unique_types]
+            color = blend_colors(colors_to_blend)
+        else:
+            color = node_colors.get(node_type, "#E0E0E0")
 
         # Draw node rectangle
         node_width = 150

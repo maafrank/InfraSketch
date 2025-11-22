@@ -23,6 +23,8 @@ ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",  # Alternative local dev
     "http://localhost:5174",  # Local development (alternate port)
     "http://127.0.0.1:5174",  # Alternative local dev (alternate port)
+    "http://localhost:5180",  # Local development (alternate port)
+    "http://127.0.0.1:5180",  # Alternative local dev (alternate port)
 ]
 
 # Allow environment variable override for additional origins
