@@ -193,6 +193,28 @@ export const createBlankSession = async () => {
   return response.data;
 };
 
+export const createNodeGroup = async (sessionId, childNodeIds, generateAI = true) => {
+  const response = await client.post(`/session/${sessionId}/groups?generate_ai_description=${generateAI}`, {
+    child_node_ids: childNodeIds
+  });
+  return response.data;
+};
+
+export const generateNodeDescription = async (sessionId, nodeId) => {
+  const response = await client.post(`/session/${sessionId}/nodes/${nodeId}/generate-description`);
+  return response.data;
+};
+
+export const toggleGroupCollapse = async (sessionId, groupId) => {
+  const response = await client.patch(`/session/${sessionId}/groups/${groupId}/collapse`);
+  return response.data;
+};
+
+export const ungroupNodes = async (sessionId, groupId) => {
+  const response = await client.delete(`/session/${sessionId}/groups/${groupId}`);
+  return response.data;
+};
+
 /**
  * Poll session to wait for name generation to complete.
  * Background task generates name after diagram creation.

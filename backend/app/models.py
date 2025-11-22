@@ -11,6 +11,7 @@ class NodePosition(BaseModel):
 class NodeMetadata(BaseModel):
     technology: Optional[str] = None
     notes: Optional[str] = None
+    child_types: Optional[List[str]] = None  # For group nodes: types of children for color blending
 
 
 class Node(BaseModel):
@@ -22,6 +23,12 @@ class Node(BaseModel):
     outputs: List[str] = Field(default_factory=list)
     metadata: NodeMetadata = Field(default_factory=NodeMetadata)
     position: NodePosition = Field(default_factory=lambda: NodePosition(x=0, y=0))
+
+    # Collapsible group fields
+    parent_id: Optional[str] = None  # ID of parent group (if this is a child)
+    is_group: bool = False  # True if this node can contain children
+    is_collapsed: bool = False  # True if children are hidden (only relevant if is_group=True)
+    child_ids: List[str] = Field(default_factory=list)  # IDs of child nodes
 
 
 class Edge(BaseModel):
@@ -85,3 +92,12 @@ class ChatResponse(BaseModel):
     response: str
     diagram: Optional[Diagram] = None
     design_doc: Optional[str] = None  # Updated design document content
+
+
+class CreateGroupRequest(BaseModel):
+    child_node_ids: List[str]  # Node IDs to merge into a group
+
+
+class CreateGroupResponse(BaseModel):
+    diagram: Diagram
+    group_id: str

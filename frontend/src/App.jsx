@@ -26,7 +26,11 @@ import {
   setClerkTokenGetter,
   getSession,
   createBlankSession,
-  pollSessionName
+  pollSessionName,
+  createNodeGroup,
+  generateNodeDescription,
+  toggleGroupCollapse,
+  ungroupNodes
 } from './api/client';
 import './App.css';
 
@@ -68,6 +72,9 @@ function App({ resumeMode = false }) {
 
   // Mobile detection
   const [isMobile, setIsMobile] = useState(false);
+
+  // Node merging state
+  const [mergingNodes, setMergingNodes] = useState(false);
 
   // Auth - Set up token getter for API client
   const { getToken, isSignedIn } = useAuth();
@@ -445,6 +452,71 @@ function App({ resumeMode = false }) {
     } catch (error) {
       console.error('Failed to delete edge:', error);
       alert('Failed to delete connection. Please try again.');
+    }
+  }, [sessionId]);
+
+  const handleMergeNodes = useCallback(async (draggedNodeId, targetNodeId) => {
+    if (!sessionId) return;
+
+    setMergingNodes(true);
+    try {
+      console.log('Merging nodes:', draggedNodeId, 'into', targetNodeId);
+
+      // Call with AI generation enabled (default: true)
+      const response = await createNodeGroup(sessionId, [draggedNodeId, targetNodeId], true);
+      setDiagram(response.diagram);
+
+      // Find the created group node to get its AI-generated label
+      const groupNode = response.diagram.nodes.find(n => n.id === response.group_id);
+      const groupLabel = groupNode ? groupNode.label : 'collapsible group';
+
+      // Add system message to chat with AI-generated label
+      const systemMessage = {
+        role: 'system',
+        content: `*Merged nodes into "${groupLabel}" (AI-generated)*`,
+      };
+      setMessages((prev) => [...prev, systemMessage]);
+    } catch (error) {
+      console.error('Failed to merge nodes:', error);
+      alert('Failed to merge nodes. Please try again.');
+    } finally {
+      setMergingNodes(false);
+    }
+  }, [sessionId]);
+
+  const handleRegenerateDescription = useCallback(async (nodeId) => {
+    if (!sessionId) return;
+
+    try {
+      console.log('Regenerating AI description for node:', nodeId);
+      const response = await generateNodeDescription(sessionId, nodeId);
+
+      // Update diagram with new description
+      setDiagram(response.diagram);
+
+      // Add system message to chat
+      const systemMessage = {
+        role: 'system',
+        content: `*Regenerated description for "${response.label}" using AI*`,
+      };
+      setMessages((prev) => [...prev, systemMessage]);
+
+      return response; // Return the response for the tooltip to use
+    } catch (error) {
+      console.error('Failed to regenerate description:', error);
+      throw error; // Re-throw so tooltip can handle it
+    }
+  }, [sessionId]);
+
+  const handleToggleGroupCollapse = useCallback(async (groupId) => {
+    if (!sessionId) return;
+
+    try {
+      const updatedDiagram = await toggleGroupCollapse(sessionId, groupId);
+      setDiagram(updatedDiagram);
+    } catch (error) {
+      console.error('Failed to toggle group collapse:', error);
+      alert('Failed to toggle group. Please try again.');
     }
   }, [sessionId]);
 
@@ -853,6 +925,9 @@ function App({ resumeMode = false }) {
               onDeleteNode={handleDeleteNode}
               onAddEdge={handleAddEdge}
               onDeleteEdge={handleDeleteEdge}
+              onMergeNodes={handleMergeNodes}
+              onToggleCollapse={handleToggleGroupCollapse}
+              onRegenerateDescription={handleRegenerateDescription}
               onReactFlowInit={setReactFlowInstance}
               onLayoutReady={(layoutFn) => setApplyLayoutFn(() => layoutFn)}
               onOpenNodePalette={handleOpenNodePalette}
@@ -864,6 +939,7 @@ function App({ resumeMode = false }) {
               chatPanelWidth={chatPanelWidth}
               layoutDirection={layoutDirection}
               onLayoutDirectionChange={setLayoutDirection}
+              mergingNodes={mergingNodes}
             />
           )}
         </div>
