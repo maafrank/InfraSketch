@@ -677,22 +677,35 @@ async def add_node(session_id: str, node: Node, http_request: Request, backgroun
 
 @router.delete("/session/{session_id}/nodes/{node_id}", response_model=Diagram)
 async def delete_node(session_id: str, node_id: str, http_request: Request):
-    """Delete a node and its connected edges from the diagram."""
+    """Delete a node and its connected edges from the diagram.
+
+    If the node is a group, all child nodes are also deleted (cascade delete).
+    """
     user_id = getattr(http_request.state, "user_id", None)
     session = verify_session_access(session_id, user_id, http_request)
 
-    # Find and remove node
-    original_count = len(session.diagram.nodes)
-    session.diagram.nodes = [n for n in session.diagram.nodes if n.id != node_id]
-
-    if len(session.diagram.nodes) == original_count:
+    # Find the node to delete
+    node_to_delete = next((n for n in session.diagram.nodes if n.id == node_id), None)
+    if not node_to_delete:
         raise HTTPException(status_code=404, detail=f"Node '{node_id}' not found")
 
-    # Remove edges connected to this node
-    edges_removed = len([e for e in session.diagram.edges if e.source == node_id or e.target == node_id])
+    # Collect all node IDs to delete (group + children if applicable)
+    nodes_to_delete = [node_id]
+    if node_to_delete.is_group and node_to_delete.child_ids:
+        nodes_to_delete.extend(node_to_delete.child_ids)
+
+    # Remove all nodes (group and children)
+    original_count = len(session.diagram.nodes)
+    session.diagram.nodes = [n for n in session.diagram.nodes if n.id not in nodes_to_delete]
+
+    # Remove edges connected to any deleted node
+    edges_removed = len([
+        e for e in session.diagram.edges
+        if e.source in nodes_to_delete or e.target in nodes_to_delete
+    ])
     session.diagram.edges = [
         e for e in session.diagram.edges
-        if e.source != node_id and e.target != node_id
+        if e.source not in nodes_to_delete and e.target not in nodes_to_delete
     ]
 
     # Persist to storage (critical for DynamoDB in production)
@@ -704,7 +717,12 @@ async def delete_node(session_id: str, node_id: str, http_request: Request):
         EventType.NODE_DELETED,
         session_id=session_id,
         user_ip=user_ip,
-        metadata={"node_id": node_id, "edges_removed": edges_removed},
+        metadata={
+            "node_id": node_id,
+            "is_group": node_to_delete.is_group,
+            "child_nodes_deleted": len(nodes_to_delete) - 1,
+            "edges_removed": edges_removed
+        },
     )
 
     return session.diagram
@@ -821,6 +839,15 @@ async def create_node_group(
     # Get child nodes
     child_nodes = [n for n in session.diagram.nodes if n.id in child_node_ids]
 
+    # Validate: prevent nested groups - check if any node already has a parent
+    for node in child_nodes:
+        if node.parent_id:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot group node '{node.id}' because it already belongs to group '{node.parent_id}'. "
+                       "Remove it from its current group first."
+            )
+
     # Check if any of the nodes is already a group
     existing_group = None
     non_group_nodes = []
@@ -874,6 +901,51 @@ async def create_node_group(
         for node in session.diagram.nodes:
             if node.id in [n.id for n in non_group_nodes]:
                 node.parent_id = group_id
+
+        # Update child_types metadata for color blending
+        existing_group.metadata.child_types = child_types
+
+        # Inherit edges from newly added nodes
+        new_node_ids = set([n.id for n in non_group_nodes])
+        new_edges = []
+        edges_to_remove = []
+
+        for edge in session.diagram.edges:
+            # Skip if this is an internal edge within the group
+            all_child_ids = set(existing_group.child_ids)
+            is_internal = edge.source in all_child_ids and edge.target in all_child_ids
+            if is_internal:
+                continue
+
+            # Redirect edges from newly added nodes
+            if edge.source in new_node_ids:
+                # Outgoing edge from a newly added child - redirect from group
+                edges_to_remove.append(edge.id)
+                new_edge_id = f"{group_id}-to-{edge.target}"
+                if not any(e.id == new_edge_id for e in session.diagram.edges) and not any(e.id == new_edge_id for e in new_edges):
+                    new_edges.append(Edge(
+                        id=new_edge_id,
+                        source=group_id,
+                        target=edge.target,
+                        label=edge.label,
+                        type=edge.type
+                    ))
+            elif edge.target in new_node_ids:
+                # Incoming edge to a newly added child - redirect to group
+                edges_to_remove.append(edge.id)
+                new_edge_id = f"{edge.source}-to-{group_id}"
+                if not any(e.id == new_edge_id for e in session.diagram.edges) and not any(e.id == new_edge_id for e in new_edges):
+                    new_edges.append(Edge(
+                        id=new_edge_id,
+                        source=edge.source,
+                        target=group_id,
+                        label=edge.label,
+                        type=edge.type
+                    ))
+
+        # Remove old edges and add new ones
+        session.diagram.edges = [e for e in session.diagram.edges if e.id not in edges_to_remove]
+        session.diagram.edges.extend(new_edges)
 
         # Persist to storage
         session_manager.update_diagram(session_id, session.diagram)
@@ -956,6 +1028,50 @@ async def create_node_group(
 
     # Add group node to diagram
     session.diagram.nodes.append(group_node)
+
+    # Inherit edges: redirect external edges to/from children through the group node
+    child_node_ids_set = set(child_node_ids)
+    new_edges = []
+    edges_to_remove = []
+
+    for edge in session.diagram.edges:
+        is_internal = edge.source in child_node_ids_set and edge.target in child_node_ids_set
+
+        if is_internal:
+            # Internal edge between children - keep as is (will be hidden when collapsed)
+            continue
+
+        # External edge - redirect through group
+        if edge.source in child_node_ids_set:
+            # Outgoing edge from a child - redirect from group
+            edges_to_remove.append(edge.id)
+            new_edge_id = f"{group_id}-to-{edge.target}"
+            # Check if this edge already exists (avoid duplicates)
+            if not any(e.id == new_edge_id for e in session.diagram.edges) and not any(e.id == new_edge_id for e in new_edges):
+                new_edges.append(Edge(
+                    id=new_edge_id,
+                    source=group_id,
+                    target=edge.target,
+                    label=edge.label,
+                    type=edge.type
+                ))
+        elif edge.target in child_node_ids_set:
+            # Incoming edge to a child - redirect to group
+            edges_to_remove.append(edge.id)
+            new_edge_id = f"{edge.source}-to-{group_id}"
+            # Check if this edge already exists (avoid duplicates)
+            if not any(e.id == new_edge_id for e in session.diagram.edges) and not any(e.id == new_edge_id for e in new_edges):
+                new_edges.append(Edge(
+                    id=new_edge_id,
+                    source=edge.source,
+                    target=group_id,
+                    label=edge.label,
+                    type=edge.type
+                ))
+
+    # Remove old edges and add new ones
+    session.diagram.edges = [e for e in session.diagram.edges if e.id not in edges_to_remove]
+    session.diagram.edges.extend(new_edges)
 
     # Persist to storage
     session_manager.update_diagram(session_id, session.diagram)

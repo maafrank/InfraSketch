@@ -95,7 +95,7 @@ const EXAMPLE_PROMPTS = [
   }
 ];
 
-function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAddEdge, onDeleteEdge, onReactFlowInit, onUpdateNode, onOpenNodePalette, onLayoutReady, onExportPng, onExampleClick, designDocOpen, designDocWidth, chatPanelOpen, chatPanelWidth, layoutDirection = 'TB', onLayoutDirectionChange, onMergeNodes, onToggleCollapse, onRegenerateDescription, mergingNodes = false }) {
+function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAddEdge, onDeleteEdge, onReactFlowInit, onUpdateNode, onOpenNodePalette, onLayoutReady, onExportPng, onExampleClick, designDocOpen, designDocWidth, chatPanelOpen, chatPanelWidth, layoutDirection = 'TB', onLayoutDirectionChange, onMergeNodes, onUngroupNodes, onToggleCollapse, onRegenerateDescription, mergingNodes = false }) {
   const reactFlowInstance = useReactFlow();
 
   // Pass the React Flow instance to parent
@@ -378,6 +378,13 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
     }
   }, [contextMenu, onDeleteNode]);
 
+  const handleUngroupNode = useCallback(() => {
+    if (contextMenu?.nodeId && onUngroupNodes) {
+      onUngroupNodes(contextMenu.nodeId);
+      setContextMenu(null);
+    }
+  }, [contextMenu, onUngroupNodes]);
+
   const handleDeleteEdgeFromMenu = useCallback(() => {
     if (contextMenu?.edgeId && onDeleteEdge) {
       onDeleteEdge(contextMenu.edgeId);
@@ -448,30 +455,6 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
     }
   }, [onDeleteEdge, onAddEdge]);
 
-  // Helper function to check if two rectangles actually overlap
-  const checkOverlap = useCallback((rect1, rect2) => {
-    // Check if rectangles overlap at all
-    const horizontalOverlap = rect1.left < rect2.right && rect1.right > rect2.left;
-    const verticalOverlap = rect1.top < rect2.bottom && rect1.bottom > rect2.top;
-
-    if (!horizontalOverlap || !verticalOverlap) {
-      return false;
-    }
-
-    // Calculate overlap area
-    const xOverlap = Math.max(0, Math.min(rect1.right, rect2.right) - Math.max(rect1.left, rect2.left));
-    const yOverlap = Math.max(0, Math.min(rect1.bottom, rect2.bottom) - Math.max(rect1.top, rect2.top));
-    const overlapArea = xOverlap * yOverlap;
-
-    // Calculate area of the smaller rectangle
-    const rect1Area = (rect1.right - rect1.left) * (rect1.bottom - rect1.top);
-    const rect2Area = (rect2.right - rect2.left) * (rect2.bottom - rect2.top);
-    const smallerArea = Math.min(rect1Area, rect2Area);
-
-    // Require at least 25% overlap of the smaller node
-    return overlapArea / smallerArea > 0.25;
-  }, []);
-
   // Drag-to-merge handlers
   const handleNodeDragStart = useCallback((event, node) => {
     isDraggingRef.current = true;
@@ -525,8 +508,8 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
         const smallerArea = Math.min(draggedArea, targetArea);
         const overlapPercent = overlapArea / smallerArea;
 
-        // Very low threshold (5%) for very easy triggering
-        if (overlapPercent > 0.05 && overlapArea > maxOverlap) {
+        // Require 15% overlap to prevent accidental merges
+        if (overlapPercent > 0.15 && overlapArea > maxOverlap) {
           maxOverlap = overlapArea;
           bestMatch = n;
         }
@@ -792,9 +775,20 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
             top: `${contextMenu.y}px`,
           }}
         >
-          {contextMenu.nodeId && (
-            <button onClick={handleDeleteNode}>Delete Node</button>
-          )}
+          {contextMenu.nodeId && (() => {
+            // Find the node to check if it's a group
+            const node = diagram?.nodes?.find(n => n.id === contextMenu.nodeId);
+            const isGroup = node?.is_group;
+
+            return (
+              <>
+                {isGroup && (
+                  <button onClick={handleUngroupNode}>Ungroup</button>
+                )}
+                <button onClick={handleDeleteNode}>Delete {isGroup ? 'Group' : 'Node'}</button>
+              </>
+            );
+          })()}
           {contextMenu.edgeId && (
             <button onClick={handleDeleteEdgeFromMenu}>Delete Connection</button>
           )}

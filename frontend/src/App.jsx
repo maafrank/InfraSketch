@@ -484,6 +484,26 @@ function App({ resumeMode = false }) {
     }
   }, [sessionId]);
 
+  const handleUngroupNodes = useCallback(async (groupId) => {
+    if (!sessionId) return;
+
+    try {
+      console.log('Ungrouping:', groupId);
+      const response = await ungroupNodes(sessionId, groupId);
+      setDiagram(response);
+
+      // Add system message to chat
+      const systemMessage = {
+        role: 'system',
+        content: `*Ungrouped nodes from group*`,
+      };
+      setMessages((prev) => [...prev, systemMessage]);
+    } catch (error) {
+      console.error('Failed to ungroup nodes:', error);
+      alert('Failed to ungroup nodes. Please try again.');
+    }
+  }, [sessionId]);
+
   const handleRegenerateDescription = useCallback(async (nodeId) => {
     if (!sessionId) return;
 
@@ -926,6 +946,7 @@ function App({ resumeMode = false }) {
               onAddEdge={handleAddEdge}
               onDeleteEdge={handleDeleteEdge}
               onMergeNodes={handleMergeNodes}
+              onUngroupNodes={handleUngroupNodes}
               onToggleCollapse={handleToggleGroupCollapse}
               onRegenerateDescription={handleRegenerateDescription}
               onReactFlowInit={setReactFlowInstance}
