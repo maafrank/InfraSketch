@@ -187,30 +187,33 @@ function App({ resumeMode = false }) {
       const userMessage = { role: 'user', content: message };
       setMessages([userMessage]);
 
-      // Define loading steps (without emojis)
+      // Define loading steps that loop continuously (without emojis)
       const loadingSteps = [
         'Analyzing your architecture...',
         'Designing system components...',
         'Mapping connections and data flow...',
         'Optimizing component placement...',
         'Generating visual layout...',
-        'Finalizing your diagram...'
+        'Evaluating best practices...',
+        'Refining component relationships...',
+        'Balancing system topology...'
       ];
 
-      // Update loading step text progressively
-      const updateLoadingSteps = async () => {
-        for (let i = 0; i < loadingSteps.length; i++) {
-          setLoadingStepText(loadingSteps[i]);
+      // Cancellation flag for the loading loop
+      let cancelLoading = false;
 
-          // Wait 2-3 seconds before showing next step
-          if (i < loadingSteps.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 2500));
-          }
+      // Update loading step text in a continuous loop
+      const updateLoadingSteps = async () => {
+        let i = 0;
+        while (!cancelLoading) {
+          setLoadingStepText(loadingSteps[i]);
+          await new Promise(resolve => setTimeout(resolve, 2500));
+          i = (i + 1) % loadingSteps.length; // Loop back to start
         }
       };
 
       // Start updating loading steps (runs in background)
-      const loadingStepsPromise = updateLoadingSteps();
+      updateLoadingSteps();
 
       try {
         // Start async diagram generation (returns immediately with session_id)
@@ -228,8 +231,8 @@ function App({ resumeMode = false }) {
           }
         });
 
-        // Wait for loading steps animation to finish
-        await loadingStepsPromise;
+        // Stop the loading loop
+        cancelLoading = true;
 
         if (result.success) {
           setDiagram(result.diagram);
@@ -263,6 +266,7 @@ function App({ resumeMode = false }) {
 
         alert(errorMessage);
       } finally {
+        cancelLoading = true; // Ensure loop stops on error or success
         setLoading(false);
         setLoadingStepText('');
       }
