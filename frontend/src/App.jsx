@@ -550,71 +550,34 @@ function App({ resumeMode = false }) {
     return !hasNodes && !hasEdges && !hasMessages && !hasDesignDoc;
   }, [diagram, messages, designDoc]);
 
-  const handleNewDesign = async () => {
-    try {
-      // Check if current session is already pristine (empty)
-      if (sessionId && isSessionPristine()) {
-        console.log('Current session is already empty, reusing:', sessionId);
-        // Just reset the UI state - no need to create a new session
-        setSelectedNode(null);
-        setDesignDocOpen(false);
-        return;
-      }
-
-      // Create a new blank session only if current one has content
-      const newSession = await createBlankSession();
-
-      // Reset all state to blank
-      setSessionId(newSession.session_id);
-      setDiagram(newSession.diagram);
-      setSelectedNode(null);
-      setMessages([]);
-      setDesignDoc(null);
-      setDesignDocOpen(false);
-
-      // Navigate to the new session
-      navigate(`/session/${newSession.session_id}`);
-
-      console.log('Created new design session:', newSession.session_id);
-    } catch (error) {
-      console.error('Failed to create new session:', error);
-      alert('Failed to create new design. Please try again.');
-    }
+  const handleNewDesign = () => {
+    // Just reset local state - session will be created when user generates content
+    setSessionId(null);
+    setDiagram(null);
+    setSelectedNode(null);
+    setMessages([]);
+    setDesignDoc(null);
+    setDesignDocOpen(false);
+    setSessionName('Untitled Design');
+    navigate('/');
+    console.log('Reset to new design state');
   };
 
-  const handleSessionDeleted = useCallback(async (deletedSessionId) => {
+  const handleSessionDeleted = useCallback((deletedSessionId) => {
     console.log('Current session was deleted:', deletedSessionId);
 
     // Close the session history sidebar
     setSessionHistoryOpen(false);
 
-    // Create a new blank session and reset to fresh state
-    try {
-      const newSession = await createBlankSession();
-
-      // Reset all state to blank
-      setSessionId(newSession.session_id);
-      setDiagram(newSession.diagram);
-      setSelectedNode(null);
-      setMessages([]);
-      setDesignDoc(null);
-      setDesignDocOpen(false);
-
-      // Navigate to the new session
-      navigate(`/session/${newSession.session_id}`);
-
-      console.log('Created new session after deletion:', newSession.session_id);
-    } catch (error) {
-      console.error('Failed to create new session after deletion:', error);
-      // If we can't create a new session, at least reset to the landing page
-      setSessionId(null);
-      setDiagram(null);
-      setSelectedNode(null);
-      setMessages([]);
-      setDesignDoc(null);
-      setDesignDocOpen(false);
-      navigate('/');
-    }
+    // Reset to fresh state - session will be created when user generates content
+    setSessionId(null);
+    setDiagram(null);
+    setSelectedNode(null);
+    setMessages([]);
+    setDesignDoc(null);
+    setDesignDocOpen(false);
+    setSessionName('Untitled Design');
+    navigate('/');
   }, [navigate]);
 
   const handleCreateDesignDoc = async () => {
