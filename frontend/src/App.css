@@ -1838,6 +1838,8 @@ body {
   stroke-width: 2;
 }
 
+/* Edge labels hidden for cleaner diagram - uncomment below to restore */
+/*
 .react-flow__edge-text {
   font-size: 12px;
   font-weight: 500;
@@ -1846,13 +1848,18 @@ body {
 .react-flow__edge-textbg {
   fill: var(--bg-tertiary) !important;
   fill-opacity: 0.95 !important;
-  /* Add padding around text */
   rx: 4;
   ry: 4;
 }
 
 .react-flow__edge-text {
   fill: var(--text-primary) !important;
+}
+*/
+
+.react-flow__edge-text,
+.react-flow__edge-textbg {
+  display: none;
 }
 
 .react-flow__controls {
