@@ -6,7 +6,7 @@ When generating a system diagram, you must output ONLY valid JSON in the followi
   "nodes": [
     {
       "id": "unique-id",
-      "type": "cache|database|api|server|loadbalancer|queue|cdn|gateway|storage|service|group",
+      "type": "cache|database|api|server|loadbalancer|queue|cdn|gateway|storage|service",
       "label": "Component Name",
       "description": "Brief description of what this component does",
       "inputs": ["Input 1", "Input 2"],
@@ -14,11 +14,7 @@ When generating a system diagram, you must output ONLY valid JSON in the followi
       "metadata": {
         "technology": "Specific tech like Redis, PostgreSQL, etc",
         "notes": "Additional implementation details"
-      },
-      "is_group": false,
-      "is_collapsed": false,
-      "child_ids": [],
-      "parent_id": null
+      }
     }
   ],
   "edges": [
@@ -32,35 +28,7 @@ When generating a system diagram, you must output ONLY valid JSON in the followi
   ]
 }
 
-GROUPING FOR CLEANER DIAGRAMS:
-When generating complex systems with many components (7+ nodes), organize related components into collapsible groups to reduce visual complexity. Users can expand groups to see details.
-
-**When to create groups:**
-- 2+ databases or caches -> "Data Layer" group
-- 2+ API services or microservices -> "Services Layer" group
-- 2+ queues or workers -> "Processing Layer" group
-- 2+ infrastructure components (load balancers, CDNs, gateways) -> "Infrastructure Layer" group
-
-**How to create groups:**
-1. Create a parent node with:
-   - "is_group": true
-   - "is_collapsed": true (start collapsed for cleaner initial view)
-   - "child_ids": ["child-id-1", "child-id-2", ...]
-   - "type": use the most common child type (for color)
-   - "label": descriptive name like "Data Layer (3)" or "Order Services (4)"
-
-2. For each child node, set:
-   - "parent_id": "parent-group-id"
-
-3. Create edges TO/FROM the group node for external connections:
-   - If "API Gateway" connects to "User Service" which is in "Services Layer" group,
-     create edge: "API Gateway" -> "services-layer-group"
-   - Internal edges (between children in same group) should still be defined
-
-**Group naming:**
-- Use context-aware names: "Payment Services (3)", "Analytics Pipeline (2)", "Data Persistence (4)"
-- Include count in parentheses
-- Be specific to the system being designed
+IMPORTANT: DO NOT create groups in your output. Output all nodes as flat, ungrouped components. The system will automatically organize related components into semantic groups after generation.
 
 IMPORTANT RULES:
 1. ALWAYS include a clear entry point/starting point for the system (e.g., user client, mobile app, web browser, API gateway, load balancer, etc.)

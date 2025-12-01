@@ -19,13 +19,12 @@ ALLOWED_ORIGINS = [
     "https://dr6smezctn6x0.cloudfront.net",  # Production frontend (legacy)
     "https://infrasketch.net",  # Production frontend (custom domain)
     "https://www.infrasketch.net",  # Production frontend (www subdomain)
-    "http://localhost:5173",  # Local development
-    "http://127.0.0.1:5173",  # Alternative local dev
-    "http://localhost:5174",  # Local development (alternate port)
-    "http://127.0.0.1:5174",  # Alternative local dev (alternate port)
-    "http://localhost:5180",  # Local development (alternate port)
-    "http://127.0.0.1:5180",  # Alternative local dev (alternate port)
 ]
+
+# Add localhost ports 5173-5190 for local development (Vite auto-increments when ports are busy)
+for port in range(5173, 5191):
+    ALLOWED_ORIGINS.append(f"http://localhost:{port}")
+    ALLOWED_ORIGINS.append(f"http://127.0.0.1:{port}")
 
 # Allow environment variable override for additional origins
 extra_origins = os.getenv("EXTRA_ALLOWED_ORIGINS", "").split(",")

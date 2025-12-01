@@ -548,6 +548,33 @@ function App({ resumeMode = false }) {
     }
   }, [sessionId]);
 
+  // Check if any groups are currently expanded
+  const hasExpandedGroups = useMemo(() => {
+    if (!diagram?.nodes) return false;
+    return diagram.nodes.some(n => n.is_group && !n.is_collapsed);
+  }, [diagram]);
+
+  const handleToggleAllGroups = useCallback(async () => {
+    if (!sessionId || !diagram) return;
+
+    // If any groups are expanded, collapse all. Otherwise, expand all.
+    const groupsToToggle = hasExpandedGroups
+      ? diagram.nodes.filter(n => n.is_group && !n.is_collapsed)  // expanded groups to collapse
+      : diagram.nodes.filter(n => n.is_group && n.is_collapsed);  // collapsed groups to expand
+
+    if (groupsToToggle.length === 0) return;
+
+    try {
+      let updatedDiagram = diagram;
+      for (const group of groupsToToggle) {
+        updatedDiagram = await toggleGroupCollapse(sessionId, group.id);
+      }
+      setDiagram(updatedDiagram);
+    } catch (error) {
+      console.error('Failed to toggle groups:', error);
+    }
+  }, [sessionId, diagram, hasExpandedGroups]);
+
   // Helper function to check if current session is pristine (empty)
   const isSessionPristine = useCallback(() => {
     const hasNodes = diagram?.nodes?.length > 0;
@@ -932,6 +959,8 @@ function App({ resumeMode = false }) {
               layoutDirection={layoutDirection}
               onLayoutDirectionChange={setLayoutDirection}
               mergingNodes={mergingNodes}
+              onToggleAllGroups={handleToggleAllGroups}
+              hasExpandedGroups={hasExpandedGroups}
             />
           )}
         </div>

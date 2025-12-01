@@ -984,7 +984,8 @@ body {
 .floating-edit-button,
 .floating-layout-button,
 .floating-direction-button,
-.floating-camera-button {
+.floating-camera-button,
+.floating-toggle-groups-button {
   width: 56px;
   height: 56px;
   border-radius: 50%;
@@ -1014,10 +1015,15 @@ body {
   background: linear-gradient(135deg, #f6ad55 0%, #ed8936 100%);
 }
 
+.floating-toggle-groups-button {
+  background: linear-gradient(135deg, #4fd1c5 0%, #319795 100%);
+}
+
 .floating-edit-button:hover,
 .floating-layout-button:hover,
 .floating-direction-button:hover,
-.floating-camera-button:hover {
+.floating-camera-button:hover,
+.floating-toggle-groups-button:hover {
   transform: scale(1.1);
   box-shadow: 0 6px 20px var(--btn-hover-shadow);
 }
@@ -1025,7 +1031,8 @@ body {
 .floating-edit-button:active,
 .floating-layout-button:active,
 .floating-direction-button:active,
-.floating-camera-button:active {
+.floating-camera-button:active,
+.floating-toggle-groups-button:active {
   transform: scale(0.95);
 }
 

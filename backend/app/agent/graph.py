@@ -84,9 +84,13 @@ def generate_diagram_node(state: InfraSketchState) -> dict:
             # Create error response
             diagram = Diagram(nodes=[], edges=[])
 
-    # Apply group processing (validation + heuristic grouping if needed)
+    # Apply group processing (AI semantic grouping, with heuristic fallback)
     if diagram and diagram.nodes:
-        diagram = process_diagram_groups(diagram, max_visible_nodes=6)
+        diagram = process_diagram_groups(
+            diagram,
+            max_visible_nodes=6,
+            model=state.model or "claude-haiku-4-5"
+        )
 
     # Return updates (message + diagram)
     return {
