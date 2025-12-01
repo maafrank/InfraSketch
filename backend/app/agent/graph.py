@@ -20,6 +20,7 @@ from app.agent.prompts import (
     get_node_context,
     get_design_doc_context,
 )
+from app.agent.group_processor import process_diagram_groups
 from app.models import Diagram
 from app.utils.secrets import get_anthropic_api_key
 
@@ -82,6 +83,10 @@ def generate_diagram_node(state: InfraSketchState) -> dict:
             print(f"JSON string was: {json_str[:500]}")
             # Create error response
             diagram = Diagram(nodes=[], edges=[])
+
+    # Apply group processing (validation + heuristic grouping if needed)
+    if diagram and diagram.nodes:
+        diagram = process_diagram_groups(diagram, max_visible_nodes=6)
 
     # Return updates (message + diagram)
     return {
