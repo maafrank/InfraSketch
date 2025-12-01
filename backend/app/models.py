@@ -57,6 +57,14 @@ class DesignDocStatus(BaseModel):
     completed_at: Optional[float] = None  # Unix timestamp
 
 
+class DiagramGenerationStatus(BaseModel):
+    """Status of diagram generation (for async polling)."""
+    status: Literal["not_started", "generating", "completed", "failed"] = "not_started"
+    error: Optional[str] = None
+    started_at: Optional[float] = None  # Unix timestamp
+    completed_at: Optional[float] = None  # Unix timestamp
+
+
 class SessionState(BaseModel):
     session_id: str
     user_id: str  # Clerk user ID - links session to authenticated user
@@ -65,6 +73,8 @@ class SessionState(BaseModel):
     current_node: Optional[str] = None
     design_doc: Optional[str] = None  # Markdown content for design document
     design_doc_status: DesignDocStatus = Field(default_factory=DesignDocStatus)
+    diagram_generation_status: DiagramGenerationStatus = Field(default_factory=DiagramGenerationStatus)  # For async diagram generation
+    generation_prompt: Optional[str] = None  # Store prompt for background task
     model: str = "claude-haiku-4-5-20251001"  # Model used for this session
     created_at: Optional[datetime] = None  # When session was created (for sorting)
     name: Optional[str] = None  # Concise session name (e.g., "E-commerce Platform")

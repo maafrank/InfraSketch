@@ -3,7 +3,7 @@ import os
 import uuid
 import time
 from datetime import datetime, timezone
-from app.models import SessionState, Diagram, Message, DesignDocStatus
+from app.models import SessionState, Diagram, Message, DesignDocStatus, DiagramGenerationStatus
 
 
 class SessionManager:
@@ -193,6 +193,73 @@ class SessionManager:
         if not session:
             return None
         return session.design_doc_status
+
+    def create_session_for_generation(self, user_id: str, model: str, prompt: str) -> str:
+        """
+        Create a new session with empty diagram for async generation.
+
+        Args:
+            user_id: Clerk user ID (from authenticated request)
+            model: AI model to use for this session
+            prompt: User prompt to store for background task
+
+        Returns:
+            session_id: UUID for the new session
+        """
+        session_id = str(uuid.uuid4())
+
+        # Create empty diagram placeholder
+        empty_diagram = Diagram(nodes=[], edges=[])
+
+        # Create session with "generating" status
+        session = SessionState(
+            session_id=session_id,
+            user_id=user_id,
+            diagram=empty_diagram,
+            messages=[],
+            current_node=None,
+            model=model,
+            created_at=datetime.now(timezone.utc),
+            generation_prompt=prompt,
+            diagram_generation_status=DiagramGenerationStatus(
+                status="generating",
+                started_at=time.time()
+            )
+        )
+
+        # Save to appropriate storage
+        if self.is_lambda:
+            self.storage.save_session(session)
+        else:
+            self.sessions[session_id] = session
+
+        return session_id
+
+    def set_diagram_generation_status(self, session_id: str, status: str, error: Optional[str] = None) -> bool:
+        """Update diagram generation status."""
+        session = self.get_session(session_id)
+        if not session:
+            return False
+
+        session.diagram_generation_status.status = status
+        session.diagram_generation_status.error = error
+
+        if status == "generating" and not session.diagram_generation_status.started_at:
+            session.diagram_generation_status.started_at = time.time()
+        elif status in ["completed", "failed"]:
+            session.diagram_generation_status.completed_at = time.time()
+
+        # Save updated session
+        if self.is_lambda:
+            return self.storage.save_session(session)
+        return True
+
+    def get_diagram_generation_status(self, session_id: str) -> Optional[DiagramGenerationStatus]:
+        """Get current diagram generation status."""
+        session = self.get_session(session_id)
+        if not session:
+            return None
+        return session.diagram_generation_status
 
     def update_session_name(self, session_id: str, name: str) -> bool:
         """Update session name and mark as generated."""

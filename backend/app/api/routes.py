@@ -317,10 +317,97 @@ def _generate_session_name_background(session_id: str, prompt: str, model: str):
             pass
 
 
-@router.post("/generate", response_model=GenerateResponse)
-async def generate_diagram(request: GenerateRequest, http_request: Request, background_tasks: BackgroundTasks):
-    """Generate initial system diagram from user prompt."""
+def _generate_diagram_background(session_id: str, prompt: str, model: str, user_ip: str):
+    """Background task to generate diagram asynchronously."""
     start_time = time.time()
+
+    try:
+        print(f"\n=== BACKGROUND: GENERATE DIAGRAM ===")
+        print(f"Session ID: {session_id}")
+        print(f"Model: {model}")
+        print(f"Prompt length: {len(prompt)}")
+
+        # Run agent with message-based state
+        result = agent_graph.invoke({
+            "messages": [HumanMessage(content=prompt)],
+            "diagram": None,
+            "session_id": session_id,
+            "model": model,
+        })
+
+        # Extract diagram from result
+        diagram = result["diagram"]
+
+        # Update session with generated diagram
+        session_manager.update_diagram(session_id, diagram)
+
+        # Add messages to session (user + formatted assistant overview)
+        session_manager.add_message(
+            session_id,
+            Message(role="user", content=prompt)
+        )
+        system_overview = generate_system_overview(diagram)
+        session_manager.add_message(
+            session_id,
+            Message(role="assistant", content=system_overview)
+        )
+
+        # Mark as completed
+        session_manager.set_diagram_generation_status(session_id, "completed")
+
+        # Generate session name (inline since we're already in background)
+        try:
+            from app.utils.secrets import get_anthropic_api_key
+            import asyncio
+            api_key = get_anthropic_api_key()
+            name = asyncio.run(generate_session_name(prompt, api_key, model))
+            if name:
+                session_manager.update_session_name(session_id, name)
+                print(f"Session name generated: {name}")
+        except Exception as name_error:
+            print(f"Failed to generate session name: {name_error}")
+            session_manager.update_session_name(session_id, "Untitled Design")
+
+        # Log diagram generation event
+        duration_ms = (time.time() - start_time) * 1000
+        log_diagram_generation(
+            session_id=session_id,
+            node_count=len(diagram.nodes),
+            edge_count=len(diagram.edges),
+            prompt_length=len(prompt),
+            duration_ms=duration_ms,
+            user_ip=user_ip,
+        )
+
+        print(f"Generated diagram: {len(diagram.nodes)} nodes, {len(diagram.edges)} edges")
+        print(f"Duration: {duration_ms:.0f}ms")
+        print(f"========================================\n")
+
+    except Exception as e:
+        import traceback
+        print(f"Error generating diagram in background: {str(e)}")
+        traceback.print_exc()
+
+        # Mark as failed
+        session_manager.set_diagram_generation_status(session_id, "failed", error=str(e))
+
+        log_error(
+            error_type="diagram_generation_failed",
+            error_message=str(e),
+            user_ip=user_ip,
+            metadata={"session_id": session_id},
+        )
+
+
+@router.post("/generate")
+async def generate_diagram(request: GenerateRequest, http_request: Request, background_tasks: BackgroundTasks):
+    """
+    Start diagram generation asynchronously.
+
+    Returns immediately with session_id and status. Frontend should poll
+    /session/{session_id}/diagram/status until generation completes.
+    """
+    import os
     user_ip = http_request.client.host if http_request.client else None
 
     # Extract user_id from request state (set by Clerk middleware)
@@ -332,58 +419,100 @@ async def generate_diagram(request: GenerateRequest, http_request: Request, back
         # Use specified model or default to Haiku (alias auto-updates to latest)
         model = request.model or "claude-haiku-4-5"
 
-        # Run agent with message-based state
-        result = agent_graph.invoke({
-            "messages": [HumanMessage(content=request.prompt)],
-            "diagram": None,
-            "session_id": "",  # Will be created after
-            "model": model,
+        # Create session immediately with "generating" status
+        session_id = session_manager.create_session_for_generation(
+            user_id=user_id,
+            model=model,
+            prompt=request.prompt
+        )
+
+        # Check if running in Lambda
+        is_lambda = os.environ.get('AWS_LAMBDA_FUNCTION_NAME') is not None
+
+        if is_lambda:
+            # In Lambda: Use async invocation to avoid API Gateway 30s timeout
+            import boto3
+            import json as json_lib
+
+            print(f"Lambda environment detected - triggering async diagram generation for session {session_id}")
+
+            try:
+                lambda_client = boto3.client('lambda')
+                function_name = os.environ.get('AWS_LAMBDA_FUNCTION_NAME')
+
+                payload = {
+                    "async_task": "generate_diagram",
+                    "session_id": session_id,
+                    "prompt": request.prompt,
+                    "model": model,
+                    "user_ip": user_ip
+                }
+
+                lambda_client.invoke(
+                    FunctionName=function_name,
+                    InvocationType='Event',  # Async invocation
+                    Payload=json_lib.dumps(payload)
+                )
+
+                print(f"Async Lambda invocation triggered for diagram generation")
+            except Exception as e:
+                print(f"Failed to trigger async invocation: {e}")
+                # Fall back to background task (will timeout but generation continues)
+                background_tasks.add_task(_generate_diagram_background, session_id, request.prompt, model, user_ip)
+        else:
+            # Local development: Use true background tasks (non-blocking)
+            print(f"Local environment - starting background diagram generation for session {session_id}")
+            background_tasks.add_task(_generate_diagram_background, session_id, request.prompt, model, user_ip)
+
+        # Return immediately with session_id and generating status
+        return JSONResponse(content={
+            "session_id": session_id,
+            "status": "generating"
         })
-
-        # Extract diagram from result
-        diagram = result["diagram"]
-
-        # Create session with user_id
-        session_id = session_manager.create_session(diagram, user_id=user_id, model=model)
-
-        # Add messages to session (user + formatted assistant overview)
-        session_manager.add_message(
-            session_id,
-            Message(role="user", content=request.prompt)
-        )
-        # Generate and store formatted system overview instead of raw JSON
-        system_overview = generate_system_overview(diagram)
-        session_manager.add_message(
-            session_id,
-            Message(role="assistant", content=system_overview)
-        )
-
-        # Generate session name in background
-        background_tasks.add_task(_generate_session_name_background, session_id, request.prompt, model)
-
-        # Log diagram generation event
-        duration_ms = (time.time() - start_time) * 1000
-        log_diagram_generation(
-            session_id=session_id,
-            node_count=len(diagram.nodes),
-            edge_count=len(diagram.edges),
-            prompt_length=len(request.prompt),
-            duration_ms=duration_ms,
-            user_ip=user_ip,
-        )
-
-        return GenerateResponse(
-            session_id=session_id,
-            diagram=diagram
-        )
 
     except Exception as e:
         log_error(
-            error_type="diagram_generation_failed",
+            error_type="diagram_generation_start_failed",
             error_message=str(e),
             user_ip=user_ip,
         )
-        raise HTTPException(status_code=500, detail=f"Failed to generate diagram: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to start diagram generation: {str(e)}")
+
+
+@router.get("/session/{session_id}/diagram/status")
+async def get_diagram_status(session_id: str, http_request: Request):
+    """
+    Get the current status of diagram generation.
+
+    Poll this endpoint every 2 seconds until status is "completed" or "failed".
+
+    Returns:
+        JSON with status, elapsed_seconds, and diagram (when completed)
+    """
+    user_id = getattr(http_request.state, "user_id", None)
+    session = verify_session_access(session_id, user_id, http_request)
+
+    status = session.diagram_generation_status
+
+    response = {
+        "status": status.status,
+        "error": status.error,
+    }
+
+    # Include timing information
+    if status.started_at:
+        if status.completed_at:
+            response["duration_seconds"] = status.completed_at - status.started_at
+        else:
+            response["elapsed_seconds"] = time.time() - status.started_at
+
+    # Include diagram and messages if completed
+    if status.status == "completed":
+        response["diagram"] = session.diagram.model_dump()
+        response["messages"] = [{"role": m.role, "content": m.content} for m in session.messages]
+        response["name"] = session.name
+
+    return JSONResponse(content=response)
 
 
 @router.post("/chat", response_model=ChatResponse)

@@ -13,6 +13,7 @@ import NodePalette from './components/NodePalette';
 import ThemeToggle from './components/ThemeToggle';
 import {
   generateDiagram,
+  pollDiagramStatus,
   sendChatMessage,
   addNode,
   deleteNode,
@@ -212,44 +213,50 @@ function App({ resumeMode = false }) {
       const loadingStepsPromise = updateLoadingSteps();
 
       try {
-        const response = await generateDiagram(message);
+        // Start async diagram generation (returns immediately with session_id)
+        const response = await generateDiagram(message, currentModel);
+        const newSessionId = response.session_id;
+        setSessionId(newSessionId);
 
-        // Wait for loading steps to complete before showing result
+        console.log('Started diagram generation, polling for completion...', newSessionId);
+
+        // Poll for completion (loading steps continue cycling naturally)
+        const result = await pollDiagramStatus(newSessionId, (status) => {
+          // Log progress for debugging
+          if (status.elapsed_seconds) {
+            console.log(`Diagram generation: ${status.status} (${status.elapsed_seconds.toFixed(1)}s)`);
+          }
+        });
+
+        // Wait for loading steps animation to finish
         await loadingStepsPromise;
 
-        setSessionId(response.session_id);
-        setDiagram(response.diagram);
+        if (result.success) {
+          setDiagram(result.diagram);
+          setMessages(result.messages || []);
+          if (result.name) {
+            setSessionName(result.name);
+          }
+          console.log('Generated initial diagram:', result);
+        } else {
+          throw new Error(result.error || 'Failed to generate diagram');
+        }
 
         // Clear loading step text
         setLoadingStepText('');
 
-        // Fetch session to get the system overview message from backend
-        // This ensures consistency with what's stored in the session history
-        const session = await getSession(response.session_id);
-        setMessages(session.messages || []);
-
-        // Poll for session name generation in background (non-blocking)
-        pollSessionName(response.session_id, (name) => {
-          console.log('Session name updated:', name);
-          setSessionName(name);
-        }).catch(error => {
-          console.error('Failed to poll session name:', error);
-          // Non-critical - just log and continue
-        });
-
-        console.log('Generated initial diagram:', response);
       } catch (error) {
         console.error('Failed to generate diagram:', error);
 
         // Provide specific error messages based on error type
         let errorMessage = 'Failed to generate diagram. Please try again.';
 
-        if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-          errorMessage = 'Request timed out. Sonnet 4.5 can take 30+ seconds for complex diagrams. Try:\n\n1. Simplify your prompt\n2. Use Haiku 4.5 (faster, same quality for most cases)\n3. Try again in a moment';
-        } else if (error.response?.status === 504) {
-          errorMessage = 'Gateway timeout. The request took too long. Try:\n\n1. Use Haiku 4.5 instead (much faster)\n2. Simplify your architecture prompt\n3. Try again in a moment';
-        } else if (!error.response) {
-          errorMessage = 'Network error. Please check your connection and try again.';
+        if (error.message?.includes('timed out')) {
+          errorMessage = 'Diagram generation timed out after 5 minutes. Try:\n\n1. Simplify your prompt\n2. Use Haiku 4.5 (faster)\n3. Try again in a moment';
+        } else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+          errorMessage = 'Request timed out. Please try again.';
+        } else if (!error.response && error.message) {
+          errorMessage = error.message;
         } else if (error.response?.status >= 500) {
           errorMessage = `Server error (${error.response.status}). Please try again in a moment.`;
         }
@@ -257,6 +264,7 @@ function App({ resumeMode = false }) {
         alert(errorMessage);
       } finally {
         setLoading(false);
+        setLoadingStepText('');
       }
       return;
     }
