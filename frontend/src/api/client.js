@@ -4,6 +4,50 @@ const API_BASE_URL = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}/api`
   : 'http://localhost:8000/api';
 
+// Retry configuration
+const RETRY_CONFIG = {
+  maxRetries: 3,
+  baseDelayMs: 1000, // Start with 1 second
+  maxDelayMs: 10000, // Cap at 10 seconds
+  // Network errors that should trigger a retry
+  retryableErrors: [
+    'ERR_NETWORK',
+    'ERR_NETWORK_CHANGED',
+    'ECONNABORTED',
+    'ETIMEDOUT',
+    'ECONNRESET',
+    'ENOTFOUND',
+  ],
+  // HTTP status codes that should trigger a retry
+  retryableStatuses: [408, 429, 500, 502, 503, 504],
+};
+
+/**
+ * Calculate delay with exponential backoff and jitter
+ */
+const getRetryDelay = (attempt) => {
+  const exponentialDelay = RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt);
+  const jitter = Math.random() * 500; // Add up to 500ms of random jitter
+  return Math.min(exponentialDelay + jitter, RETRY_CONFIG.maxDelayMs);
+};
+
+/**
+ * Check if an error is retryable
+ */
+const isRetryableError = (error) => {
+  // Network errors (no response received)
+  if (!error.response) {
+    return RETRY_CONFIG.retryableErrors.includes(error.code);
+  }
+  // HTTP errors with retryable status codes
+  return RETRY_CONFIG.retryableStatuses.includes(error.response.status);
+};
+
+/**
+ * Sleep for a given number of milliseconds
+ */
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 const client = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -39,16 +83,44 @@ client.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle auth errors
+// Response interceptor with retry logic for transient errors
 client.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const config = error.config;
+
+    // Initialize retry count if not set
+    config.__retryCount = config.__retryCount || 0;
+
+    // Check if we should retry
+    if (isRetryableError(error) && config.__retryCount < RETRY_CONFIG.maxRetries) {
+      config.__retryCount += 1;
+
+      const delay = getRetryDelay(config.__retryCount - 1);
+      console.log(
+        `Network error (${error.code || error.response?.status}), retrying in ${Math.round(delay)}ms... ` +
+        `(attempt ${config.__retryCount}/${RETRY_CONFIG.maxRetries})`
+      );
+
+      // Wait before retrying
+      await sleep(delay);
+
+      // Retry the request
+      return client.request(config);
+    }
+
+    // Log final error after all retries exhausted
+    if (config.__retryCount > 0) {
+      console.error(`Request failed after ${config.__retryCount} retries:`, error.message);
+    }
+
+    // Handle specific error types
     if (error.response?.status === 401) {
       console.error('Authentication required - please sign in');
-      // The error will be caught by the calling code
     } else if (error.response?.status === 403) {
       console.error('Access denied - you don\'t have permission for this resource');
     }
+
     return Promise.reject(error);
   }
 );

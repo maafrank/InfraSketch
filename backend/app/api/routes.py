@@ -252,9 +252,8 @@ def _generate_session_name_from_content(session_id: str, model: str):
         from app.utils.secrets import get_anthropic_api_key
         api_key = get_anthropic_api_key()
 
-        # Generate name using LLM
-        import asyncio
-        name = asyncio.run(generate_session_name(prompt, api_key, model))
+        # Generate name using LLM (synchronous - no asyncio.run needed)
+        name = generate_session_name(prompt, api_key, model)
 
         # Update session using proper method
         session_manager.update_session_name(session_id, name)
@@ -296,9 +295,8 @@ def _generate_session_name_background(session_id: str, prompt: str, model: str):
         from app.utils.secrets import get_anthropic_api_key
         api_key = get_anthropic_api_key()
 
-        # Generate name using LLM
-        import asyncio
-        name = asyncio.run(generate_session_name(prompt, api_key, model))
+        # Generate name using LLM (synchronous - no asyncio.run needed)
+        name = generate_session_name(prompt, api_key, model)
 
         # Update session using proper method
         session_manager.update_session_name(session_id, name)
@@ -356,11 +354,11 @@ def _generate_diagram_background(session_id: str, prompt: str, model: str, user_
         session_manager.set_diagram_generation_status(session_id, "completed")
 
         # Generate session name (inline since we're already in background)
+        # Note: generate_session_name is synchronous - no asyncio.run() needed
         try:
             from app.utils.secrets import get_anthropic_api_key
-            import asyncio
             api_key = get_anthropic_api_key()
-            name = asyncio.run(generate_session_name(prompt, api_key, model))
+            name = generate_session_name(prompt, api_key, model)
             if name:
                 session_manager.update_session_name(session_id, name)
                 print(f"Session name generated: {name}")

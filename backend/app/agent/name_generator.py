@@ -25,9 +25,12 @@ Rules:
 Return ONLY the name, nothing else."""
 
 
-async def generate_session_name(prompt: str, anthropic_api_key: str, model: str = "claude-haiku-4-5") -> str:
+def generate_session_name(prompt: str, anthropic_api_key: str, model: str = "claude-haiku-4-5") -> str:
     """
     Generate a concise session name based on the initial prompt.
+
+    This is a synchronous function (uses sync Anthropic client).
+    Safe to call from sync contexts like Lambda background tasks.
 
     Args:
         prompt: The user's initial prompt for diagram generation

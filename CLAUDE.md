@@ -40,12 +40,18 @@ pip install -r backend/requirements.txt  # Install dependencies
 
 InfraSketch is an AI-powered system design tool with a **React frontend** and **FastAPI backend** that uses **LangGraph** to orchestrate a Claude AI agent.
 
-### Request Flow
+### Request Flow (Async Generation with Polling)
 1. User enters prompt → Frontend POST `/api/generate` → Backend
-2. Backend invokes LangGraph agent with `intent: "generate"`
-3. Agent calls Claude with system prompt → Claude returns JSON diagram
-4. Backend parses JSON, creates session → Returns `{session_id, diagram}`
-5. Frontend renders diagram using React Flow
+2. Backend creates session immediately with `status: "generating"`
+3. Backend triggers async Lambda invocation (or background task locally)
+4. Backend returns immediately: `{session_id, status: "generating"}`
+5. Frontend polls `GET /session/{session_id}/diagram/status` every 2 seconds
+6. Background task runs LangGraph agent → Claude returns JSON diagram
+7. Session updated with diagram, status set to `completed`
+8. Frontend poll receives `{status: "completed", diagram: {...}}`
+9. Frontend renders diagram using React Flow
+
+**Why async?** API Gateway has 30s timeout, but complex diagrams (especially with Sonnet 4.5) can take 30-60+ seconds. Async pattern bypasses this limit.
 
 ### Conversational Modification Flow
 1. User clicks node → Chat panel opens
@@ -129,7 +135,7 @@ Instead of parsing JSON from Claude's responses, the agent uses **Claude's nativ
 - `components/AddNodeModal.jsx` - Modal for manually adding nodes (opened from NodePalette or header button)
 - `components/ExportButton.jsx` - Export dropdown with PNG/PDF/Markdown options, includes screenshot capture
 - `utils/layout.js` - Auto-layout logic using dagre algorithm
-- `api/client.js` - Axios client for backend API, includes `pollDesignDocStatus()` for async generation, `getUserSessions()`, `renameSession()`, `deleteSession()`
+- `api/client.js` - Axios client for backend API, includes `pollDiagramStatus()` for async diagram generation, `pollDesignDocStatus()` for async design doc generation, `getUserSessions()`, `renameSession()`, `deleteSession()`
 
 ### LangGraph Agent Implementation
 
@@ -229,9 +235,16 @@ VITE_API_URL=https://b31htlojb0.execute-api.us-east-1.amazonaws.com/prod
 
 The backend exposes these REST endpoints (all under `/api` prefix):
 
-**POST `/api/generate`** - Generate initial diagram from prompt
-- Request: `{ "prompt": string }`
-- Response: `{ "session_id": string, "diagram": Diagram }`
+**POST `/api/generate`** - Start async diagram generation from prompt
+- Request: `{ "prompt": string, "model": string? }`
+- Response: `{ "session_id": string, "status": "generating" }` (returns immediately)
+- Triggers background task (FastAPI BackgroundTasks locally, async Lambda invocation in production)
+- Frontend should poll `/diagram/status` until complete
+
+**GET `/api/session/{session_id}/diagram/status`** - Poll diagram generation status
+- Response: `{ "status": "generating" | "completed" | "failed", "elapsed_seconds": float?, "diagram": Diagram?, "messages": Message[]?, "name": string?, "error": string? }`
+- Frontend polls every 2 seconds until `status === "completed"`
+- Returns diagram, initial messages, and session name when complete
 
 **POST `/api/chat`** - Continue conversation about diagram/node
 - Request: `{ "session_id": string, "message": string, "node_id": string? }`
@@ -350,7 +363,17 @@ The backend exposes these REST endpoints (all under `/api` prefix):
 }
 ```
 
-**DesignDocStatus** (for async generation tracking):
+**DesignDocStatus** (for async design doc generation tracking):
+```python
+{
+    "status": "not_started" | "generating" | "completed" | "failed",
+    "error": Optional[str],
+    "started_at": Optional[float],  # Unix timestamp
+    "completed_at": Optional[float]  # Unix timestamp
+}
+```
+
+**DiagramGenerationStatus** (for async diagram generation tracking):
 ```python
 {
     "status": "not_started" | "generating" | "completed" | "failed",
@@ -375,7 +398,7 @@ The backend exposes these REST endpoints (all under `/api` prefix):
 }
 ```
 
-**SessionState** (includes design doc state):
+**SessionState** (includes async generation state):
 ```python
 {
     "session_id": str,
@@ -384,7 +407,9 @@ The backend exposes these REST endpoints (all under `/api` prefix):
     "messages": List[Message],
     "current_node": Optional[str],
     "design_doc": Optional[str],  # Generated markdown content
-    "design_doc_status": DesignDocStatus,  # Generation status tracking
+    "design_doc_status": DesignDocStatus,  # Design doc generation status tracking
+    "diagram_generation_status": DiagramGenerationStatus,  # Diagram generation status tracking
+    "generation_prompt": Optional[str],  # User prompt stored for background task
     "model": str,  # Model used for this session (e.g., "claude-haiku-4-5-20251001")
     "created_at": Optional[datetime],  # When session was created (for sorting in history)
     "name": Optional[str],  # Concise session name (e.g., "E-commerce Platform", default: "Untitled Design")
@@ -405,6 +430,15 @@ The backend exposes these REST endpoints (all under `/api` prefix):
 ### Issue: Tools being called with wrong node IDs
 **Cause**: Claude is guessing node IDs instead of using exact IDs from context
 **Solution**: Verify the diagram context in prompts includes "Nodes (with exact IDs)" section. Tool docstrings emphasize using EXACT IDs. If Claude continues guessing, the tool will fail gracefully with a clear error message that Claude can see and retry.
+
+### Issue: Diagram generation stuck or not updating
+**Cause**: Frontend not polling correctly or backend task failed
+**Solution**:
+1. Check backend logs for "Async task invocation: Generating diagram for session" and completion message
+2. Check browser console for polling logs: "Diagram generation: generating (Xs elapsed)"
+3. Call `/diagram/status` endpoint directly to check status
+4. If `status === "failed"`, check the `error` field for details
+5. Verify session was created (check DynamoDB for session_id)
 
 ### Issue: Design doc generation stuck or not updating
 **Cause**: Frontend not polling correctly or backend task failed
@@ -490,12 +524,16 @@ Users can now select their preferred AI model at diagram generation time via a d
 
 `SessionManager` (backend/app/session/manager.py):
 - `create_session()` - generates UUID, stores diagram (saves to DynamoDB in Lambda)
+- `create_session_for_generation()` - creates session with empty diagram for async generation (stores prompt)
 - `get_session()` - retrieves session from appropriate storage backend
 - `update_diagram()` - replaces diagram when modified (persists to DynamoDB in Lambda)
 - `add_message()` - appends to conversation history (persists to DynamoDB in Lambda)
 - `update_design_doc()` - stores generated or edited design document
-- `set_design_doc_status()` - updates generation status with automatic timestamp tracking
-- `get_design_doc_status()` - retrieves current generation status
+- `set_design_doc_status()` - updates design doc generation status with automatic timestamp tracking
+- `get_design_doc_status()` - retrieves current design doc generation status
+- `set_diagram_generation_status()` - updates diagram generation status with automatic timestamp tracking
+- `get_diagram_generation_status()` - retrieves current diagram generation status
+- `update_session_name()` - updates session name and marks as generated
 
 **DynamoDB Implementation** (`session/dynamodb_storage.py`):
 - Table: `infrasketch-sessions` (pay-per-request billing)
@@ -567,8 +605,15 @@ When `diagram` prop changes in `DiagramCanvas.jsx`, the `useEffect` hook:
 
 ## Debugging
 
-**Backend logs** (`print` statements in graph.py):
-- **Generation node** (initial diagram creation):
+**Backend logs** (`print` statements in routes.py and graph.py):
+- **Async diagram generation** (background task):
+  - "Async task invocation: Generating diagram for session {id}" - Lambda received task
+  - "=== BACKGROUND: GENERATE DIAGRAM ===" - background task starting
+  - "Generated diagram: N nodes, M edges" - successful generation
+  - "✓ Generated session name: {name}" - name generation completed
+  - "✗ Error generating diagram: {error}" - generation failed
+
+- **Generation node** (initial diagram creation in LangGraph):
   - "=== CLAUDE RESPONSE ===" - shows raw Claude output
   - "✓ Successfully parsed JSON directly" - direct parsing worked
   - "✗ Failed to parse JSON directly" - trying fallback extraction
@@ -598,7 +643,8 @@ When `diagram` prop changes in `DiagramCanvas.jsx`, the `useEffect` hook:
 - "API Response:" - full backend response
 - "Has diagram update?" - whether backend returned diagram
 - "DiagramCanvas received diagram" - what canvas is rendering
-- "Generation status: generating (23s elapsed)" - design doc polling progress
+- "Diagram generation: generating (Xs elapsed)" - diagram polling progress
+- "Generation status: generating (Xs elapsed)" - design doc polling progress
 
 Both servers have auto-reload enabled (`--reload` for backend, Vite HMR for frontend).
 
