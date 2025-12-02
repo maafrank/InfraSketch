@@ -274,6 +274,27 @@ export default function LandingPage({ onGenerate, loading }) {
           </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="landing-footer">
+        <div className="footer-content">
+          <div className="footer-brand">
+            <span className="footer-logo">InfraSketch</span>
+            <p className="footer-tagline">AI-powered system architecture design</p>
+          </div>
+          <div className="footer-links">
+            <a href="/about">About</a>
+            <a href="/careers">Careers</a>
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms of Service</a>
+            <a href="mailto:contact@infrasketch.net">Contact</a>
+          </div>
+          <div className="footer-bottom">
+            <p>&copy; 2025 InfraSketch. All rights reserved.</p>
+            <p className="footer-built-with">Built with Claude AI by Anthropic</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
