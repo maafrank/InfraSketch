@@ -24,6 +24,7 @@ from app.utils.diagram_export import generate_diagram_png, convert_markdown_to_p
 from app.utils.logger import (
     log_diagram_generation,
     log_chat_interaction,
+    log_design_doc_generation,
     log_export,
     log_event,
     log_error,
@@ -375,6 +376,7 @@ def _generate_diagram_background(session_id: str, prompt: str, model: str, user_
             prompt_length=len(prompt),
             duration_ms=duration_ms,
             user_ip=user_ip,
+            prompt=prompt,  # Include actual prompt for analytics
         )
 
         print(f"Generated diagram: {len(diagram.nodes)} nodes, {len(diagram.edges)} edges")
@@ -624,6 +626,7 @@ async def chat(request: ChatRequest, http_request: Request, background_tasks: Ba
             diagram_updated=diagram_updated,
             duration_ms=duration_ms,
             user_ip=user_ip,
+            message=request.message,  # Include actual message for analytics
         )
 
         # Generate session name in background if this was the first message
@@ -1554,17 +1557,18 @@ def _generate_design_doc_background(session_id: str, user_ip: str):
         session_manager.update_design_doc(session_id, markdown_content)
         session_manager.set_design_doc_status(session_id, "completed")
 
+        # Log design doc generation event
+        duration_ms = (time.time() - start_time) * 1000
+        log_design_doc_generation(
+            session_id=session_id,
+            duration_ms=duration_ms,
+            doc_length=len(markdown_content),
+            user_ip=user_ip,
+            success=True,
+        )
+
         print(f"Generated and stored design doc ({len(markdown_content)} chars)")
         print(f"========================================\n")
-
-        # Log event
-        duration_ms = (time.time() - start_time) * 1000
-        log_event(
-            EventType.EXPORT_DESIGN_DOC,
-            session_id=session_id,
-            user_ip=user_ip,
-            metadata={"format": "generate", "duration_ms": duration_ms, "success": True},
-        )
 
     except Exception as e:
         import traceback
@@ -1575,11 +1579,12 @@ def _generate_design_doc_background(session_id: str, user_ip: str):
         session_manager.set_design_doc_status(session_id, "failed", error=str(e))
 
         duration_ms = (time.time() - start_time) * 1000
-        log_event(
-            EventType.EXPORT_DESIGN_DOC,
+        log_design_doc_generation(
             session_id=session_id,
+            duration_ms=duration_ms,
+            doc_length=0,
             user_ip=user_ip,
-            metadata={"format": "generate", "duration_ms": duration_ms, "success": False, "error": str(e)},
+            success=False,
         )
 
 

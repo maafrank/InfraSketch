@@ -25,6 +25,7 @@ class EventType(str, Enum):
     NODE_UPDATED = "node_updated"
     EDGE_ADDED = "edge_added"
     EDGE_DELETED = "edge_deleted"
+    DESIGN_DOC_GENERATED = "design_doc_generated"
     EXPORT_DESIGN_DOC = "export_design_doc"
     SESSION_CREATED = "session_created"
     SESSION_RETRIEVED = "session_retrieved"
@@ -97,18 +98,24 @@ def log_diagram_generation(
     prompt_length: int,
     duration_ms: float,
     user_ip: Optional[str] = None,
+    prompt: Optional[str] = None,
 ) -> None:
     """Log diagram generation event with details"""
+    metadata = {
+        "node_count": node_count,
+        "edge_count": edge_count,
+        "prompt_length": prompt_length,
+        "duration_ms": round(duration_ms, 2),
+    }
+    # Store truncated prompt for analytics (first 500 chars)
+    if prompt:
+        metadata["prompt"] = prompt[:500] if len(prompt) > 500 else prompt
+
     log_event(
         EventType.DIAGRAM_GENERATED,
         session_id=session_id,
         user_ip=user_ip,
-        metadata={
-            "node_count": node_count,
-            "edge_count": edge_count,
-            "prompt_length": prompt_length,
-            "duration_ms": round(duration_ms, 2),
-        }
+        metadata=metadata
     )
 
 
@@ -119,17 +126,43 @@ def log_chat_interaction(
     diagram_updated: bool,
     duration_ms: float,
     user_ip: Optional[str] = None,
+    message: Optional[str] = None,
 ) -> None:
     """Log chat interaction event"""
+    metadata = {
+        "message_length": message_length,
+        "node_id": node_id,
+        "diagram_updated": diagram_updated,
+        "duration_ms": round(duration_ms, 2),
+    }
+    # Store truncated message for analytics (first 300 chars)
+    if message:
+        metadata["message"] = message[:300] if len(message) > 300 else message
+
     log_event(
         EventType.CHAT_MESSAGE,
         session_id=session_id,
         user_ip=user_ip,
+        metadata=metadata
+    )
+
+
+def log_design_doc_generation(
+    session_id: str,
+    duration_ms: float,
+    doc_length: int,
+    user_ip: Optional[str] = None,
+    success: bool = True,
+) -> None:
+    """Log design document generation event"""
+    log_event(
+        EventType.DESIGN_DOC_GENERATED,
+        session_id=session_id,
+        user_ip=user_ip,
         metadata={
-            "message_length": message_length,
-            "node_id": node_id,
-            "diagram_updated": diagram_updated,
             "duration_ms": round(duration_ms, 2),
+            "doc_length": doc_length,
+            "success": success,
         }
     )
 
