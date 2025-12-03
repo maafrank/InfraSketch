@@ -1,7 +1,21 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import '../App.css';
 
 export default function ContactPage() {
+  const [copied, setCopied] = useState(false);
+  const email = 'contact@infrasketch.net';
+
+  const handleCopyEmail = async () => {
+    try {
+      await navigator.clipboard.writeText(email);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy email:', err);
+    }
+  };
+
   return (
     <div className="legal-page">
       <div className="legal-header">
@@ -20,9 +34,9 @@ export default function ContactPage() {
           <div className="contact-card">
             <h2>Email</h2>
             <p>The best way to reach us is by email:</p>
-            <a href="mailto:contact@infrasketch.net" className="contact-email-link">
-              contact@infrasketch.net
-            </a>
+            <button onClick={handleCopyEmail} className="contact-email-link">
+              {copied ? 'Copied!' : email}
+            </button>
           </div>
         </section>
 

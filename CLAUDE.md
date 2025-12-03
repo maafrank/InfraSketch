@@ -537,7 +537,7 @@ Users can now select their preferred AI model at diagram generation time via a d
 
 **DynamoDB Implementation** (`session/dynamodb_storage.py`):
 - Table: `infrasketch-sessions` (pay-per-request billing)
-- TTL: Sessions expire after 24 hours
+- TTL: Sessions expire after 1 year
 - **Critical**: Converts Python `float` to `Decimal` before saving (DynamoDB requirement)
 - Shares sessions across all Lambda instances for async operations
 - Auto-creates table on first run if it doesn't exist
@@ -660,7 +660,7 @@ Both servers have auto-reload enabled (`--reload` for backend, Vite HMR for fron
   - Memory: 512 MB
   - Runtime: Python 3.11
   - IAM permissions: DynamoDB (GetItem, PutItem, UpdateItem, DeleteItem, CreateTable, TagResource), Lambda (InvokeFunction for self-invocation), Secrets Manager
-- Session Storage: DynamoDB table `infrasketch-sessions` (pay-per-request, 24hr TTL)
+- Session Storage: DynamoDB table `infrasketch-sessions` (pay-per-request, 1 year TTL)
 - Frontend: S3 + CloudFront (with access logging to S3)
 - Secrets: AWS Secrets Manager (ANTHROPIC_API_KEY)
 - Monitoring: CloudWatch Logs, Metrics, and Dashboard

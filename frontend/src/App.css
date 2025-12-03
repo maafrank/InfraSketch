@@ -813,8 +813,10 @@ body {
   margin-top: 1rem;
   padding: 0.875rem 2rem;
   background: var(--gradient-primary);
-  color: var(--text-inverse);
+  color: white;
   text-decoration: none;
+  border: none;
+  cursor: pointer;
   border-radius: 8px;
   font-weight: 600;
   font-size: 1.1rem;

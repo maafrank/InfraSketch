@@ -74,9 +74,9 @@ export default function PrivacyPolicy() {
             including encryption in transit and at rest.
           </p>
           <p>
-            <strong>Session Data Retention:</strong> Design sessions are automatically
-            deleted after 24 hours of inactivity. If you want to keep your designs
-            longer, please export them before this period expires.
+            <strong>Session Data Retention:</strong> Design sessions are retained for
+            up to 1 year. You can delete your sessions at any time from the session
+            history sidebar, or export them for permanent storage.
           </p>
         </section>
 
@@ -135,9 +135,9 @@ export default function PrivacyPolicy() {
         <section>
           <h2>Changes to This Policy</h2>
           <p>
-            We may update this Privacy Policy from time to time. We will notify you
-            of any changes by posting the new Privacy Policy on this page and updating
-            the "Last updated" date.
+            We may update this Privacy Policy from time to time. Any changes will
+            be posted on this page with an updated "Last updated" date. We encourage
+            you to review this page periodically for any changes.
           </p>
         </section>
 

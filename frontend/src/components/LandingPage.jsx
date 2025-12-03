@@ -291,7 +291,6 @@ export default function LandingPage({ onGenerate, loading }) {
           </div>
           <div className="footer-bottom">
             <p>&copy; 2025 InfraSketch. All rights reserved.</p>
-            <p className="footer-built-with">Built with Claude AI by Anthropic</p>
           </div>
         </div>
       </footer>
