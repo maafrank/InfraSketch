@@ -287,7 +287,7 @@ export default function LandingPage({ onGenerate, loading }) {
             <a href="/careers">Careers</a>
             <a href="/privacy">Privacy Policy</a>
             <a href="/terms">Terms of Service</a>
-            <a href="mailto:contact@infrasketch.net">Contact</a>
+            <a href="/contact">Contact</a>
           </div>
           <div className="footer-bottom">
             <p>&copy; 2025 InfraSketch. All rights reserved.</p>

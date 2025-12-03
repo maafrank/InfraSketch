@@ -10,6 +10,7 @@ import PrivacyPolicy from './components/PrivacyPolicy.jsx'
 import TermsOfService from './components/TermsOfService.jsx'
 import AboutPage from './components/AboutPage.jsx'
 import CareersPage from './components/CareersPage.jsx'
+import ContactPage from './components/ContactPage.jsx'
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
@@ -30,6 +31,7 @@ createRoot(document.getElementById('root')).render(
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/careers" element={<CareersPage />} />
+            <Route path="/contact" element={<ContactPage />} />
           </Routes>
         </BrowserRouter>
       </ThemeProvider>

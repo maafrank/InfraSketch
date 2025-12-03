@@ -790,6 +790,43 @@ body {
   margin: 0;
 }
 
+/* Contact Page Specific Styles */
+.contact-hero p {
+  font-size: 1.1rem;
+}
+
+.contact-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.contact-card h2 {
+  border-bottom: none;
+  margin-bottom: 0.5rem;
+}
+
+.contact-email-link {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.875rem 2rem;
+  background: var(--gradient-primary);
+  color: var(--text-inverse);
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.contact-email-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--shadow-brand);
+  text-decoration: none;
+}
+
 /* Old Input Panel - Keep for backwards compatibility */
 .input-panel {
   position: absolute;
