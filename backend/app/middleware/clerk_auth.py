@@ -53,6 +53,13 @@ class ClerkAuthMiddleware(BaseHTTPMiddleware):
         "/redoc",
     }
 
+    # Path prefixes that don't require authentication
+    PUBLIC_PATH_PREFIXES = [
+        "/api/unsubscribe/",  # Email unsubscribe links (token-based auth)
+        "/api/resubscribe/",  # Email re-subscribe links (token-based auth)
+        "/api/webhooks/",  # Webhook endpoints (use signature verification instead)
+    ]
+
     async def dispatch(self, request: Request, call_next):
         """
         Process each request and validate JWT token.
@@ -66,6 +73,11 @@ class ClerkAuthMiddleware(BaseHTTPMiddleware):
         # Skip auth for public endpoints
         if request.url.path in self.PUBLIC_PATHS:
             return await call_next(request)
+
+        # Skip auth for public path prefixes (like unsubscribe links)
+        for prefix in self.PUBLIC_PATH_PREFIXES:
+            if request.url.path.startswith(prefix):
+                return await call_next(request)
 
         # Skip auth for CORS preflight requests (OPTIONS method)
         if request.method == "OPTIONS":

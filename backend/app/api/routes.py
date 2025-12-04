@@ -1930,3 +1930,433 @@ async def get_user_sessions(http_request: Request):
             user_ip=http_request.client.host if http_request.client else None,
         )
         raise HTTPException(status_code=500, detail=f"Failed to retrieve sessions: {str(e)}")
+
+
+# =============================================================================
+# SUBSCRIPTION ENDPOINTS
+# =============================================================================
+
+from app.subscription.storage import get_subscriber_storage
+from app.subscription.models import SubscriptionStatus, SubscribeRequest
+from fastapi.responses import HTMLResponse
+
+
+@router.post("/subscribe", response_model=SubscriptionStatus)
+async def subscribe(request: SubscribeRequest, http_request: Request):
+    """
+    Subscribe a user to email notifications.
+    Creates a new subscriber record if one doesn't exist.
+    """
+    user_id = getattr(http_request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
+
+    try:
+        storage = get_subscriber_storage()
+        subscriber = storage.create_subscriber(user_id, request.email)
+
+        log_event(
+            EventType.API_REQUEST,
+            user_ip=http_request.client.host if http_request.client else None,
+            metadata={
+                "endpoint": "/subscribe",
+                "user_id": user_id,
+                "email": request.email[:3] + "***",  # Partially redact email
+            }
+        )
+
+        return SubscriptionStatus(subscribed=subscriber.subscribed, email=subscriber.email)
+
+    except Exception as e:
+        log_error(
+            error_type="subscribe_failed",
+            error_message=str(e),
+            user_ip=http_request.client.host if http_request.client else None,
+        )
+        raise HTTPException(status_code=500, detail=f"Failed to subscribe: {str(e)}")
+
+
+@router.get("/subscription/status", response_model=SubscriptionStatus)
+async def get_subscription_status(http_request: Request):
+    """
+    Get the current user's subscription status.
+    """
+    user_id = getattr(http_request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
+
+    try:
+        storage = get_subscriber_storage()
+        subscriber = storage.get_subscriber(user_id)
+
+        if not subscriber:
+            # User not subscribed yet - return default state
+            return SubscriptionStatus(subscribed=False, email="")
+
+        return SubscriptionStatus(subscribed=subscriber.subscribed, email=subscriber.email)
+
+    except Exception as e:
+        log_error(
+            error_type="get_subscription_status_failed",
+            error_message=str(e),
+            user_ip=http_request.client.host if http_request.client else None,
+        )
+        raise HTTPException(status_code=500, detail=f"Failed to get subscription status: {str(e)}")
+
+
+@router.post("/unsubscribe")
+async def unsubscribe_authenticated(http_request: Request):
+    """
+    Unsubscribe the current authenticated user from emails.
+    """
+    user_id = getattr(http_request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
+
+    try:
+        storage = get_subscriber_storage()
+        success = storage.unsubscribe(user_id)
+
+        if not success:
+            raise HTTPException(status_code=404, detail="Subscriber not found")
+
+        log_event(
+            EventType.API_REQUEST,
+            user_ip=http_request.client.host if http_request.client else None,
+            metadata={
+                "endpoint": "/unsubscribe",
+                "user_id": user_id,
+            }
+        )
+
+        return {"success": True, "message": "You have been unsubscribed from email notifications."}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        log_error(
+            error_type="unsubscribe_failed",
+            error_message=str(e),
+            user_ip=http_request.client.host if http_request.client else None,
+        )
+        raise HTTPException(status_code=500, detail=f"Failed to unsubscribe: {str(e)}")
+
+
+@router.get("/unsubscribe/{token}", response_class=HTMLResponse)
+async def unsubscribe_via_token(token: str, http_request: Request):
+    """
+    Public endpoint for unsubscribe links in emails.
+    No authentication required - the token IS the authentication.
+    Returns a simple HTML confirmation page.
+    """
+    try:
+        storage = get_subscriber_storage()
+        subscriber = storage.get_subscriber_by_token(token)
+
+        if not subscriber:
+            return HTMLResponse(
+                content="""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Unsubscribe - InfraSketch</title>
+                    <style>
+                        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                               max-width: 600px; margin: 50px auto; padding: 20px; text-align: center; }
+                        h1 { color: #dc2626; }
+                        p { color: #6b7280; }
+                        a { color: #2563eb; }
+                    </style>
+                </head>
+                <body>
+                    <h1>Invalid Link</h1>
+                    <p>This unsubscribe link is invalid or has expired.</p>
+                    <p><a href="https://infrasketch.net">Return to InfraSketch</a></p>
+                </body>
+                </html>
+                """,
+                status_code=404
+            )
+
+        # Perform unsubscribe
+        storage.unsubscribe(subscriber.user_id)
+
+        log_event(
+            EventType.API_REQUEST,
+            user_ip=http_request.client.host if http_request.client else None,
+            metadata={
+                "endpoint": "/unsubscribe/{token}",
+                "user_id": subscriber.user_id,
+            }
+        )
+
+        # Build re-subscribe URL with the same token
+        resubscribe_url = f"https://b31htlojb0.execute-api.us-east-1.amazonaws.com/prod/api/resubscribe/{token}"
+
+        return HTMLResponse(
+            content=f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Unsubscribed - InfraSketch</title>
+                <style>
+                    body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                           max-width: 600px; margin: 50px auto; padding: 20px; text-align: center; }}
+                    h1 {{ color: #10b981; }}
+                    p {{ color: #6b7280; }}
+                    a {{ color: #2563eb; }}
+                    .emoji {{ font-size: 48px; margin-bottom: 20px; }}
+                    .resubscribe-btn {{
+                        display: inline-block;
+                        background-color: #2563eb;
+                        color: white !important;
+                        padding: 12px 24px;
+                        border-radius: 6px;
+                        text-decoration: none;
+                        margin: 20px 0;
+                        font-weight: 500;
+                    }}
+                    .resubscribe-btn:hover {{ background-color: #1d4ed8; }}
+                </style>
+            </head>
+            <body>
+                <div class="emoji">✅</div>
+                <h1>You've Been Unsubscribed</h1>
+                <p>You will no longer receive feature announcement emails from InfraSketch.</p>
+                <p>Changed your mind?</p>
+                <a href="{resubscribe_url}" class="resubscribe-btn">Re-subscribe</a>
+                <p><a href="https://infrasketch.net">Return to InfraSketch</a></p>
+            </body>
+            </html>
+            """,
+            status_code=200
+        )
+
+    except Exception as e:
+        log_error(
+            error_type="unsubscribe_via_token_failed",
+            error_message=str(e),
+            user_ip=http_request.client.host if http_request.client else None,
+        )
+        return HTMLResponse(
+            content="""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Error - InfraSketch</title>
+                <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                           max-width: 600px; margin: 50px auto; padding: 20px; text-align: center; }
+                    h1 { color: #dc2626; }
+                    p { color: #6b7280; }
+                    a { color: #2563eb; }
+                </style>
+            </head>
+            <body>
+                <h1>Something Went Wrong</h1>
+                <p>We couldn't process your unsubscribe request. Please try again later.</p>
+                <p><a href="https://infrasketch.net">Return to InfraSketch</a></p>
+            </body>
+            </html>
+            """,
+            status_code=500
+        )
+
+
+@router.get("/resubscribe/{token}", response_class=HTMLResponse)
+async def resubscribe_via_token(token: str, http_request: Request):
+    """
+    Public endpoint for re-subscribe links.
+    No authentication required - the token IS the authentication.
+    Returns a simple HTML confirmation page.
+    """
+    try:
+        storage = get_subscriber_storage()
+        subscriber = storage.get_subscriber_by_token(token)
+
+        if not subscriber:
+            return HTMLResponse(
+                content="""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Re-subscribe - InfraSketch</title>
+                    <style>
+                        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                               max-width: 600px; margin: 50px auto; padding: 20px; text-align: center; }
+                        h1 { color: #dc2626; }
+                        p { color: #6b7280; }
+                        a { color: #2563eb; }
+                    </style>
+                </head>
+                <body>
+                    <h1>Invalid Link</h1>
+                    <p>This re-subscribe link is invalid or has expired.</p>
+                    <p><a href="https://infrasketch.net">Return to InfraSketch</a></p>
+                </body>
+                </html>
+                """,
+                status_code=404
+            )
+
+        # Perform re-subscribe
+        storage.resubscribe(subscriber.user_id)
+
+        log_event(
+            EventType.API_REQUEST,
+            user_ip=http_request.client.host if http_request.client else None,
+            metadata={
+                "endpoint": "/resubscribe/{token}",
+                "user_id": subscriber.user_id,
+            }
+        )
+
+        # Build unsubscribe URL in case they want to undo
+        unsubscribe_url = f"https://b31htlojb0.execute-api.us-east-1.amazonaws.com/prod/api/unsubscribe/{token}"
+
+        return HTMLResponse(
+            content=f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Re-subscribed - InfraSketch</title>
+                <style>
+                    body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                           max-width: 600px; margin: 50px auto; padding: 20px; text-align: center; }}
+                    h1 {{ color: #10b981; }}
+                    p {{ color: #6b7280; }}
+                    a {{ color: #2563eb; }}
+                    .emoji {{ font-size: 48px; margin-bottom: 20px; }}
+                </style>
+            </head>
+            <body>
+                <div class="emoji">🎉</div>
+                <h1>You're Re-subscribed!</h1>
+                <p>You'll now receive feature announcement emails from InfraSketch.</p>
+                <p>Changed your mind? <a href="{unsubscribe_url}">Unsubscribe again</a></p>
+                <p><a href="https://infrasketch.net">Return to InfraSketch</a></p>
+            </body>
+            </html>
+            """,
+            status_code=200
+        )
+
+    except Exception as e:
+        log_error(
+            error_type="resubscribe_via_token_failed",
+            error_message=str(e),
+            user_ip=http_request.client.host if http_request.client else None,
+        )
+        return HTMLResponse(
+            content="""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Error - InfraSketch</title>
+                <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                           max-width: 600px; margin: 50px auto; padding: 20px; text-align: center; }
+                    h1 { color: #dc2626; }
+                    p { color: #6b7280; }
+                    a { color: #2563eb; }
+                </style>
+            </head>
+            <body>
+                <h1>Something Went Wrong</h1>
+                <p>We couldn't process your re-subscribe request. Please try again later.</p>
+                <p><a href="https://infrasketch.net">Return to InfraSketch</a></p>
+            </body>
+            </html>
+            """,
+            status_code=500
+        )
+
+
+# =============================================================================
+# Webhook Endpoints
+# =============================================================================
+
+@router.post("/webhooks/clerk")
+async def clerk_webhook(request: Request):
+    """
+    Handle Clerk webhook events.
+    Automatically subscribes new users to email list on signup.
+
+    Clerk webhooks use Svix for delivery and signature verification.
+    The signing secret is used to verify that requests are authentic.
+    """
+    import os
+    from svix.webhooks import Webhook, WebhookVerificationError
+
+    # Get raw body (required for signature verification - must be exact bytes)
+    payload = await request.body()
+    headers = dict(request.headers)
+
+    # Get webhook secret from environment
+    webhook_secret = os.getenv("CLERK_WEBHOOK_SECRET")
+    if not webhook_secret:
+        log_error(
+            error_type="webhook_config_error",
+            error_message="CLERK_WEBHOOK_SECRET not configured",
+        )
+        raise HTTPException(status_code=500, detail="Webhook secret not configured")
+
+    # Verify webhook signature using Svix
+    try:
+        wh = Webhook(webhook_secret)
+        event = wh.verify(payload, headers)
+    except WebhookVerificationError as e:
+        log_error(
+            error_type="webhook_verification_failed",
+            error_message=str(e),
+            user_ip=request.client.host if request.client else None,
+        )
+        raise HTTPException(status_code=400, detail="Invalid webhook signature")
+
+    # Handle user.created event
+    event_type = event.get("type")
+
+    if event_type == "user.created":
+        user_data = event.get("data", {})
+        user_id = user_data.get("id")
+
+        # Extract primary email address
+        primary_email_id = user_data.get("primary_email_address_id")
+        email = None
+        for email_obj in user_data.get("email_addresses", []):
+            if email_obj.get("id") == primary_email_id:
+                email = email_obj.get("email_address")
+                break
+
+        # Fallback to first email if no primary designated
+        if not email:
+            email_addresses = user_data.get("email_addresses", [])
+            if email_addresses:
+                email = email_addresses[0].get("email_address")
+
+        if user_id and email:
+            try:
+                storage = get_subscriber_storage()
+                subscriber = storage.create_subscriber(user_id, email)
+
+                log_event(
+                    EventType.API_REQUEST,
+                    user_ip=request.client.host if request.client else None,
+                    metadata={
+                        "endpoint": "/webhooks/clerk",
+                        "event_type": "user.created",
+                        "user_id": user_id,
+                        "new_subscriber": subscriber.created_at == subscriber.updated_at,
+                    }
+                )
+            except Exception as e:
+                log_error(
+                    error_type="webhook_subscriber_creation_failed",
+                    error_message=str(e),
+                    metadata={"user_id": user_id},
+                )
+                # Don't fail the webhook - Clerk would retry
+
+    # Always return success to acknowledge receipt
+    # (even if we didn't process the event type)
+    return {"status": "received", "type": event_type}
