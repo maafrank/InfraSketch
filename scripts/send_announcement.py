@@ -16,7 +16,8 @@ Usage:
     python scripts/send_announcement.py announcements/my-feature.html --production
 
 Requirements:
-    - AWS credentials configured for SES and DynamoDB access
+    - RESEND_API_KEY environment variable set
+    - AWS credentials configured for DynamoDB access (subscriber storage)
     - HTML file must exist and contain valid email HTML
     - HTML file should have a <title> tag (used as email subject)
 """
@@ -30,8 +31,14 @@ import webbrowser
 from datetime import datetime
 from pathlib import Path
 
-import boto3
-from botocore.exceptions import ClientError
+import resend
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
+
+# Initialize Resend API key early
+resend.api_key = os.environ.get("RESEND_API_KEY")
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
@@ -87,30 +94,19 @@ def inject_test_banner(html_content: str, original_email: str) -> str:
     return html_content
 
 
-def send_email(ses_client, to_email: str, subject: str, html_content: str) -> bool:
-    """Send an email via AWS SES."""
+def send_email(to_email: str, subject: str, html_content: str) -> bool:
+    """Send an email via Resend API."""
     try:
-        response = ses_client.send_email(
-            Source=f"{SENDER_NAME} <{SENDER_EMAIL}>",
-            Destination={
-                'ToAddresses': [to_email]
-            },
-            Message={
-                'Subject': {
-                    'Data': subject,
-                    'Charset': 'UTF-8'
-                },
-                'Body': {
-                    'Html': {
-                        'Data': html_content,
-                        'Charset': 'UTF-8'
-                    }
-                }
-            }
-        )
+        response = resend.Emails.send({
+            "from": f"{SENDER_NAME} <{SENDER_EMAIL}>",
+            "to": [to_email],
+            "subject": subject,
+            "html": html_content,
+            "reply_to": SENDER_EMAIL
+        })
         return True
-    except ClientError as e:
-        print(f"   ERROR sending to {to_email}: {e.response['Error']['Message']}")
+    except Exception as e:
+        print(f"   ERROR sending to {to_email}: {e}")
         return False
 
 
@@ -264,8 +260,11 @@ def main():
         print(f"All emails will be sent to: {TEST_RECIPIENT}")
         print(f"Would send to {len(recipients)} subscribers in production")
 
-    # Initialize SES client
-    ses = boto3.client('ses', region_name='us-east-1')
+    # Verify Resend API key is set
+    if not resend.api_key:
+        print("\nERROR: RESEND_API_KEY environment variable not set.")
+        print("Set it in your .env file or export it: export RESEND_API_KEY=re_...")
+        sys.exit(1)
 
     # Send emails
     print("\nSending emails...")
@@ -290,7 +289,7 @@ def main():
             to_email = subscriber.email
             final_subject = subject
 
-        success = send_email(ses, to_email, final_subject, personalized_html)
+        success = send_email(to_email, final_subject, personalized_html)
 
         if success:
             print(f"   ✓ Sent to {to_email}" + (f" (originally for {subscriber.email})" if mode == "TEST" else ""))

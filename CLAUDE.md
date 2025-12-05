@@ -1164,3 +1164,47 @@ aws lambda invoke \
 - Open Graph tags for Facebook/LinkedIn sharing
 - Twitter Card tags for Twitter sharing
 - Schema.org JSON-LD for: WebSite, SoftwareApplication, Organization
+
+## Email Subscriptions & Announcements
+
+**Email Provider:** Resend (infrasketch.net domain verified)
+
+**Subscriber Storage:**
+- DynamoDB table: `infrasketch-subscribers`
+- Auto-subscribe on Clerk account creation via webhook
+- Unsubscribe via token-based links in emails
+
+**Backend Components:**
+- `backend/app/subscription/models.py` - Subscriber Pydantic models
+- `backend/app/subscription/storage.py` - DynamoDB subscriber storage with token-based lookups
+
+**API Endpoints:**
+- `POST /api/subscribe` - Subscribe authenticated user
+- `GET /api/subscription/status` - Check subscription status
+- `POST /api/unsubscribe` - Unsubscribe authenticated user
+- `GET /api/unsubscribe/{token}` - Unsubscribe via email link (public, returns HTML)
+- `GET /api/resubscribe/{token}` - Re-subscribe via email link (public, returns HTML)
+
+**Sending Announcements:**
+```bash
+# Preview in browser (no emails sent)
+python scripts/send_announcement.py announcements/my-feature.html --preview
+
+# Test mode (sends to mattafrank2439@gmail.com only)
+python scripts/send_announcement.py announcements/my-feature.html
+
+# Send to specific subscriber
+python scripts/send_announcement.py announcements/my-feature.html --to user@example.com
+
+# Production (sends to ALL subscribers - requires confirmation)
+python scripts/send_announcement.py announcements/my-feature.html --production
+```
+
+**Email Templates:**
+- Location: `/announcements/` directory
+- Template: `template.html` - Copy and customize for new announcements
+- Subject: Extracted from HTML `<title>` tag
+- Placeholder: `{{UNSUBSCRIBE_URL}}` - Auto-replaced with subscriber's token link
+
+**Environment Variables:**
+- `RESEND_API_KEY` - Required for sending (in `.env`)

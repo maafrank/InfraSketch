@@ -16,3 +16,4 @@ markdown2==2.5.0  # For markdown to HTML conversion
 weasyprint==62.3  # For PDF generation (requires: brew install pango)
 reportlab==4.2.5  # Alternative PDF generation (no system dependencies)
 svix==1.45.0  # Clerk webhook signature verification (pinned for pydantic 2.9 compat)
+resend==2.6.0  # Email sending via Resend API
