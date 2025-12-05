@@ -1,6 +1,24 @@
 {
   "posts": [
     {
+      "slug": "infrasketch-demo-video",
+      "title": "Watch: Design System Architecture in 3 Minutes with InfraSketch",
+      "description": "See InfraSketch in action - a quick demo showing how to generate complete system architecture diagrams from natural language.",
+      "date": "2025-01-20",
+      "author": "Matt Frank",
+      "readingTime": "3 min read",
+      "image": "/og-image.png"
+    },
+    {
+      "slug": "ai-tools-senior-engineer-promotion",
+      "title": "How AI Tools Can Accelerate Your Engineering Career",
+      "description": "Learn how leveraging AI-powered development tools like InfraSketch can help you level up as an engineer and advance your career.",
+      "date": "2025-01-18",
+      "author": "Matt Frank",
+      "readingTime": "5 min read",
+      "image": "/og-image.png"
+    },
+    {
       "slug": "what-is-system-design",
       "title": "What is System Design? A Complete Beginner's Guide",
       "description": "Learn the fundamentals of system design, why it matters, and how to approach designing scalable distributed systems.",

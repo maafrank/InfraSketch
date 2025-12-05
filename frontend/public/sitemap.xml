@@ -18,6 +18,16 @@
     <changefreq>weekly</changefreq>
   </url>
   <url>
+    <loc>https://infrasketch.net/blog/infrasketch-demo-video</loc>
+    <lastmod>2025-01-20</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://infrasketch.net/blog/ai-tools-senior-engineer-promotion</loc>
+    <lastmod>2025-01-18</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://infrasketch.net/blog/what-is-system-design</loc>
     <lastmod>2025-01-15</lastmod>
     <priority>0.8</priority>
