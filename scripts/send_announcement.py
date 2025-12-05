@@ -9,6 +9,9 @@ Usage:
     # Test mode (default) - sends to mattafrank2439@gmail.com only
     python scripts/send_announcement.py announcements/my-feature.html
 
+    # Send to a specific subscriber email
+    python scripts/send_announcement.py announcements/my-feature.html --to user@example.com
+
     # Production - sends to ALL subscribed users
     python scripts/send_announcement.py announcements/my-feature.html --production
 
@@ -179,6 +182,12 @@ def main():
         action='store_true',
         help='Send to ALL subscribed users (requires explicit flag for safety)'
     )
+    parser.add_argument(
+        '--to',
+        type=str,
+        metavar='EMAIL',
+        help='Send to a specific subscriber email address (must be in subscriber list)'
+    )
 
     args = parser.parse_args()
 
@@ -226,7 +235,19 @@ def main():
         return
 
     # Determine mode
-    if args.production:
+    if args.to:
+        # Send to a specific subscriber
+        mode = "TARGETED"
+        target_email = args.to.lower().strip()
+        matching = [s for s in subscribers if s.email.lower() == target_email]
+        if not matching:
+            print(f"\nERROR: Email '{args.to}' not found in subscriber list.")
+            print("Make sure the email is subscribed before sending.")
+            sys.exit(1)
+        recipients = matching
+        print(f"\nMode: {mode}")
+        print(f"Will send to: {recipients[0].email}")
+    elif args.production:
         mode = "PRODUCTION"
         recipients = subscribers
         print(f"\nMode: {mode}")
@@ -259,12 +280,17 @@ def main():
             # In test mode, send to test recipient with banner showing original
             personalized_html = inject_test_banner(personalized_html, subscriber.email)
             to_email = TEST_RECIPIENT
-            test_subject = f"[TEST] {subject}"
-        else:
+            final_subject = f"[TEST] {subject}"
+        elif mode == "TARGETED":
+            # Targeted mode: send directly to the specified subscriber
             to_email = subscriber.email
-            test_subject = subject
+            final_subject = subject
+        else:
+            # Production mode
+            to_email = subscriber.email
+            final_subject = subject
 
-        success = send_email(ses, to_email, test_subject, personalized_html)
+        success = send_email(ses, to_email, final_subject, personalized_html)
 
         if success:
             print(f"   ✓ Sent to {to_email}" + (f" (originally for {subscriber.email})" if mode == "TEST" else ""))
