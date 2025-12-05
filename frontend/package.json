@@ -24,6 +24,7 @@
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.9.6",
     "reactflow": "^11.11.4",
+    "remark-gfm": "^4.0.1",
     "turndown": "^7.2.2"
   },
   "devDependencies": {
