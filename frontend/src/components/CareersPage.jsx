@@ -1,9 +1,24 @@
 import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import '../App.css';
 
 export default function CareersPage() {
   return (
     <div className="legal-page">
+      <Helmet>
+        <title>Careers at InfraSketch | Join Our Team</title>
+        <meta name="description" content="Join InfraSketch and help build the future of AI-powered system design. View open positions and learn about our culture." />
+        <link rel="canonical" href="https://infrasketch.net/careers" />
+
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Careers at InfraSketch" />
+        <meta property="og:description" content="Join InfraSketch and help build the future of AI-powered system design." />
+        <meta property="og:url" content="https://infrasketch.net/careers" />
+
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Careers at InfraSketch" />
+      </Helmet>
+
       <div className="legal-header">
         <Link to="/" className="legal-back-link">&larr; Back to InfraSketch</Link>
         <h1>Careers</h1>

@@ -1,9 +1,17 @@
 import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import '../App.css';
 
 export default function TermsOfService() {
   return (
     <div className="legal-page">
+      <Helmet>
+        <title>Terms of Service | InfraSketch</title>
+        <meta name="description" content="InfraSketch terms of service. Read our terms and conditions for using the AI-powered system design tool." />
+        <link rel="canonical" href="https://infrasketch.net/terms" />
+        <meta name="robots" content="noindex, follow" />
+      </Helmet>
+
       <div className="legal-header">
         <Link to="/" className="legal-back-link">&larr; Back to InfraSketch</Link>
         <h1>Terms of Service</h1>

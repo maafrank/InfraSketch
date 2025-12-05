@@ -1137,3 +1137,30 @@ aws lambda invoke \
 - Local development allows localhost:5173
 - No wildcard origins in production
 - Credentials enabled for authenticated origins
+
+## Blog & SEO
+
+**Blog System:**
+- Routes: `/blog` (listing) and `/blog/:slug` (individual posts)
+- Content storage: Static markdown files in `/frontend/public/blog/posts/`
+- Metadata: `/frontend/public/blog/posts/index.json` contains post slugs, titles, descriptions, dates
+- Components: `BlogListPage.jsx`, `BlogPostPage.jsx`
+- Rendering: Uses `react-markdown` for markdown content
+
+**Adding a New Blog Post:**
+1. Create markdown file: `/frontend/public/blog/posts/your-slug.md`
+2. Add entry to `/frontend/public/blog/posts/index.json`
+3. Add URL to `/frontend/public/sitemap.xml`
+4. Deploy: `./deploy-frontend.sh`
+
+**SEO Files (in `/frontend/public/`):**
+- `llms.txt` - AI crawler guidance (emerging standard for LLM discoverability)
+- `robots.txt` - Search engine rules with sitemap reference
+- `sitemap.xml` - Site structure for search engines
+- `og-image.png` - Social sharing image (1200x630 recommended)
+
+**Meta Tags & Structured Data:**
+- SEO meta tags in `/frontend/index.html` (title, description, keywords)
+- Open Graph tags for Facebook/LinkedIn sharing
+- Twitter Card tags for Twitter sharing
+- Schema.org JSON-LD for: WebSite, SoftwareApplication, Organization

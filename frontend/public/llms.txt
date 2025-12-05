@@ -1,0 +1,38 @@
+# InfraSketch
+
+> AI-powered system design tool that generates architecture diagrams from natural language
+
+## What is InfraSketch?
+InfraSketch is a free AI-powered tool that transforms plain English descriptions into professional system architecture diagrams. Built for software engineers, startup founders, students, and anyone who needs to visualize distributed systems.
+
+## Key Features
+- Natural language to architecture diagram generation
+- Conversational refinement - click any component to ask questions or request changes
+- Auto-generated technical design documents
+- Export to PNG, PDF, or Markdown
+- Session history and real-time collaboration
+- Powered by Claude AI (Anthropic)
+
+## Use Cases
+- System design interview preparation
+- Technical documentation for teams
+- Architecture planning and iteration
+- Cloud infrastructure visualization
+- Microservices design
+- Educational learning about distributed systems
+
+## Example Prompts
+- "Build a scalable video streaming platform with CDN, transcoding, and recommendations"
+- "Design a microservices e-commerce platform with payment processing and inventory"
+- "Create a real-time chat application with WebSocket and message queues"
+
+## Technology Stack
+- Frontend: React, React Flow, Vite
+- Backend: FastAPI, LangGraph, Python
+- AI: Claude by Anthropic
+- Infrastructure: AWS Lambda, DynamoDB, CloudFront
+
+## Links
+- Website: https://infrasketch.net
+- About: https://infrasketch.net/about
+- Blog: https://infrasketch.net/blog

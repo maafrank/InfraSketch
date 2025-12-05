@@ -1,9 +1,17 @@
 import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import '../App.css';
 
 export default function PrivacyPolicy() {
   return (
     <div className="legal-page">
+      <Helmet>
+        <title>Privacy Policy | InfraSketch</title>
+        <meta name="description" content="InfraSketch privacy policy. Learn how we collect, use, and protect your data when using our AI-powered system design tool." />
+        <link rel="canonical" href="https://infrasketch.net/privacy" />
+        <meta name="robots" content="noindex, follow" />
+      </Helmet>
+
       <div className="legal-header">
         <Link to="/" className="legal-back-link">&larr; Back to InfraSketch</Link>
         <h1>Privacy Policy</h1>

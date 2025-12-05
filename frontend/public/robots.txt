@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /session/
+Disallow: /history
+
+Sitemap: https://infrasketch.net/sitemap.xml

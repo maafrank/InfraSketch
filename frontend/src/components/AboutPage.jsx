@@ -1,9 +1,26 @@
 import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import '../App.css';
 
 export default function AboutPage() {
   return (
     <div className="legal-page about-page">
+      <Helmet>
+        <title>About InfraSketch | AI-Powered System Design Tool</title>
+        <meta name="description" content="Learn how InfraSketch transforms plain English descriptions into professional system architecture diagrams using AI. Built with Claude AI, React, and AWS." />
+        <link rel="canonical" href="https://infrasketch.net/about" />
+
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="About InfraSketch | AI-Powered System Design Tool" />
+        <meta property="og:description" content="Learn how InfraSketch transforms plain English descriptions into professional system architecture diagrams using AI." />
+        <meta property="og:url" content="https://infrasketch.net/about" />
+        <meta property="og:image" content="https://infrasketch.net/og-image.png" />
+
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="About InfraSketch | AI-Powered System Design Tool" />
+        <meta name="twitter:description" content="Learn how InfraSketch transforms plain English descriptions into professional system architecture diagrams using AI." />
+      </Helmet>
+
       <div className="legal-header">
         <Link to="/" className="legal-back-link">&larr; Back to InfraSketch</Link>
         <h1>About InfraSketch</h1>

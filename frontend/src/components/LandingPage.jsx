@@ -284,6 +284,7 @@ export default function LandingPage({ onGenerate, loading }) {
           </div>
           <div className="footer-links">
             <a href="/about">About</a>
+            <a href="/blog">Blog</a>
             <a href="/careers">Careers</a>
             <a href="/privacy">Privacy Policy</a>
             <a href="/terms">Terms of Service</a>

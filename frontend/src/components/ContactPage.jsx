@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import '../App.css';
 
 export default function ContactPage() {
@@ -18,6 +19,20 @@ export default function ContactPage() {
 
   return (
     <div className="legal-page">
+      <Helmet>
+        <title>Contact Us | InfraSketch</title>
+        <meta name="description" content="Get in touch with the InfraSketch team. We'd love to hear your questions, feedback, or feature requests." />
+        <link rel="canonical" href="https://infrasketch.net/contact" />
+
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Contact Us | InfraSketch" />
+        <meta property="og:description" content="Get in touch with the InfraSketch team. We'd love to hear your questions, feedback, or feature requests." />
+        <meta property="og:url" content="https://infrasketch.net/contact" />
+
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Contact Us | InfraSketch" />
+      </Helmet>
+
       <div className="legal-header">
         <Link to="/" className="legal-back-link">&larr; Back to InfraSketch</Link>
         <h1>Contact Us</h1>
