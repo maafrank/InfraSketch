@@ -120,7 +120,7 @@ export default function BlogListPage() {
             </a>
 
             <a
-              href="https://www.youtube.com/watch?v=ZsQBokdsSMI"
+              href="https://www.youtube.com/watch?v=bwbsVEoLoP4"
               target="_blank"
               rel="noopener noreferrer"
               className="featured-card"
