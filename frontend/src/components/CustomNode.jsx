@@ -81,7 +81,7 @@ export default function CustomNode({ data, id }) {
           onClick={handleRegroup}
           title="Collapse group"
         >
-          📦
+          ▼
         </button>
       )}
 
