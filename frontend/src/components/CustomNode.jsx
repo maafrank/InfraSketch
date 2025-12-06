@@ -75,7 +75,7 @@ export default function CustomNode({ data, id }) {
       </div>
       <Handle type="source" position={Position.Bottom} />
 
-      {hasParent && (
+      {hasParent && isHovered && (
         <button
           className="regroup-button"
           onClick={handleRegroup}
