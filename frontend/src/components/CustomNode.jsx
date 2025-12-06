@@ -91,7 +91,7 @@ export default function CustomNode({ data, id }) {
           onClick={handleDelete}
           title="Delete node"
         >
-          🗑️
+          ×
         </button>
       )}
 
