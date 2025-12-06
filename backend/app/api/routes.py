@@ -1159,49 +1159,9 @@ async def create_node_group(
     # Add group node to diagram
     session.diagram.nodes.append(group_node)
 
-    # Inherit edges: redirect external edges to/from children through the group node
-    child_node_ids_set = set(child_node_ids)
-    new_edges = []
-    edges_to_remove = []
-
-    for edge in session.diagram.edges:
-        is_internal = edge.source in child_node_ids_set and edge.target in child_node_ids_set
-
-        if is_internal:
-            # Internal edge between children - keep as is (will be hidden when collapsed)
-            continue
-
-        # External edge - redirect through group
-        if edge.source in child_node_ids_set:
-            # Outgoing edge from a child - redirect from group
-            edges_to_remove.append(edge.id)
-            new_edge_id = f"{group_id}-to-{edge.target}"
-            # Check if this edge already exists (avoid duplicates)
-            if not any(e.id == new_edge_id for e in session.diagram.edges) and not any(e.id == new_edge_id for e in new_edges):
-                new_edges.append(Edge(
-                    id=new_edge_id,
-                    source=group_id,
-                    target=edge.target,
-                    label=edge.label,
-                    type=edge.type
-                ))
-        elif edge.target in child_node_ids_set:
-            # Incoming edge to a child - redirect to group
-            edges_to_remove.append(edge.id)
-            new_edge_id = f"{edge.source}-to-{group_id}"
-            # Check if this edge already exists (avoid duplicates)
-            if not any(e.id == new_edge_id for e in session.diagram.edges) and not any(e.id == new_edge_id for e in new_edges):
-                new_edges.append(Edge(
-                    id=new_edge_id,
-                    source=edge.source,
-                    target=group_id,
-                    label=edge.label,
-                    type=edge.type
-                ))
-
-    # Remove old edges and add new ones
-    session.diagram.edges = [e for e in session.diagram.edges if e.id not in edges_to_remove]
-    session.diagram.edges.extend(new_edges)
+    # Note: We keep all original edges intact. The frontend dynamically re-routes
+    # edges through collapsed groups during rendering (DiagramCanvas.jsx).
+    # This ensures edges are preserved when groups are expanded.
 
     # Persist to storage
     session_manager.update_diagram(session_id, session.diagram)

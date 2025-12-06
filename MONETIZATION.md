@@ -463,7 +463,7 @@ CREATE TABLE transactions (
 - [ ] Need to add database migrations system (Alembic?)
 - [ ] Consider Redis for session caching (performance)
 - [ ] Add retry logic for Stripe webhook failures
-- [ ] Implement email service (SendGrid?) for receipts
+- [x] Implement email service (Resend) for receipts and announcements
 - [ ] Add analytics (PostHog? Mixpanel?)
 - [ ] Set up error monitoring (Sentry?)
 - [ ] Create admin dashboard to manage users/credits
