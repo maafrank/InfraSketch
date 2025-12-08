@@ -18,10 +18,13 @@ OUTPUT_DIR = os.path.join(PROJECT_ROOT, "assets", "logos")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
-def find_logo_bounds(img, threshold=240):
+def find_logo_bounds(img, threshold=230):
     """
     Find the bounding box of the logo (non-white pixels).
     Returns (left, top, right, bottom) of the logo area.
+
+    Note: Uses threshold=230 to avoid detecting textured/off-white backgrounds
+    (which can have pixel values around 248-252).
     """
     # Convert to numpy array
     arr = np.array(img.convert("RGB"))
@@ -43,10 +46,10 @@ def find_logo_bounds(img, threshold=240):
     return int(left), int(top), int(right), int(bottom)
 
 
-def smart_crop_256(img, padding=3):
+def smart_crop_256(img, padding=10):
     """
-    Create a 256x256 crop centered on the logo with padding.
-    Scales down if logo + padding > 256px.
+    Create a 256x256 image with the logo cropped tightly and scaled to fill.
+    Crops to a square around the logo, then resizes to 256x256.
     """
     left, top, right, bottom = find_logo_bounds(img)
 
@@ -59,62 +62,40 @@ def smart_crop_256(img, padding=3):
     logo_width = right - left
     logo_height = bottom - top
 
-    # Calculate the size needed
+    # Make square by expanding to the larger dimension
     max_dim = max(logo_width, logo_height)
 
-    if max_dim > 256:
-        # Need to scale down - crop the logo area first, then resize
-        cropped = img.crop((left, top, right, bottom))
-        # Calculate scale to fit in 256x256
-        scale = 256 / max_dim
-        new_width = int(logo_width * scale)
-        new_height = int(logo_height * scale)
-        scaled = cropped.resize((new_width, new_height), Image.Resampling.LANCZOS)
+    # Calculate center of logo area
+    center_x = (left + right) // 2
+    center_y = (top + bottom) // 2
 
-        # Create 256x256 canvas with white background
-        result = Image.new("RGB", (256, 256), (255, 255, 255))
-        # Center the scaled logo
-        paste_x = (256 - new_width) // 2
-        paste_y = (256 - new_height) // 2
-        result.paste(scaled, (paste_x, paste_y))
-        return result
+    # Calculate square bounds centered on logo
+    half_size = max_dim // 2
+    sq_left = center_x - half_size
+    sq_top = center_y - half_size
+    sq_right = center_x + half_size + (max_dim % 2)  # Handle odd sizes
+    sq_bottom = center_y + half_size + (max_dim % 2)
+
+    # Check if square is within image bounds
+    if sq_left >= 0 and sq_top >= 0 and sq_right <= img.width and sq_bottom <= img.height:
+        # Can crop directly from image
+        cropped = img.crop((sq_left, sq_top, sq_right, sq_bottom))
     else:
-        # Logo fits in 256x256, just need to center it
-        # Calculate center of logo
-        center_x = (left + right) // 2
-        center_y = (top + bottom) // 2
+        # Need to create a canvas and paste the logo area
+        # First crop the padded logo area
+        logo_crop = img.crop((left, top, right, bottom))
 
-        # Calculate crop bounds for 256x256 centered on logo
-        crop_left = center_x - 128
-        crop_top = center_y - 128
-        crop_right = center_x + 128
-        crop_bottom = center_y + 128
+        # Create square canvas with white background
+        result = Image.new("RGB", (max_dim, max_dim), (255, 255, 255))
 
-        # Adjust if out of bounds
-        if crop_left < 0:
-            crop_right -= crop_left
-            crop_left = 0
-        if crop_top < 0:
-            crop_bottom -= crop_top
-            crop_top = 0
-        if crop_right > img.width:
-            crop_left -= (crop_right - img.width)
-            crop_right = img.width
-        if crop_bottom > img.height:
-            crop_top -= (crop_bottom - img.height)
-            crop_bottom = img.height
+        # Center the logo crop on the canvas
+        paste_x = (max_dim - logo_width) // 2
+        paste_y = (max_dim - logo_height) // 2
+        result.paste(logo_crop, (paste_x, paste_y))
+        cropped = result
 
-        # If still out of bounds, create a padded canvas
-        if crop_left < 0 or crop_top < 0 or crop_right > img.width or crop_bottom > img.height:
-            # Create white canvas and paste centered logo
-            result = Image.new("RGB", (256, 256), (255, 255, 255))
-            logo_crop = img.crop((left, top, right, bottom))
-            paste_x = (256 - logo_width) // 2
-            paste_y = (256 - logo_height) // 2
-            result.paste(logo_crop, (paste_x, paste_y))
-            return result
-
-        return img.crop((crop_left, crop_top, crop_right, crop_bottom))
+    # Resize to 256x256
+    return cropped.resize((256, 256), Image.Resampling.LANCZOS)
 
 
 def invert_colors(img):
@@ -173,51 +154,51 @@ def main():
     print(f"Logo bounds: ({left}, {top}) to ({right}, {bottom})")
     print(f"Logo size: {right - left}x{bottom - top}")
 
-    # 1. Original (full size, white background)
+    # 1. Original (full size, white background) -> _02
     original = img.convert("RGB")
-    original_path = os.path.join(OUTPUT_DIR, "InfraSketchLogo_01.png")
+    original_path = os.path.join(OUTPUT_DIR, "InfraSketchLogo_02.png")
     original.save(original_path)
     print(f"Saved: {original_path}")
 
-    # 2. Original 256x256 cropped
+    # 2. Original 256x256 cropped -> _02
     original_256 = smart_crop_256(img)
-    original_256_path = os.path.join(OUTPUT_DIR, "InfraSketchLogo_01_256.png")
+    original_256_path = os.path.join(OUTPUT_DIR, "InfraSketchLogo_02_256.png")
     original_256.save(original_256_path)
     print(f"Saved: {original_256_path}")
 
-    # 3. Inverted (full size, black background)
+    # 3. Inverted (full size, black background) -> _01
     inverted = invert_colors(original)
-    inverted_path = os.path.join(OUTPUT_DIR, "InfraSketchLogo_02.png")
+    inverted_path = os.path.join(OUTPUT_DIR, "InfraSketchLogo_01.png")
     inverted.save(inverted_path)
     print(f"Saved: {inverted_path}")
 
-    # 4. Inverted 256x256 cropped
+    # 4. Inverted 256x256 cropped -> _01
     inverted_256 = invert_colors(original_256)
-    inverted_256_path = os.path.join(OUTPUT_DIR, "InfraSketchLogo_02_256.png")
+    inverted_256_path = os.path.join(OUTPUT_DIR, "InfraSketchLogo_01_256.png")
     inverted_256.save(inverted_256_path)
     print(f"Saved: {inverted_256_path}")
 
-    # 5. Original transparent (full size)
+    # 5. Original transparent (full size) -> _02
     original_transparent = remove_background(original)
-    original_transparent_path = os.path.join(OUTPUT_DIR, "InfraSketchLogoTransparent_01.png")
+    original_transparent_path = os.path.join(OUTPUT_DIR, "InfraSketchLogoTransparent_02.png")
     original_transparent.save(original_transparent_path)
     print(f"Saved: {original_transparent_path}")
 
-    # 6. Original 256x256 transparent
+    # 6. Original 256x256 transparent -> _02
     original_256_transparent = remove_background(original_256)
-    original_256_transparent_path = os.path.join(OUTPUT_DIR, "InfraSketchLogoTransparent_01_256.png")
+    original_256_transparent_path = os.path.join(OUTPUT_DIR, "InfraSketchLogoTransparent_02_256.png")
     original_256_transparent.save(original_256_transparent_path)
     print(f"Saved: {original_256_transparent_path}")
 
-    # 7. Inverted transparent (full size)
+    # 7. Inverted transparent (full size) -> _01
     inverted_transparent = remove_background_inverted(inverted)
-    inverted_transparent_path = os.path.join(OUTPUT_DIR, "InfraSketchLogoTransparent_02.png")
+    inverted_transparent_path = os.path.join(OUTPUT_DIR, "InfraSketchLogoTransparent_01.png")
     inverted_transparent.save(inverted_transparent_path)
     print(f"Saved: {inverted_transparent_path}")
 
-    # 8. Inverted 256x256 transparent
+    # 8. Inverted 256x256 transparent -> _01
     inverted_256_transparent = remove_background_inverted(inverted_256)
-    inverted_256_transparent_path = os.path.join(OUTPUT_DIR, "InfraSketchLogoTransparent_02_256.png")
+    inverted_256_transparent_path = os.path.join(OUTPUT_DIR, "InfraSketchLogoTransparent_01_256.png")
     inverted_256_transparent.save(inverted_256_transparent_path)
     print(f"Saved: {inverted_256_transparent_path}")
 
