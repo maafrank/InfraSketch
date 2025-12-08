@@ -826,7 +826,7 @@ function App({ resumeMode = false }) {
         >
           <div className="title-with-logo">
             <img
-              src={theme === 'dark' ? "/InfraSketchLogoTransparent_02.png" : "/InfraSketchLogoTransparent_01.png"}
+              src={theme === 'dark' ? "/InfraSketchLogoTransparent_02_256.png" : "/InfraSketchLogoTransparent_01_256.png"}
               alt="InfraSketch Logo"
               className="app-logo"
             />
