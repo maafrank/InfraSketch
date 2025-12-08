@@ -3,7 +3,7 @@
  * Tests for the left sidebar session management
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SessionHistorySidebar from '../SessionHistorySidebar';
@@ -305,7 +305,6 @@ describe('SessionHistorySidebar', () => {
     });
 
     it('menu closes on outside click', async () => {
-      const user = userEvent.setup();
       render(<SessionHistorySidebar {...defaultProps} />);
 
       await waitFor(() => {
@@ -449,7 +448,7 @@ describe('SessionHistorySidebar', () => {
 
     it('reloads sessions after rename', async () => {
       const user = userEvent.setup();
-      const { getUserSessions, renameSession } = await import('../../api/client');
+      const { getUserSessions } = await import('../../api/client');
 
       render(<SessionHistorySidebar {...defaultProps} />);
 

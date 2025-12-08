@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import App from '../App';
@@ -254,7 +254,7 @@ vi.mock('../contexts/useTheme', () => ({
 }));
 
 // Wrapper component with Router
-const renderApp = (initialRoute = '/', resumeMode = false) => {
+const renderApp = (initialRoute = '/') => {
   return render(
     <MemoryRouter initialEntries={[initialRoute]}>
       <Routes>
@@ -308,7 +308,6 @@ describe('App', () => {
   describe('Diagram Generation Flow', () => {
     it('triggers generation when example clicked from empty diagram', async () => {
       const user = userEvent.setup();
-      const { generateDiagram } = await import('../api/client');
 
       renderApp('/');
 
@@ -321,10 +320,10 @@ describe('App', () => {
 
     it('shows loading state during generation', async () => {
       const user = userEvent.setup();
-      const { sendChatMessage } = await import('../api/client');
+      const { sendChatMessage: sendChatMessageFn } = await import('../api/client');
 
       // Make chat message take longer to simulate loading
-      sendChatMessage.mockImplementation(() => new Promise((resolve) => {
+      sendChatMessageFn.mockImplementation(() => new Promise((resolve) => {
         setTimeout(() => resolve({ response: 'AI response', diagram: null }), 100);
       }));
 
@@ -341,7 +340,6 @@ describe('App', () => {
   describe('Chat Functionality', () => {
     it('sends chat message', async () => {
       const user = userEvent.setup();
-      const { sendChatMessage } = await import('../api/client');
 
       renderApp('/');
 

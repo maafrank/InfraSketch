@@ -3,8 +3,8 @@
  * Tests for all backend API communication functions
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { http, HttpResponse, delay } from 'msw';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/mocks/server';
 import { mockDiagram, mockSession, mockUserSessions } from '../../../tests/mocks/handlers';
 import {
