@@ -234,14 +234,26 @@ def fresh_session_manager():
 
     IMPORTANT: We patch the global session_manager to avoid state leakage between tests.
     """
-    # Ensure we're not in Lambda mode
-    with patch.dict(os.environ, {"AWS_LAMBDA_FUNCTION_NAME": ""}, clear=False):
+    # Save original value if it exists
+    original_value = os.environ.get("AWS_LAMBDA_FUNCTION_NAME")
+
+    # Remove the env var completely so is_lambda check returns False
+    if "AWS_LAMBDA_FUNCTION_NAME" in os.environ:
+        del os.environ["AWS_LAMBDA_FUNCTION_NAME"]
+
+    try:
         # Create a completely fresh manager with empty sessions dict
         manager = SessionManager()
         manager.sessions = {}  # Ensure clean state
         manager.is_lambda = False
         manager.storage = None
         yield manager
+    finally:
+        # Restore original value
+        if original_value is not None:
+            os.environ["AWS_LAMBDA_FUNCTION_NAME"] = original_value
+        elif "AWS_LAMBDA_FUNCTION_NAME" in os.environ:
+            del os.environ["AWS_LAMBDA_FUNCTION_NAME"]
 
 
 @pytest.fixture
