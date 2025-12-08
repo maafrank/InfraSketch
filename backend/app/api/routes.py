@@ -31,7 +31,7 @@ from app.utils.logger import (
     EventType,
 )
 from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import SystemMessage
 from app.utils.secrets import get_anthropic_api_key
 import json
 import base64
