@@ -16,7 +16,14 @@ from fastapi.testclient import TestClient
 # Set environment variables before importing app
 os.environ["DISABLE_CLERK_AUTH"] = "true"
 os.environ["ANTHROPIC_API_KEY"] = "test-api-key"
+# Set high rate limit for tests to avoid 429 errors
+os.environ["RATE_LIMIT_PER_MINUTE"] = "10000"
+os.environ["RATE_LIMIT_BURST"] = "1000"
 
+# Force reload of main module to pick up env vars
+import importlib
+import app.main
+importlib.reload(app.main)
 from app.main import app
 from app.models import (
     Node, Edge, Diagram, Message, SessionState,
@@ -264,18 +271,26 @@ def session_manager_with_session(fresh_session_manager, simple_diagram, test_use
 
 
 @pytest.fixture(autouse=True)
-def reset_global_session_manager():
+def reset_global_state():
     """
-    Reset the global session_manager before each test to prevent state leakage.
+    Reset global state before each test to prevent state leakage.
     This runs automatically for every test.
     """
     from app.session.manager import session_manager
-    # Store original state
-    original_sessions = getattr(session_manager, 'sessions', {}).copy() if hasattr(session_manager, 'sessions') else {}
 
     # Clear sessions for test
     if hasattr(session_manager, 'sessions'):
         session_manager.sessions = {}
+
+    # Reset rate limiter buckets
+    # The rate limiter middleware stores buckets in-memory, need to clear them
+    from app.main import app
+    for middleware in app.user_middleware:
+        if hasattr(middleware, 'cls'):
+            # Check if this is RateLimitMiddleware
+            if middleware.cls.__name__ == 'RateLimitMiddleware':
+                # Can't easily access middleware instance, use high burst for tests instead
+                pass
 
     yield
 
@@ -326,3 +341,231 @@ def node_types():
 def edge_types():
     """List of valid edge types."""
     return ["default", "animated"]
+
+
+# ============================================================================
+# API Route Testing Fixtures
+# ============================================================================
+
+@pytest.fixture
+def client_with_session(client, simple_diagram):
+    """
+    TestClient with a pre-created session.
+    Returns tuple of (client, session_id).
+    Session is created with "local-dev-user" to match the dev auth bypass.
+    """
+    from app.session.manager import session_manager
+    # Use "local-dev-user" to match what ClerkAuthMiddleware sets when DISABLE_CLERK_AUTH=true
+    session_id = session_manager.create_session(simple_diagram, user_id="local-dev-user")
+    return client, session_id
+
+
+@pytest.fixture
+def another_user_id():
+    """A different user ID for testing ownership/authorization."""
+    return "user_other_789xyz"
+
+
+@pytest.fixture
+def mock_agent_graph(mocker):
+    """
+    Mock LangGraph agent to return predefined responses without LLM calls.
+    Use this for chat endpoint tests.
+    """
+    from langchain_core.messages import AIMessage
+
+    mock = mocker.patch("app.api.routes.agent_graph")
+    mock.invoke.return_value = {
+        "messages": [AIMessage(content="This is a test response from the mocked agent.")],
+        "diagram": None,
+        "design_doc": None,
+    }
+    return mock
+
+
+@pytest.fixture
+def mock_design_doc_generator(mocker):
+    """Mock design document generator to avoid LLM calls."""
+    return mocker.patch(
+        "app.api.routes.generate_design_document",
+        return_value="# Test Design Document\n\nThis is a mocked design document."
+    )
+
+
+@pytest.fixture
+def mock_session_name_generator(mocker):
+    """Mock session name generator to avoid LLM calls."""
+    return mocker.patch(
+        "app.api.routes.generate_session_name",
+        return_value="Test Session Name"
+    )
+
+
+@pytest.fixture
+def mock_subscriber_storage(mocker):
+    """Mock subscriber storage for subscription endpoint tests."""
+    from app.subscription.models import Subscriber
+    from datetime import datetime
+
+    mock_storage = MagicMock()
+
+    # Default subscriber - use ISO format strings for timestamps
+    now_str = datetime.now().isoformat()
+    test_subscriber = Subscriber(
+        user_id="local-dev-user",  # Match dev auth user
+        email="test@example.com",
+        subscribed=True,
+        unsubscribe_token="test-token-abc123",
+        created_at=now_str,
+        updated_at=now_str
+    )
+
+    mock_storage.get_subscriber.return_value = test_subscriber
+    mock_storage.create_subscriber.return_value = test_subscriber
+    mock_storage.unsubscribe.return_value = True
+    mock_storage.resubscribe.return_value = True
+    mock_storage.get_subscriber_by_token.return_value = test_subscriber
+
+    mocker.patch("app.api.routes.get_subscriber_storage", return_value=mock_storage)
+    return mock_storage
+
+
+# ============================================================================
+# Middleware Testing Fixtures
+# ============================================================================
+
+@pytest.fixture
+def rate_limit_app():
+    """
+    Create a test app with only rate limiting middleware for isolated testing.
+    """
+    from fastapi import FastAPI
+    from app.middleware.rate_limit import RateLimitMiddleware
+
+    test_app = FastAPI()
+    test_app.add_middleware(RateLimitMiddleware, requests_per_minute=10, burst_size=2)
+
+    @test_app.get("/test")
+    def test_endpoint():
+        return {"status": "ok"}
+
+    @test_app.get("/health")
+    def health_endpoint():
+        return {"status": "healthy"}
+
+    @test_app.get("/")
+    def root_endpoint():
+        return {"status": "root"}
+
+    return test_app
+
+
+@pytest.fixture
+def rate_limit_client(rate_limit_app):
+    """TestClient for rate limit testing."""
+    with TestClient(rate_limit_app) as test_client:
+        yield test_client
+
+
+@pytest.fixture
+def clerk_auth_test_keys():
+    """
+    Generate RSA key pair for testing Clerk JWT validation.
+    Returns dict with private_key, public_key, kid, and jwks.
+    """
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.hazmat.backends import default_backend
+    import base64
+    import json
+
+    # Generate RSA key pair
+    private_key = rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048,
+        backend=default_backend()
+    )
+    public_key = private_key.public_key()
+
+    # Get public key numbers for JWKS
+    public_numbers = public_key.public_numbers()
+
+    # Convert to base64url encoding (no padding)
+    def to_base64url(num, length):
+        data = num.to_bytes(length, byteorder='big')
+        return base64.urlsafe_b64encode(data).rstrip(b'=').decode('utf-8')
+
+    kid = "test-key-id-123"
+
+    # Build JWKS
+    jwks = {
+        "keys": [
+            {
+                "kty": "RSA",
+                "use": "sig",
+                "kid": kid,
+                "alg": "RS256",
+                "n": to_base64url(public_numbers.n, 256),
+                "e": to_base64url(public_numbers.e, 3),
+            }
+        ]
+    }
+
+    return {
+        "private_key": private_key,
+        "public_key": public_key,
+        "kid": kid,
+        "jwks": jwks,
+    }
+
+
+@pytest.fixture
+def valid_clerk_token(clerk_auth_test_keys):
+    """
+    Generate a valid JWT token signed with test keys.
+    """
+    import jwt
+    import time
+
+    now = int(time.time())
+    payload = {
+        "sub": "user_test_clerk_123",
+        "iss": "https://clerk.infrasketch.net",
+        "iat": now,
+        "exp": now + 3600,  # 1 hour from now
+        "nbf": now,
+    }
+
+    token = jwt.encode(
+        payload,
+        clerk_auth_test_keys["private_key"],
+        algorithm="RS256",
+        headers={"kid": clerk_auth_test_keys["kid"]}
+    )
+    return token
+
+
+@pytest.fixture
+def expired_clerk_token(clerk_auth_test_keys):
+    """
+    Generate an expired JWT token.
+    """
+    import jwt
+    import time
+
+    now = int(time.time())
+    payload = {
+        "sub": "user_test_clerk_123",
+        "iss": "https://clerk.infrasketch.net",
+        "iat": now - 7200,  # 2 hours ago
+        "exp": now - 3600,  # 1 hour ago (expired)
+        "nbf": now - 7200,
+    }
+
+    token = jwt.encode(
+        payload,
+        clerk_auth_test_keys["private_key"],
+        algorithm="RS256",
+        headers={"kid": clerk_auth_test_keys["kid"]}
+    )
+    return token

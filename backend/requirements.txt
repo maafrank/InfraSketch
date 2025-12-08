@@ -22,4 +22,6 @@ resend==2.6.0  # Email sending via Resend API
 pytest==8.3.4
 pytest-asyncio==0.24.0
 pytest-cov==4.1.0
+pytest-mock==3.14.0  # Mocker fixture for patching
+requests-mock==1.12.1  # Mock HTTP requests (for Clerk JWKS testing)
 ruff==0.8.0
