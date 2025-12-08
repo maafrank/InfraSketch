@@ -21,7 +21,7 @@ export default function DesignDocPanel({
   designDoc,
   onSave,
   onClose,
-  sessionId,
+  // sessionId - reserved for future use (e.g., real-time sync)
   onExport,
   isGenerating = false,
   onWidthChange,

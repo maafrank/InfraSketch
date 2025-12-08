@@ -1,16 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 export default function LoadingAnimation() {
   const [currentStep, setCurrentStep] = useState(0);
 
-  const steps = [
+  // Memoize steps to maintain stable reference
+  const steps = useMemo(() => [
     { icon: '🤔', text: 'Analyzing your architecture...', duration: 2500 },
     { icon: '🏗️', text: 'Designing system components...', duration: 2500 },
     { icon: '🔗', text: 'Mapping connections and data flow...', duration: 2500 },
     { icon: '⚙️', text: 'Optimizing component placement...', duration: 2500 },
     { icon: '🎨', text: 'Generating visual layout...', duration: 2500 },
     { icon: '✨', text: 'Finalizing your diagram...', duration: 2500 },
-  ];
+  ], []);
 
   useEffect(() => {
     // Calculate total duration
@@ -41,7 +42,7 @@ export default function LoadingAnimation() {
     }, 100);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [steps]);
 
   // Calculate progress percentage
   const getProgress = () => {

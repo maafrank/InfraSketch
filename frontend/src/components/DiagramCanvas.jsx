@@ -115,7 +115,6 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
   const hideTooltipTimeoutRef = useRef(null);
 
   // Drag-to-merge state
-  const [draggedNode, setDraggedNode] = useState(null);
   const [dropTarget, setDropTarget] = useState(null);
   const dropTargetTimeoutRef = useRef(null);
   const isDraggingRef = useRef(false);
@@ -124,7 +123,8 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
   const applyLayout = useCallback(() => {
     setNodes((currentNodes) => {
       setEdges((currentEdges) => {
-        const layoutedNodes = getLayoutedElements(currentNodes, currentEdges, layoutDirection);
+        // Apply layout and trigger fitView
+        getLayoutedElements(currentNodes, currentEdges, layoutDirection);
 
         // Use fitView to center the diagram after layout
         setTimeout(() => {
@@ -456,9 +456,8 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
   }, [onDeleteEdge, onAddEdge]);
 
   // Drag-to-merge handlers
-  const handleNodeDragStart = useCallback((event, node) => {
+  const handleNodeDragStart = useCallback(() => {
     isDraggingRef.current = true;
-    setDraggedNode(node);
     setDropTarget(null);
   }, []);
 
@@ -530,7 +529,6 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
       await onMergeNodes(node.id, dropTarget.id);
     }
 
-    setDraggedNode(null);
     setDropTarget(null);
   }, [dropTarget, onMergeNodes]);
 

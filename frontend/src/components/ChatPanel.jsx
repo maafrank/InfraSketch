@@ -7,7 +7,7 @@ export default function ChatPanel({
   onSendMessage,
   loading,
   loadingStepText,
-  diagram,
+  // diagram - reserved for future use (e.g., context display)
   onWidthChange,
   onClose,
   onExitNodeFocus,

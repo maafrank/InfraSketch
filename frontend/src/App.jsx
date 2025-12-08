@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { SignedIn, SignedOut, SignInButton, UserButton, useAuth, useClerk } from "@clerk/clerk-react";
 import { toPng } from 'html-to-image';
-import { useTheme } from './contexts/ThemeContext';
+import { useTheme } from './contexts/useTheme';
 import LandingPage from './components/LandingPage';
 import DiagramCanvas from './components/DiagramCanvas';
 import ChatPanel from './components/ChatPanel';
@@ -47,7 +47,6 @@ function App({ resumeMode = false }) {
   const [loadingStepText, setLoadingStepText] = useState('');
   const [showAddNodeModal, setShowAddNodeModal] = useState(false);
   const [preSelectedNodeType, setPreSelectedNodeType] = useState(null);
-  const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [applyLayoutFn, setApplyLayoutFn] = useState(null);
 
   // Design doc state
@@ -112,14 +111,8 @@ function App({ resumeMode = false }) {
     }
   }, [sessionHistoryOpen, sessionHistorySidebarWidth, diagram, applyLayoutFn, isMobile]);
 
-  // Resume session from URL parameter
-  useEffect(() => {
-    if (resumeMode && urlSessionId && !sessionId && isSignedIn) {
-      loadSession(urlSessionId);
-    }
-  }, [resumeMode, urlSessionId, sessionId, isSignedIn]);
-
-  const loadSession = async (sid) => {
+  // Load session callback - defined before useEffect that uses it
+  const loadSession = useCallback(async (sid) => {
     setLoading(true);
     try {
       const sessionData = await getSession(sid);
@@ -148,7 +141,14 @@ function App({ resumeMode = false }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
+
+  // Resume session from URL parameter
+  useEffect(() => {
+    if (resumeMode && urlSessionId && !sessionId && isSignedIn) {
+      loadSession(urlSessionId);
+    }
+  }, [resumeMode, urlSessionId, sessionId, isSignedIn, loadSession]);
 
   const handleNodeClick = useCallback((node) => {
     // Only add context message if selecting a different node
@@ -579,16 +579,6 @@ function App({ resumeMode = false }) {
     }
   }, [sessionId, diagram, hasExpandedGroups]);
 
-  // Helper function to check if current session is pristine (empty)
-  const isSessionPristine = useCallback(() => {
-    const hasNodes = diagram?.nodes?.length > 0;
-    const hasEdges = diagram?.edges?.length > 0;
-    const hasMessages = messages.length > 0;
-    const hasDesignDoc = !!designDoc;
-
-    return !hasNodes && !hasEdges && !hasMessages && !hasDesignDoc;
-  }, [diagram, messages, designDoc]);
-
   const handleNewDesign = () => {
     // Just reset local state - session will be created when user generates content
     setSessionId(null);
@@ -733,9 +723,9 @@ function App({ resumeMode = false }) {
   }, []);
 
   // Handler for loading a session from history
-  const handleLoadSession = useCallback(async (sessionId) => {
-    await loadSession(sessionId);
-  }, []);
+  const handleLoadSession = useCallback(async (sid) => {
+    await loadSession(sid);
+  }, [loadSession]);
 
   // Handler for example prompt click
   const handleExampleClick = useCallback((prompt) => {
@@ -745,7 +735,7 @@ function App({ resumeMode = false }) {
   }, []);
 
   // Helper function to convert base64 to blob
-  const base64ToBlob = (base64, mimeType) => {
+  const base64ToBlob = useCallback((base64, mimeType) => {
     const byteCharacters = atob(base64);
     const byteNumbers = new Array(byteCharacters.length);
     for (let i = 0; i < byteCharacters.length; i++) {
@@ -753,10 +743,10 @@ function App({ resumeMode = false }) {
     }
     const byteArray = new Uint8Array(byteNumbers);
     return new Blob([byteArray], { type: mimeType });
-  };
+  }, []);
 
   // Helper function to download blob
-  const downloadBlob = (blob, filename) => {
+  const downloadBlob = useCallback((blob, filename) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -765,7 +755,7 @@ function App({ resumeMode = false }) {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-  };
+  }, []);
 
   // Handle PNG export from floating button
   const handleExportPng = useCallback(async () => {
@@ -951,7 +941,6 @@ function App({ resumeMode = false }) {
               onUngroupNodes={handleUngroupNodes}
               onToggleCollapse={handleToggleGroupCollapse}
               onRegenerateDescription={handleRegenerateDescription}
-              onReactFlowInit={setReactFlowInstance}
               onLayoutReady={(layoutFn) => setApplyLayoutFn(() => layoutFn)}
               onOpenNodePalette={handleOpenNodePalette}
               onExportPng={handleExportPng}

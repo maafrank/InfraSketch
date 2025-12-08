@@ -1,20 +1,10 @@
 import { useState, useMemo } from 'react';
 
 export default function NodeTooltip({ node, onSave, onRegenerateDescription, edges = [], nodes = [] }) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [isRegenerating, setIsRegenerating] = useState(false);
-  const [editedData, setEditedData] = useState({
-    label: node.data.label,
-    description: node.data.description,
-    technology: node.data.metadata?.technology || '',
-    inputs: node.data.inputs?.join(', ') || '',
-    outputs: node.data.outputs?.join(', ') || '',
-  });
-
-  if (!node) return null;
-
-  // Calculate connected nodes
+  // Calculate connected nodes - must be before any conditional returns (React hooks rule)
   const connectedNodes = useMemo(() => {
+    if (!node) return { inputNodes: [], outputNodes: [] };
+
     const inputNodeIds = edges
       .filter(edge => edge.target === node.id)
       .map(edge => edge.source);
@@ -32,7 +22,19 @@ export default function NodeTooltip({ node, onSave, onRegenerateDescription, edg
       .map(n => n.data.label);
 
     return { inputNodes, outputNodes };
-  }, [node.id, edges, nodes]);
+  }, [node, edges, nodes]);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [editedData, setEditedData] = useState({
+    label: node?.data?.label || '',
+    description: node?.data?.description || '',
+    technology: node?.data?.metadata?.technology || '',
+    inputs: node?.data?.inputs?.join(', ') || '',
+    outputs: node?.data?.outputs?.join(', ') || '',
+  });
+
+  if (!node) return null;
 
   const handleSave = () => {
     // Convert comma-separated strings back to arrays

@@ -22,7 +22,6 @@ Object.defineProperty(window, 'matchMedia', {
 })
 
 // Mock ResizeObserver (used by React Flow and other components)
-// eslint-disable-next-line no-undef
 globalThis.ResizeObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
@@ -30,7 +29,6 @@ globalThis.ResizeObserver = vi.fn().mockImplementation(() => ({
 }))
 
 // Mock IntersectionObserver
-// eslint-disable-next-line no-undef
 globalThis.IntersectionObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
