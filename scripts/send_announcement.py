@@ -28,6 +28,7 @@ import re
 import argparse
 import tempfile
 import webbrowser
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -296,6 +297,10 @@ def main():
             sent += 1
         else:
             failed += 1
+
+        # Rate limit: Resend allows 2 requests/second, so wait 0.6s between sends
+        if mode == "PRODUCTION" and len(recipients) > 1:
+            time.sleep(0.6)
 
         # In test mode, only send once (to yourself)
         if mode == "TEST":
