@@ -7,7 +7,7 @@ export default function PrivacyPolicy() {
     <div className="legal-page">
       <Helmet>
         <title>Privacy Policy | InfraSketch</title>
-        <meta name="description" content="InfraSketch privacy policy. Learn how we collect, use, and protect your data when using our AI-powered system design tool." />
+        <meta name="description" content="InfraSketch privacy policy. Learn how we collect, use, and protect your data when using our agent-powered system design tool." />
         <link rel="canonical" href="https://infrasketch.net/privacy" />
         <meta name="robots" content="noindex, follow" />
       </Helmet>
@@ -24,7 +24,7 @@ export default function PrivacyPolicy() {
           <p>
             InfraSketch ("we," "our," or "us") is committed to protecting your privacy.
             This Privacy Policy explains how we collect, use, and safeguard your information
-            when you use our AI-powered system architecture design tool.
+            when you use our agent-powered system architecture design tool.
           </p>
         </section>
 
@@ -67,7 +67,7 @@ export default function PrivacyPolicy() {
           <ul>
             <li>Provide, maintain, and improve InfraSketch</li>
             <li>Save and retrieve your diagram designs</li>
-            <li>Generate AI-powered architecture suggestions</li>
+            <li>Generate agent-powered architecture suggestions</li>
             <li>Respond to your inquiries and support requests</li>
             <li>Monitor and analyze usage patterns to improve our service</li>
             <li>Protect against unauthorized access and abuse</li>
@@ -97,7 +97,7 @@ export default function PrivacyPolicy() {
               <a href="https://clerk.com/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
             </li>
             <li>
-              <strong>Anthropic (Claude AI)</strong> - AI-powered diagram generation.
+              <strong>Anthropic (Claude AI)</strong> - Powers our Sketch agent for diagram generation.
               <a href="https://www.anthropic.com/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
             </li>
             <li>

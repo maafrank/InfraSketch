@@ -6,19 +6,19 @@ export default function AboutPage() {
   return (
     <div className="legal-page about-page">
       <Helmet>
-        <title>About InfraSketch | AI-Powered System Design Tool</title>
-        <meta name="description" content="Learn how InfraSketch transforms plain English descriptions into professional system architecture diagrams using AI. Built with Claude AI, React, and AWS." />
+        <title>About InfraSketch | Agent-Powered System Design Tool</title>
+        <meta name="description" content="Learn how InfraSketch transforms plain English descriptions into professional system architecture diagrams using Sketch, our AI design agent. Built with Claude AI, React, and AWS." />
         <link rel="canonical" href="https://infrasketch.net/about" />
 
         <meta property="og:type" content="website" />
-        <meta property="og:title" content="About InfraSketch | AI-Powered System Design Tool" />
-        <meta property="og:description" content="Learn how InfraSketch transforms plain English descriptions into professional system architecture diagrams using AI." />
+        <meta property="og:title" content="About InfraSketch | Agent-Powered System Design Tool" />
+        <meta property="og:description" content="Learn how InfraSketch transforms plain English descriptions into professional system architecture diagrams using Sketch, our AI design agent." />
         <meta property="og:url" content="https://infrasketch.net/about" />
         <meta property="og:image" content="https://infrasketch.net/og-image.png" />
 
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="About InfraSketch | AI-Powered System Design Tool" />
-        <meta name="twitter:description" content="Learn how InfraSketch transforms plain English descriptions into professional system architecture diagrams using AI." />
+        <meta name="twitter:title" content="About InfraSketch | Agent-Powered System Design Tool" />
+        <meta name="twitter:description" content="Learn how InfraSketch transforms plain English descriptions into professional system architecture diagrams using Sketch, our AI design agent." />
       </Helmet>
 
       <div className="legal-header">
@@ -30,7 +30,7 @@ export default function AboutPage() {
         <section>
           <h2>What is InfraSketch?</h2>
           <p>
-            InfraSketch is an AI-powered tool that transforms plain English descriptions
+            InfraSketch is an agent-powered tool that transforms plain English descriptions
             into professional system architecture diagrams. Whether you're a software
             engineer designing a new microservices platform, a startup founder sketching
             your MVP, or a student learning about distributed systems, InfraSketch helps
@@ -55,9 +55,9 @@ export default function AboutPage() {
             <div className="about-step">
               <div className="about-step-number">2</div>
               <div className="about-step-content">
-                <h3>AI Generates Your Diagram</h3>
+                <h3>Sketch Generates Your Diagram</h3>
                 <p>
-                  Claude AI analyzes your description and creates a complete architecture
+                  Sketch analyzes your description and creates a complete architecture
                   diagram with appropriate components, connections, and labels.
                 </p>
               </div>

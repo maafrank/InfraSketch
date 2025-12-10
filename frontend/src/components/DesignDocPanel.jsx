@@ -386,7 +386,7 @@ export default function DesignDocPanel({
           <div className="generating-overlay">
             <div className="generating-spinner"></div>
             <h3>Generating Design Document...</h3>
-            <p>This may take 1-2 minutes. Claude is analyzing your system architecture and creating a comprehensive design document.</p>
+            <p>This may take 1-2 minutes. Sketch is analyzing your system architecture and creating a comprehensive design document.</p>
           </div>
         ) : (
           <EditorContent editor={editor} />

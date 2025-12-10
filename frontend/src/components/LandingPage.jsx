@@ -26,8 +26,8 @@ const EXAMPLE_PROMPTS = [
 const FEATURES = [
   {
     icon: "🤖",
-    title: "AI-Powered",
-    description: "Claude AI generates professional system architecture diagrams from your descriptions"
+    title: "Agent-Powered",
+    description: "Sketch generates professional system architecture diagrams from your descriptions"
   },
   {
     icon: "💬",
@@ -50,7 +50,7 @@ const SCREENSHOTS = [
   {
     src: "/GeneratedGraph.png",
     alt: "Generated system architecture diagram",
-    caption: "AI-generated architecture diagrams"
+    caption: "Agent-generated architecture diagrams"
   },
   {
     src: "/FullApp_DiagramWithChat.png",
@@ -129,7 +129,7 @@ export default function LandingPage({ onGenerate, loading }) {
             Transform Ideas into System Diagrams
           </h1>
           <p className="hero-subtitle">
-            Describe your system in plain English. Our AI generates professional architecture diagrams in seconds.
+            Describe your system in plain English. Sketch generates professional architecture diagrams in seconds.
           </p>
           <p className="hero-cta">100% Free</p>
         </div>
@@ -260,9 +260,9 @@ export default function LandingPage({ onGenerate, loading }) {
           </div>
           <div className="step-card">
             <div className="step-number">2</div>
-            <h3 className="step-title">AI Generates Diagram</h3>
+            <h3 className="step-title">Sketch Generates Diagram</h3>
             <p className="step-description">
-              Claude AI creates a professional architecture diagram with all components
+              Sketch creates a professional architecture diagram with all components
             </p>
           </div>
           <div className="step-card">
@@ -280,7 +280,7 @@ export default function LandingPage({ onGenerate, loading }) {
         <div className="footer-content">
           <div className="footer-brand">
             <span className="footer-logo">InfraSketch</span>
-            <p className="footer-tagline">AI-powered system architecture design</p>
+            <p className="footer-tagline">Agent-powered system architecture design</p>
           </div>
           <div className="footer-links">
             <a href="/about">About</a>

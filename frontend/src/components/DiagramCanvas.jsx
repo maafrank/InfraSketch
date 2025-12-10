@@ -578,7 +578,7 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
         <div className="merge-loading-toast">
           <div className="merge-loading-content">
             <div className="merge-loading-spinner"></div>
-            <span>AI analyzing group... (1-2s)</span>
+            <span>Sketch analyzing group... (1-2s)</span>
           </div>
         </div>
       )}

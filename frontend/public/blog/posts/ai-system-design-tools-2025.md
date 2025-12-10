@@ -15,7 +15,7 @@ AI-powered tools flip this model. You describe what you want to build, and the A
 
 ### 1. InfraSketch
 
-[InfraSketch](https://infrasketch.net) is an AI-powered system design tool that generates architecture diagrams from natural language descriptions.
+[InfraSketch](https://infrasketch.net) is an agent-powered system design tool that uses AI to generate architecture diagrams from natural language descriptions.
 
 **Key Features:**
 - **Natural language input**: Describe your system in plain English

@@ -136,7 +136,7 @@ Separating read and write operations:
 
 ## Tools for System Design
 
-Creating system architecture diagrams traditionally required tools like Lucidchart, Draw.io, or Excalidraw. However, modern AI-powered tools like [InfraSketch](https://infrasketch.net) can generate professional architecture diagrams from natural language descriptions, making it faster to visualize and iterate on designs.
+Creating system architecture diagrams traditionally required tools like Lucidchart, Draw.io, or Excalidraw. However, modern agent-powered tools like [InfraSketch](https://infrasketch.net) can generate professional architecture diagrams from natural language descriptions, making it faster to visualize and iterate on designs.
 
 ## Getting Started
 

@@ -144,7 +144,7 @@ export default function BlogListPage() {
         <div className="footer-content">
           <div className="footer-brand">
             <span className="footer-logo">InfraSketch</span>
-            <p className="footer-tagline">AI-powered system architecture design</p>
+            <p className="footer-tagline">Agent-powered system architecture design</p>
           </div>
           <div className="footer-links">
             <Link to="/about">About</Link>

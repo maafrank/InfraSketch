@@ -1,9 +1,9 @@
 # InfraSketch
 
-> AI-powered system design tool that generates architecture diagrams from natural language
+> Agent-powered system design tool that generates architecture diagrams from natural language
 
 ## What is InfraSketch?
-InfraSketch is a free AI-powered tool that transforms plain English descriptions into professional system architecture diagrams. Built for software engineers, startup founders, students, and anyone who needs to visualize distributed systems.
+InfraSketch is a free agent-powered tool that transforms plain English descriptions into professional system architecture diagrams. Sketch, our AI design agent, helps software engineers, startup founders, students, and anyone who needs to visualize distributed systems.
 
 ## Key Features
 - Natural language to architecture diagram generation
@@ -11,7 +11,7 @@ InfraSketch is a free AI-powered tool that transforms plain English descriptions
 - Auto-generated technical design documents
 - Export to PNG, PDF, or Markdown
 - Session history and real-time collaboration
-- Powered by Claude AI (Anthropic)
+- Powered by Sketch, our AI design agent (built on Claude by Anthropic)
 
 ## Use Cases
 - System design interview preparation

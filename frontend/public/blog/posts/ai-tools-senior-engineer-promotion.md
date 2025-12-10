@@ -18,7 +18,7 @@ AI-powered development tools don't replace engineering judgment - they accelerat
 
 ### 1. System Design Exploration
 
-Instead of staring at a blank whiteboard, I describe the problem in natural language. Tools like [InfraSketch](https://infrasketch.net) generate a starting architecture that I can critique and refine.
+Instead of staring at a blank whiteboard, I describe the problem in natural language. Agent-powered tools like [InfraSketch](https://infrasketch.net) generate a starting architecture that I can critique and refine.
 
 This does two things:
 - **Removes the blank canvas problem**: You have something to react to

@@ -204,7 +204,7 @@ export default function ChatPanel({
       <div className="chat-messages">
         {messages.map((msg, idx) => (
           <div key={idx} className={`message ${msg.role}`}>
-            <div className="message-role">{msg.role}</div>
+            <div className="message-role">{msg.role === 'assistant' ? 'Sketch' : msg.role}</div>
             <div className="message-content">
               <ReactMarkdown>{msg.content}</ReactMarkdown>
             </div>
@@ -212,13 +212,13 @@ export default function ChatPanel({
         ))}
         {loading && (
           <div className="message assistant">
-            <div className="message-role">assistant</div>
+            <div className="message-role">Sketch</div>
             <div className="message-content typing">Thinking...</div>
           </div>
         )}
         {loadingStepText && (
           <div className="message assistant">
-            <div className="message-role">assistant</div>
+            <div className="message-role">Sketch</div>
             <div className="message-content typing">{loadingStepText}</div>
           </div>
         )}
