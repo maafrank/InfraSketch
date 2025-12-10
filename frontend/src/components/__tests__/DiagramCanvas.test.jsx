@@ -415,13 +415,13 @@ describe('DiagramCanvas', () => {
     it('shows merging toast when mergingNodes is true', () => {
       render(<DiagramCanvas {...defaultProps} diagram={mockDiagram} mergingNodes={true} />);
 
-      expect(screen.getByText(/AI analyzing group/)).toBeInTheDocument();
+      expect(screen.getByText(/Sketch analyzing group/)).toBeInTheDocument();
     });
 
     it('does not show merging toast when mergingNodes is false', () => {
       render(<DiagramCanvas {...defaultProps} diagram={mockDiagram} mergingNodes={false} />);
 
-      expect(screen.queryByText(/AI analyzing group/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Sketch analyzing group/)).not.toBeInTheDocument();
     });
 
     it('changes cursor to wait when merging', () => {

@@ -103,7 +103,7 @@ describe('ChatPanel', () => {
 
       render(<ChatPanel {...defaultProps} messages={messages} />);
 
-      const roleLabels = screen.getAllByText(/^(user|assistant)$/);
+      const roleLabels = screen.getAllByText(/^(user|Sketch)$/);
       expect(roleLabels.length).toBeGreaterThanOrEqual(2);
     });
 
