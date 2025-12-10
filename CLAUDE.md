@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Writing Style
+
+- Do not use em-dashes (—). Use commas, parentheses, or separate sentences instead.
+
 ## Running the Application
 
 The application requires **two terminal windows** running simultaneously:
