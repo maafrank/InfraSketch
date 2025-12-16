@@ -48,44 +48,29 @@ const FEATURES = [
 
 const SCREENSHOTS = [
   {
-    src: "/GeneratedGraph.png",
-    alt: "Generated system architecture diagram",
+    src: "/full-app-with-design-doc.png",
+    alt: "Full application with session history, design doc, and diagram",
+    caption: "Complete workspace with session history"
+  },
+  {
+    src: "/analytics-diagram-generated.png",
+    alt: "Generated analytics architecture diagram",
     caption: "Agent-generated architecture diagrams"
   },
   {
-    src: "/FullApp_DiagramWithChat.png",
-    alt: "Full application with diagram and chat",
-    caption: "Complete workspace with interactive chat"
+    src: "/ecommerce-collapsed-groups.png",
+    alt: "E-commerce diagram with collapsed component groups",
+    caption: "Organize components into collapsible groups"
   },
   {
-    src: "/FullApp_VideoWorkflowChat.png",
-    alt: "Video workflow discussion",
-    caption: "Deep-dive into system workflows"
+    src: "/ecommerce-expanded.png",
+    alt: "E-commerce diagram with expanded groups",
+    caption: "Expand groups to see all components"
   },
   {
-    src: "/FullApp_DesignDocumentOpen.png",
-    alt: "Design document panel",
-    caption: "Auto-generated design documentation"
-  },
-  {
-    src: "/FullApp_DesignDocWithChat.png",
-    alt: "Design document with chat",
-    caption: "Collaborate on your design docs"
-  },
-  {
-    src: "/Chat_InteractWithGraph.png",
-    alt: "Interactive chat with components",
-    caption: "Chat with any component"
-  },
-  {
-    src: "/Chat_InteractWithSystemDesign.png",
-    alt: "Interactive system design conversation",
-    caption: "Discuss your entire system design"
-  },
-  {
-    src: "/GenerateSystemDesignDocument.png",
-    alt: "Design document editor",
-    caption: "Edit and export design documents"
+    src: "/email-platform-model-selector.png",
+    alt: "Email platform with model selector",
+    caption: "Choose between Haiku and Sonnet models"
   }
 ];
 
