@@ -9,5 +9,7 @@ export default defineConfig({
     globals: true,
     css: true,
     include: ['src/**/*.{test,spec}.{js,jsx}', 'tests/**/*.{test,spec}.{js,jsx}'],
+    // Disable file parallelism in CI to avoid worker memory limits
+    fileParallelism: !process.env.CI,
   },
 })
