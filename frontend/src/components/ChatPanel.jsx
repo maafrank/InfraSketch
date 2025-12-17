@@ -14,6 +14,7 @@ export default function ChatPanel({
   examplePrompt,
   currentModel,
   onModelChange,
+  prefillText,
 }) {
   const [input, setInput] = useState('');
   const [width, setWidth] = useState(400); // Default width
@@ -145,6 +146,28 @@ export default function ChatPanel({
       }
     }
   }, [examplePrompt]);
+
+  // Track the last prefill we applied so we know when to clear
+  const lastAppliedPrefillRef = useRef(null);
+
+  // Populate input when prefillText is provided (for tutorial)
+  // Also clear input when prefillText is cleared (tutorial step advancement)
+  useEffect(() => {
+    if (prefillText) {
+      setInput(prefillText);
+      lastAppliedPrefillRef.current = prefillText;
+      // Auto-focus the textarea
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    } else if (lastAppliedPrefillRef.current) {
+      // Clear input when prefillText is cleared AND we had previously applied a prefill
+      // This ensures we only clear when transitioning from prefilled -> empty
+      // and not when the component first mounts with no prefill
+      setInput('');
+      lastAppliedPrefillRef.current = null;
+    }
+  }, [prefillText]);
 
   const handleSubmit = (e) => {
     e.preventDefault();

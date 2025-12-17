@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { SignedIn, SignedOut, SignInButton, UserButton, useAuth, useClerk } from "@clerk/clerk-react";
 import { toPng } from 'html-to-image';
 import { useTheme } from './contexts/useTheme';
+import { TutorialProvider, useTutorial } from './contexts/TutorialContext';
 import LandingPage from './components/LandingPage';
 import DiagramCanvas from './components/DiagramCanvas';
 import ChatPanel from './components/ChatPanel';
@@ -11,6 +12,7 @@ import AddNodeModal from './components/AddNodeModal';
 import SessionHistorySidebar from './components/SessionHistorySidebar';
 import NodePalette from './components/NodePalette';
 import ThemeToggle from './components/ThemeToggle';
+import TutorialOverlay from './components/tutorial/TutorialOverlay';
 import {
   generateDiagram,
   pollDiagramStatus,
@@ -35,7 +37,37 @@ import {
 } from './api/client';
 import './App.css';
 
+// Settings icon for UserButton menu
+const SettingsIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+  </svg>
+);
+
+// Main App wrapper - handles auth detection and provides TutorialProvider
 function App({ resumeMode = false }) {
+  const { isSignedIn } = useAuth();
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  return (
+    <TutorialProvider isSignedIn={isSignedIn} isMobile={isMobile}>
+      <AppContent resumeMode={resumeMode} isMobile={isMobile} />
+    </TutorialProvider>
+  );
+}
+
+// AppContent - can use useTutorial since it's inside TutorialProvider
+function AppContent({ resumeMode = false, isMobile }) {
   const { theme } = useTheme();
   const [sessionId, setSessionId] = useState(null);
   const [sessionName, setSessionName] = useState(null);
@@ -70,11 +102,14 @@ function App({ resumeMode = false }) {
   // Layout direction state
   const [layoutDirection, setLayoutDirection] = useState('TB'); // 'TB' (top-bottom) or 'LR' (left-right)
 
-  // Mobile detection
-  const [isMobile, setIsMobile] = useState(false);
-
   // Node merging state
   const [mergingNodes, setMergingNodes] = useState(false);
+
+  // Tutorial chat prefill state
+  const [chatPrefillText, setChatPrefillText] = useState('');
+
+  // Tutorial add node modal prefill state
+  const [addNodeModalPrefillData, setAddNodeModalPrefillData] = useState(null);
 
   // Auth - Set up token getter for API client
   const { getToken, isSignedIn } = useAuth();
@@ -89,16 +124,48 @@ function App({ resumeMode = false }) {
     setClerkTokenGetter(getToken);
   }, [getToken]);
 
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
+  // Get tutorial context and register callbacks
+  const { registerCallbacks } = useTutorial();
 
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-
-    return () => window.removeEventListener('resize', checkMobile);
+  // Callback to open add node modal with prefill data (for tutorial)
+  const handleOpenAddNodeModalWithPrefill = useCallback((prefillData) => {
+    setAddNodeModalPrefillData(prefillData);
+    setShowAddNodeModal(true);
   }, []);
+
+  // Register tutorial callbacks when component mounts
+  useEffect(() => {
+    registerCallbacks({
+      // State injection callbacks
+      onDiagramChange: setDiagram,
+      onMessagesChange: setMessages,
+      onDesignDocChange: setDesignDoc,
+      onPrefillChat: setChatPrefillText,
+      onShowDesignDocPanel: setDesignDocOpen,
+      onShowHistoryPanel: setSessionHistoryOpen,
+      onOpenAddNodeModal: handleOpenAddNodeModalWithPrefill,
+      // Cleanup callbacks - called when advancing to clean up state from previous step
+      onClearChatPrefill: () => setChatPrefillText(''),
+      onCloseAddNodeModal: () => {
+        setShowAddNodeModal(false);
+        setAddNodeModalPrefillData(null);
+      },
+      onCloseDesignDocPanel: () => setDesignDocOpen(false),
+      onCloseHistoryPanel: () => setSessionHistoryOpen(false),
+      // Reset app state when tutorial completes
+      onResetAppState: () => {
+        setSessionId(null);
+        setDiagram(null);
+        setSelectedNode(null);
+        setMessages([]);
+        setDesignDoc(null);
+        setDesignDocOpen(false);
+        setSessionHistoryOpen(false);
+        setSessionName('Untitled Design');
+        navigate('/');
+      },
+    });
+  }, [registerCallbacks, handleOpenAddNodeModalWithPrefill, navigate]);
 
   // Re-center diagram when sidebar opens/closes
   useEffect(() => {
@@ -817,8 +884,9 @@ function App({ resumeMode = false }) {
   }, [applyLayoutFn, base64ToBlob, downloadBlob]);
 
   return (
-    <div className="app">
-      <header className="app-header">
+      <div className="app">
+        <TutorialOverlay />
+        <header className="app-header">
         <div
           className="app-title"
           onClick={isSignedIn ? handleNewDesign : undefined}
@@ -887,7 +955,15 @@ function App({ resumeMode = false }) {
                     avatarBox: { width: 32, height: 32 }
                   }
                 }}
-              />
+              >
+                <UserButton.MenuItems>
+                  <UserButton.Link
+                    label="Settings"
+                    labelIcon={<SettingsIcon />}
+                    href="/settings"
+                  />
+                </UserButton.MenuItems>
+              </UserButton>
             </SignedIn>
           </div>
         </div>
@@ -972,6 +1048,7 @@ function App({ resumeMode = false }) {
             examplePrompt={examplePrompt}
             currentModel={currentModel}
             onModelChange={setCurrentModel}
+            prefillText={chatPrefillText}
           />
         )}
       </div>
@@ -981,9 +1058,11 @@ function App({ resumeMode = false }) {
         onClose={() => {
           setShowAddNodeModal(false);
           setPreSelectedNodeType(null);
+          setAddNodeModalPrefillData(null);
         }}
         onAdd={handleAddNode}
         preSelectedType={preSelectedNodeType}
+        prefillData={addNodeModalPrefillData}
       />
 
       {isSignedIn && (

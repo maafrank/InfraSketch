@@ -1,0 +1,73 @@
+/* Tutorial Progress Indicator */
+
+.tutorial-progress {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-primary, #ffffff);
+  border-radius: 12px;
+  padding: 12px 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+  z-index: 10000;
+  min-width: 280px;
+  text-align: center;
+}
+
+.tutorial-progress-phase {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.tutorial-progress-phase-label {
+  font-size: 12px;
+  color: var(--text-secondary, #666666);
+  font-weight: 500;
+}
+
+.tutorial-progress-phase-name {
+  font-size: 14px;
+  color: var(--text-primary, #1a1a1a);
+  font-weight: 600;
+}
+
+.tutorial-progress-bar {
+  height: 6px;
+  background: var(--bg-secondary, #e0e0e0);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.tutorial-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-color, #667eea), var(--primary-color-light, #9f7aea));
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.tutorial-progress-steps {
+  font-size: 11px;
+  color: var(--text-tertiary, #999999);
+}
+
+/* Dark mode */
+[data-theme="dark"] .tutorial-progress {
+  background: var(--bg-primary, #1e1e1e);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .tutorial-progress-phase-label {
+  color: var(--text-secondary, #a0a0a0);
+}
+
+[data-theme="dark"] .tutorial-progress-phase-name {
+  color: var(--text-primary, #ffffff);
+}
+
+[data-theme="dark"] .tutorial-progress-bar {
+  background: var(--bg-secondary, #2d2d2d);
+}

@@ -386,3 +386,38 @@ export const pollSessionName = async (sessionId, onUpdate = null, maxWaitTime = 
     name: null,
   };
 };
+
+// =============================================================================
+// USER PREFERENCES (for tutorial status, etc.)
+// =============================================================================
+
+/**
+ * Get the current user's preferences (tutorial status, etc.).
+ * Returns default preferences if none exist yet.
+ *
+ * @returns {Promise<{user_id: string, tutorial_completed: boolean, tutorial_completed_at: string|null}>}
+ */
+export const getUserPreferences = async () => {
+  const response = await client.get('/user/preferences');
+  return response.data;
+};
+
+/**
+ * Mark the tutorial as completed for the current user.
+ *
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+export const completeTutorial = async () => {
+  const response = await client.post('/user/tutorial/complete');
+  return response.data;
+};
+
+/**
+ * Reset the tutorial status so the user can replay it.
+ *
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+export const resetTutorial = async () => {
+  const response = await client.post('/user/tutorial/reset');
+  return response.data;
+};

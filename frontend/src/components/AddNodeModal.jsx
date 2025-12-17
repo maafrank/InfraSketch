@@ -14,7 +14,7 @@ const NODE_TYPES = [
   { value: 'service', label: 'Service' },
 ];
 
-export default function AddNodeModal({ isOpen, onClose, onAdd, preSelectedType = null }) {
+export default function AddNodeModal({ isOpen, onClose, onAdd, preSelectedType = null, prefillData = null }) {
   const [formData, setFormData] = useState({
     type: preSelectedType || 'api',
     label: '',
@@ -29,6 +29,19 @@ export default function AddNodeModal({ isOpen, onClose, onAdd, preSelectedType =
       setFormData((prev) => ({ ...prev, type: preSelectedType }));
     }
   }, [preSelectedType]);
+
+  // Prefill form data when provided (e.g., from tutorial)
+  useEffect(() => {
+    if (prefillData && isOpen) {
+      setFormData({
+        type: prefillData.type || 'api',
+        label: prefillData.label || '',
+        description: prefillData.description || '',
+        technology: prefillData.metadata?.technology || '',
+        notes: prefillData.metadata?.notes || '',
+      });
+    }
+  }, [prefillData, isOpen]);
 
   const handleSubmit = (e) => {
     e.preventDefault();

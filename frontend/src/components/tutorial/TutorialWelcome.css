@@ -1,0 +1,161 @@
+/* Tutorial Welcome/Completion Modal */
+
+.tutorial-welcome-backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10002;
+}
+
+.tutorial-welcome-modal {
+  background: var(--bg-primary, #ffffff);
+  border-radius: 20px;
+  padding: 40px;
+  max-width: 420px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: modal-appear 0.4s ease;
+  pointer-events: auto;
+}
+
+@keyframes modal-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.tutorial-welcome-modal--completion {
+  background: linear-gradient(135deg, var(--bg-primary, #ffffff) 0%, var(--bg-secondary, #f8f9fa) 100%);
+}
+
+.tutorial-welcome-icon {
+  margin-bottom: 24px;
+}
+
+.tutorial-welcome-title {
+  margin: 0 0 12px 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.tutorial-welcome-content {
+  margin: 0 0 24px 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-secondary, #666666);
+}
+
+/* Features list */
+.tutorial-welcome-features {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 28px;
+  text-align: left;
+}
+
+.tutorial-welcome-feature {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-secondary, #f5f5f5);
+  border-radius: 10px;
+  font-size: 14px;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.tutorial-welcome-feature-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea, #9f7aea);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 50%;
+}
+
+/* Completion stats */
+.tutorial-welcome-stats {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin-bottom: 28px;
+}
+
+.tutorial-welcome-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tutorial-welcome-stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--primary-color, #667eea);
+}
+
+.tutorial-welcome-stat-label {
+  font-size: 13px;
+  color: var(--text-secondary, #666666);
+  margin-top: 4px;
+}
+
+/* Action button */
+.tutorial-welcome-button {
+  width: 100%;
+  padding: 16px 32px;
+  background: linear-gradient(135deg, #667eea, #9f7aea);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tutorial-welcome-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+}
+
+.tutorial-welcome-time {
+  margin: 16px 0 0 0;
+  font-size: 13px;
+  color: var(--text-tertiary, #999999);
+}
+
+/* Dark mode */
+[data-theme="dark"] .tutorial-welcome-modal {
+  background: var(--bg-primary, #1e1e1e);
+}
+
+[data-theme="dark"] .tutorial-welcome-modal--completion {
+  background: linear-gradient(135deg, var(--bg-primary, #1e1e1e) 0%, var(--bg-secondary, #2d2d2d) 100%);
+}
+
+[data-theme="dark"] .tutorial-welcome-title {
+  color: var(--text-primary, #ffffff);
+}
+
+[data-theme="dark"] .tutorial-welcome-content {
+  color: var(--text-secondary, #a0a0a0);
+}
+
+[data-theme="dark"] .tutorial-welcome-feature {
+  background: var(--bg-secondary, #2d2d2d);
+  color: var(--text-primary, #ffffff);
+}

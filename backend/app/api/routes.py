@@ -2320,3 +2320,78 @@ async def clerk_webhook(request: Request):
     # Always return success to acknowledge receipt
     # (even if we didn't process the event type)
     return {"status": "received", "type": event_type}
+
+
+# =============================================================================
+# USER PREFERENCES ENDPOINTS (for tutorial status, etc.)
+# =============================================================================
+
+from app.user.storage import get_user_preferences_storage
+from app.user.models import UserPreferences
+
+
+class UserPreferencesResponse(BaseModel):
+    """Response model for user preferences."""
+
+    user_id: str
+    tutorial_completed: bool
+    tutorial_completed_at: Optional[str] = None
+
+
+@router.get("/user/preferences", response_model=UserPreferencesResponse)
+async def get_user_preferences(http_request: Request):
+    """
+    Get the current user's preferences (tutorial status, etc.).
+
+    Returns default preferences if none exist yet.
+    """
+    user_id = getattr(http_request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
+
+    storage = get_user_preferences_storage()
+    prefs = storage.get_or_create_preferences(user_id)
+
+    return UserPreferencesResponse(
+        user_id=prefs.user_id,
+        tutorial_completed=prefs.tutorial_completed,
+        tutorial_completed_at=(
+            prefs.tutorial_completed_at.isoformat() if prefs.tutorial_completed_at else None
+        ),
+    )
+
+
+@router.post("/user/tutorial/complete")
+async def complete_tutorial(http_request: Request):
+    """
+    Mark the tutorial as completed for the current user.
+    """
+    user_id = getattr(http_request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
+
+    storage = get_user_preferences_storage()
+    success = storage.mark_tutorial_completed(user_id)
+
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to save tutorial completion")
+
+    return {"success": True, "message": "Tutorial marked as completed"}
+
+
+@router.post("/user/tutorial/reset")
+async def reset_tutorial(http_request: Request):
+    """
+    Reset the tutorial status so the user can replay it.
+    """
+    user_id = getattr(http_request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
+
+    storage = get_user_preferences_storage()
+    success = storage.reset_tutorial(user_id)
+
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to reset tutorial status")
+
+    return {"success": True, "message": "Tutorial reset successfully"}

@@ -1,0 +1,39 @@
+/* Tutorial Overlay Styles */
+
+.tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: none;
+}
+
+.tutorial-backdrop {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  pointer-events: none;
+}
+
+/* Spotlight - transparent hole in the backdrop with dark surround */
+.tutorial-spotlight {
+  position: absolute;
+  background: transparent;
+  border-radius: 8px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  transition: all 0.3s ease;
+  animation: spotlight-pulse 2s infinite;
+}
+
+@keyframes spotlight-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 9999px rgba(0, 0, 0, 0.6),
+      0 0 0 4px rgba(102, 126, 234, 0.5);
+  }
+  50% {
+    box-shadow:
+      0 0 0 9999px rgba(0, 0, 0, 0.6),
+      0 0 0 8px rgba(102, 126, 234, 0.3);
+  }
+}
