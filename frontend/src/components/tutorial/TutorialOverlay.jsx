@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useTutorial } from '../../contexts/TutorialContext';
+import { useTutorial } from '../../contexts/useTutorial';
 import TutorialTooltip from './TutorialTooltip';
 import TutorialWelcome from './TutorialWelcome';
 import TutorialProgress from './TutorialProgress';

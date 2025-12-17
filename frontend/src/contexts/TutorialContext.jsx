@@ -3,19 +3,11 @@
  * Manages tutorial state, step progression, and coordinates with App.jsx.
  */
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useState, useCallback, useEffect } from 'react';
 import { TUTORIAL_STEPS, getPhaseNumber, TOTAL_PHASES } from '../data/tutorialSteps';
 import { getUserPreferences, completeTutorial as apiCompleteTutorial } from '../api/client';
 
 const TutorialContext = createContext(null);
-
-export const useTutorial = () => {
-  const context = useContext(TutorialContext);
-  if (!context) {
-    throw new Error('useTutorial must be used within a TutorialProvider');
-  }
-  return context;
-};
 
 export const TutorialProvider = ({ children, isSignedIn, isMobile }) => {
   // Core state
@@ -153,6 +145,22 @@ export const TutorialProvider = ({ children, isSignedIn, isMobile }) => {
     setAwaitingUserAction(false);
   }, []);
 
+  // Complete the tutorial (defined before nextStep to avoid circular dependency)
+  const completeTutorial = useCallback(async () => {
+    setIsActive(false);
+    setHasCompleted(true);
+
+    // Reset app to clean "new design" state
+    onResetAppState();
+
+    // Persist to backend
+    try {
+      await apiCompleteTutorial();
+    } catch (error) {
+      console.error('Failed to save tutorial completion:', error);
+    }
+  }, [onResetAppState]);
+
   // Go to next step
   const nextStep = useCallback(() => {
     // Clean up state from current step before advancing
@@ -176,7 +184,7 @@ export const TutorialProvider = ({ children, isSignedIn, isMobile }) => {
       // Tutorial complete
       completeTutorial();
     }
-  }, [currentStepIndex, totalSteps, currentStep, onClearChatPrefill, onCloseAddNodeModal, onCloseDesignDocPanel, onCloseHistoryPanel]);
+  }, [currentStepIndex, totalSteps, currentStep, onClearChatPrefill, onCloseAddNodeModal, onCloseDesignDocPanel, onCloseHistoryPanel, completeTutorial]);
 
   // Go to previous step
   const prevStep = useCallback(() => {
@@ -185,22 +193,6 @@ export const TutorialProvider = ({ children, isSignedIn, isMobile }) => {
       setAwaitingUserAction(false);
     }
   }, [currentStepIndex]);
-
-  // Complete the tutorial
-  const completeTutorial = useCallback(async () => {
-    setIsActive(false);
-    setHasCompleted(true);
-
-    // Reset app to clean "new design" state
-    onResetAppState();
-
-    // Persist to backend
-    try {
-      await apiCompleteTutorial();
-    } catch (error) {
-      console.error('Failed to save tutorial completion:', error);
-    }
-  }, [onResetAppState]);
 
   // Reset tutorial (for replaying from settings)
   const resetTutorial = useCallback(() => {
