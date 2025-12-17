@@ -86,9 +86,9 @@ jobs:
         run: cd frontend && npm ci --legacy-peer-deps
 
       - name: Run tests
-        run: cd frontend && npm run test:run -- --pool=forks --poolOptions.forks.singleFork
+        run: cd frontend && node --max-old-space-size=4096 ./node_modules/.bin/vitest run --pool=threads --poolOptions.threads.singleThread
         env:
-          NODE_OPTIONS: '--max_old_space_size=4096'
+          CI: true
 
   frontend-build:
     name: Frontend Build
