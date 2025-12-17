@@ -53,6 +53,16 @@ const SCREENSHOTS = [
     caption: "Complete workspace with session history"
   },
   {
+    src: "/tutorial.png",
+    alt: "Interactive tutorial showing 3 steps to get started",
+    caption: "Interactive tutorial guides you through the basics"
+  },
+  {
+    src: "/followup-questions.png",
+    alt: "AI-suggested follow-up questions after diagram generation",
+    caption: "Smart suggestions help you iterate on your design"
+  },
+  {
     src: "/analytics-diagram-generated.png",
     alt: "Generated analytics architecture diagram",
     caption: "Agent-generated architecture diagrams"
