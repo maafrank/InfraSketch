@@ -102,6 +102,7 @@ class ChatResponse(BaseModel):
     response: str
     diagram: Optional[Diagram] = None
     design_doc: Optional[str] = None  # Updated design document content
+    suggestions: List[str] = Field(default_factory=list)  # AI-generated follow-up suggestions
 
 
 class CreateGroupRequest(BaseModel):

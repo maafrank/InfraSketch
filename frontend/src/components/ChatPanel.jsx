@@ -15,6 +15,8 @@ export default function ChatPanel({
   currentModel,
   onModelChange,
   prefillText,
+  suggestions = [],
+  onSuggestionClick,
 }) {
   const [input, setInput] = useState('');
   const [width, setWidth] = useState(400); // Default width
@@ -259,6 +261,22 @@ export default function ChatPanel({
           >
             ✕
           </button>
+        </div>
+      )}
+
+      {/* AI-generated suggestion pills */}
+      {suggestions.length > 0 && !loading && (
+        <div className="chat-suggestions">
+          {suggestions.map((suggestion, idx) => (
+            <button
+              key={idx}
+              className="chat-suggestion-pill"
+              onClick={() => onSuggestionClick?.(suggestion)}
+              type="button"
+            >
+              {suggestion}
+            </button>
+          ))}
         </div>
       )}
 

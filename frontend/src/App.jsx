@@ -92,6 +92,7 @@ function AppContent({ resumeMode = false, isMobile }) {
   const [chatPanelWidth, setChatPanelWidth] = useState(400);
   const [examplePrompt, setExamplePrompt] = useState(null);
   const [currentModel, setCurrentModel] = useState('claude-haiku-4-5'); // Track current model
+  const [suggestions, setSuggestions] = useState([]); // AI-generated follow-up suggestions
 
   // Session history sidebar state
   const [sessionHistoryOpen, setSessionHistoryOpen] = useState(false);
@@ -308,6 +309,10 @@ function AppContent({ resumeMode = false, isMobile }) {
           if (result.name) {
             setSessionName(result.name);
           }
+          // Set initial suggestions from diagram generation
+          if (result.suggestions) {
+            setSuggestions(result.suggestions);
+          }
           console.log('Generated initial diagram:', result);
         } else {
           throw new Error(result.error || 'Failed to generate diagram');
@@ -362,6 +367,7 @@ function AppContent({ resumeMode = false, isMobile }) {
     setMessages((prev) => [...prev, userMessage]);
 
     setChatLoading(true);
+    setSuggestions([]); // Clear suggestions while loading
     try {
       const response = await sendChatMessage(
         currentSessionId,
@@ -390,6 +396,11 @@ function AppContent({ resumeMode = false, isMobile }) {
         setDesignDoc(response.design_doc);
       }
 
+      // Update suggestions from chat response
+      if (response.suggestions) {
+        setSuggestions(response.suggestions);
+      }
+
       // Poll for session name if this was the first message (no session name yet)
       if (!sessionName || sessionName === 'Untitled Design') {
         pollSessionName(currentSessionId, (name) => {
@@ -409,6 +420,11 @@ function AppContent({ resumeMode = false, isMobile }) {
     } finally {
       setChatLoading(false);
     }
+  };
+
+  // Handler for when user clicks a suggestion pill - sends immediately
+  const handleSuggestionClick = (suggestion) => {
+    handleSendMessage(suggestion);
   };
 
   const handleAddNode = async (node) => {
@@ -1050,6 +1066,8 @@ function AppContent({ resumeMode = false, isMobile }) {
             currentModel={currentModel}
             onModelChange={setCurrentModel}
             prefillText={chatPrefillText}
+            suggestions={suggestions}
+            onSuggestionClick={handleSuggestionClick}
           />
         )}
       </div>

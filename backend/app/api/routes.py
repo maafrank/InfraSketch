@@ -17,7 +17,7 @@ from app.models import (
     CreateGroupResponse,
 )
 from app.session.manager import session_manager
-from app.agent.graph import agent_graph
+from app.agent.graph import agent_graph, generate_suggestions
 from app.agent.doc_generator import generate_design_document
 from app.agent.name_generator import generate_session_name
 from app.utils.diagram_export import generate_diagram_png, convert_markdown_to_pdf
@@ -512,6 +512,18 @@ async def get_diagram_status(session_id: str, http_request: Request):
         response["messages"] = [{"role": m.role, "content": m.content} for m in session.messages]
         response["name"] = session.name
 
+        # Generate initial suggestions for the newly created diagram
+        try:
+            suggestions = generate_suggestions(
+                diagram=session.diagram,
+                node_id=None,
+                last_message="Initial diagram generated"
+            )
+            response["suggestions"] = suggestions
+        except Exception as e:
+            print(f"✗ Error generating initial suggestions: {e}")
+            response["suggestions"] = []
+
     return JSONResponse(content=response)
 
 
@@ -633,10 +645,14 @@ async def chat(request: ChatRequest, http_request: Request, background_tasks: Ba
         if needs_name:
             background_tasks.add_task(_generate_session_name_from_content, request.session_id, session.model)
 
+        # Extract suggestions from agent result
+        suggestions = result.get("suggestions", [])
+
         return ChatResponse(
             response=response_text,
             diagram=response_diagram,
-            design_doc=response_design_doc
+            design_doc=response_design_doc,
+            suggestions=suggestions
         )
 
     except HTTPException:

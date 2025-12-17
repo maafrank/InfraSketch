@@ -163,6 +163,7 @@ export const pollDiagramStatus = async (sessionId, onProgress = null, maxWaitTim
         messages: status.messages,
         name: status.name,
         duration: status.duration_seconds,
+        suggestions: status.suggestions || [],
       };
     }
 

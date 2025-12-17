@@ -2101,6 +2101,40 @@ body {
   color: var(--text-primary);
 }
 
+/* Chat Suggestions */
+.chat-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-primary);
+}
+
+.chat-suggestion-pill {
+  padding: 6px 12px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.chat-suggestion-pill:hover {
+  background: var(--brand-purple);
+  color: white;
+  border-color: var(--brand-purple);
+  transform: translateY(-1px);
+}
+
+.chat-suggestion-pill:active {
+  transform: translateY(0);
+}
+
 .chat-input-form {
   padding: 1rem;
   border-top: 1px solid var(--border-color);
@@ -2866,6 +2900,16 @@ body {
 
   .message.assistant .message-content {
     max-width: 90%;
+  }
+
+  .chat-suggestions {
+    padding: 0.5rem 0.75rem;
+    gap: 0.4rem;
+  }
+
+  .chat-suggestion-pill {
+    padding: 5px 10px;
+    font-size: 12px;
   }
 
   .chat-input-form {

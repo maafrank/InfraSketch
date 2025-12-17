@@ -370,3 +370,29 @@ SPEED OPTIMIZATIONS:
 - Avoid repetition between sections
 - Use specific component/technology names from diagram
 """
+
+
+SUGGESTION_PROMPT = """You are helping a user design a system architecture. Based on the current diagram and conversation, suggest 2-3 brief follow-up actions they might want to take.
+
+Current diagram has: {node_count} nodes, {edge_count} edges
+Node types present: {node_types}
+{focused_node_context}
+Last assistant response summary: {last_message_summary}
+
+Return ONLY a JSON array of 2-3 suggestions. Each suggestion should be:
+- 3-6 words max
+- Actionable (start with a verb when possible)
+- Contextually relevant to the current state
+- Avoid repeating what was just discussed
+
+Examples of good suggestions:
+- "Add Redis caching layer"
+- "Explain the auth flow"
+- "Add monitoring service"
+- "Scale the database"
+- "Add rate limiting"
+- "Discuss failure scenarios"
+
+Return ONLY the JSON array, nothing else:
+["suggestion 1", "suggestion 2", "suggestion 3"]
+"""

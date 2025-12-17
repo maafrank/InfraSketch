@@ -16,6 +16,7 @@ from app.agent.tools import all_tools
 from app.agent.prompts import (
     SYSTEM_PROMPT,
     CONVERSATION_PROMPT,
+    SUGGESTION_PROMPT,
     get_diagram_context,
     get_node_context,
     get_design_doc_context,
@@ -34,6 +35,82 @@ def create_llm(model_name: str = "claude-haiku-4-5"):
         temperature=0.4,
         max_tokens=32768,  # Supports up to 64k output tokens
     )
+
+
+def generate_suggestions(
+    diagram: Diagram,
+    node_id: str | None = None,
+    last_message: str = "",
+) -> list[str]:
+    """
+    Generate contextual follow-up suggestions using Haiku for speed.
+
+    Args:
+        diagram: Current diagram state
+        node_id: Optional focused node ID
+        last_message: Last assistant message for context
+
+    Returns:
+        List of 2-3 suggestion strings
+    """
+    try:
+        # Always use Haiku for speed
+        llm = create_llm("claude-haiku-4-5")
+
+        # Build context
+        diagram_dict = diagram.model_dump() if diagram else {"nodes": [], "edges": []}
+        node_count = len(diagram_dict.get("nodes", []))
+        edge_count = len(diagram_dict.get("edges", []))
+
+        # Get unique node types
+        node_types = list(set(n.get("type", "unknown") for n in diagram_dict.get("nodes", [])))
+
+        # Build focused node context if applicable
+        focused_node_context = ""
+        if node_id:
+            node = next((n for n in diagram_dict.get("nodes", []) if n["id"] == node_id), None)
+            if node:
+                focused_node_context = f"Currently focused on: {node.get('label', node_id)} ({node.get('type', 'unknown')})"
+
+        # Truncate last message for context (keep it brief)
+        last_message_summary = last_message[:200] + "..." if len(last_message) > 200 else last_message
+
+        # Build prompt
+        prompt = SUGGESTION_PROMPT.format(
+            node_count=node_count,
+            edge_count=edge_count,
+            node_types=", ".join(node_types) if node_types else "none",
+            focused_node_context=focused_node_context,
+            last_message_summary=last_message_summary or "Initial diagram generated"
+        )
+
+        messages = [HumanMessage(content=prompt)]
+        response = llm.invoke(messages)
+
+        # Parse JSON array from response
+        content = response.content.strip()
+
+        # Try to extract JSON array
+        if content.startswith("["):
+            suggestions = json.loads(content)
+        elif "[" in content:
+            # Extract JSON from response
+            start = content.index("[")
+            end = content.rindex("]") + 1
+            suggestions = json.loads(content[start:end])
+        else:
+            print(f"✗ Could not parse suggestions: {content[:100]}")
+            return []
+
+        # Validate and limit to 3 suggestions
+        if isinstance(suggestions, list):
+            return [str(s) for s in suggestions[:3]]
+
+        return []
+
+    except Exception as e:
+        print(f"✗ Error generating suggestions: {e}")
+        return []
 
 
 def generate_diagram_node(state: InfraSketchState) -> dict:
@@ -301,6 +378,30 @@ def finalize_chat_response(state: InfraSketchState) -> dict:
             new_messages = list(state.messages[:-1])
             new_messages.append(AIMessage(content=updated_content))
             updates["messages"] = new_messages
+
+    # Generate follow-up suggestions using Haiku for speed
+    # Use updated diagram if tools modified it, otherwise use state diagram
+    current_diagram = updates.get("diagram") or state.diagram
+    if current_diagram:
+        # Get the last assistant message content for context
+        last_assistant_content = ""
+        for msg in reversed(state.messages):
+            if isinstance(msg, AIMessage) and msg.content:
+                last_assistant_content = msg.content
+                break
+
+        print("→ Generating follow-up suggestions...")
+        suggestions = generate_suggestions(
+            diagram=current_diagram,
+            node_id=state.node_id,
+            last_message=last_assistant_content
+        )
+        if suggestions:
+            print(f"✓ Generated {len(suggestions)} suggestions: {suggestions}")
+            updates["suggestions"] = suggestions
+        else:
+            print("✗ No suggestions generated")
+            updates["suggestions"] = []
 
     return updates
 

@@ -6,7 +6,7 @@ with direct field access for structured artifacts (diagram, design_doc).
 """
 
 from dataclasses import dataclass, field
-from typing import Annotated, Sequence, Optional
+from typing import Annotated, Sequence, Optional, List
 from langchain_core.messages import AnyMessage
 from langgraph.graph import add_messages
 
@@ -37,3 +37,6 @@ class InfraSketchState:
 
     # Optional context
     node_id: Optional[str] = None  # For node-focused conversations
+
+    # AI-generated suggestions for follow-up actions
+    suggestions: List[str] = field(default_factory=list)

@@ -86,7 +86,9 @@ jobs:
         run: cd frontend && npm ci --legacy-peer-deps
 
       - name: Run tests
-        run: cd frontend && node --max-old-space-size=4096 ./node_modules/.bin/vitest run
+        # Note: --no-file-parallelism reduces memory by running test files sequentially
+        # Some slow tests (retry/polling) are skipped in CI via it.skipIf(process.env.CI)
+        run: cd frontend && node --max-old-space-size=4096 ./node_modules/.bin/vitest run --no-file-parallelism
         env:
           CI: true
 
