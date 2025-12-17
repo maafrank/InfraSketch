@@ -3,17 +3,23 @@
  * Allows users to replay the tutorial and manage other preferences.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react';
+import { SignedIn, SignedOut, SignInButton, UserButton, useAuth } from '@clerk/clerk-react';
 import { useTheme } from '../contexts/useTheme';
-import { resetTutorial } from '../api/client';
+import { resetTutorial, setClerkTokenGetter } from '../api/client';
 import ThemeToggle from './ThemeToggle';
 import './SettingsPage.css';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const { getToken } = useAuth();
+
+  // Set up Clerk token getter for API calls
+  useEffect(() => {
+    setClerkTokenGetter(getToken);
+  }, [getToken]);
   const [resettingTutorial, setResettingTutorial] = useState(false);
   const [tutorialResetSuccess, setTutorialResetSuccess] = useState(false);
 
