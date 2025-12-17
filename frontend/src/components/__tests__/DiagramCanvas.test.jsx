@@ -182,10 +182,11 @@ describe('DiagramCanvas', () => {
     it('shows example prompts in empty state', () => {
       render(<DiagramCanvas {...defaultProps} diagram={null} />);
 
-      expect(screen.getByText('Video Streaming Platform')).toBeInTheDocument();
-      expect(screen.getByText('E-Commerce System')).toBeInTheDocument();
-      expect(screen.getByText('Real-Time Chat App')).toBeInTheDocument();
-      expect(screen.getByText('Data Analytics Pipeline')).toBeInTheDocument();
+      // Check for current example titles (from EXAMPLE_PROMPTS array)
+      expect(screen.getByText('Video Streaming')).toBeInTheDocument();
+      expect(screen.getByText('E-Commerce Checkout')).toBeInTheDocument();
+      expect(screen.getByText('Twitter Timeline')).toBeInTheDocument();
+      expect(screen.getByText('Data Lake')).toBeInTheDocument();
     });
 
     it('calls onExampleClick when example card clicked', async () => {
@@ -194,10 +195,10 @@ describe('DiagramCanvas', () => {
 
       render(<DiagramCanvas {...defaultProps} diagram={null} onExampleClick={onExampleClick} />);
 
-      await user.click(screen.getByText('Video Streaming Platform'));
+      await user.click(screen.getByText('Video Streaming'));
 
       expect(onExampleClick).toHaveBeenCalledWith(
-        'Build a scalable video streaming platform with CDN, transcoding, and personalized recommendations'
+        'Design a video streaming platform like YouTube with upload, transcoding, and CDN'
       );
     });
 

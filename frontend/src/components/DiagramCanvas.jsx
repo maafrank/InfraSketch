@@ -73,25 +73,70 @@ function blendColors(hexColors) {
 }
 
 const EXAMPLE_PROMPTS = [
+  // Classic interview questions (match landing page)
   {
-    title: "Video Streaming Platform",
-    prompt: "Build a scalable video streaming platform with CDN, transcoding, and personalized recommendations",
-    icon: "🎬"
+    title: "Twitter Timeline",
+    prompt: "Design Twitter's home timeline with feed generation, caching, and real-time updates",
+    icon: "🐦"
   },
   {
-    title: "E-Commerce System",
-    prompt: "Design a microservices-based e-commerce platform with payment processing, inventory management, and order tracking",
+    title: "E-Commerce Checkout",
+    prompt: "Design a scalable e-commerce checkout flow with cart, payments, and inventory",
     icon: "🛒"
   },
   {
-    title: "Real-Time Chat App",
-    prompt: "Create a real-time chat application with WebSocket connections, message queues, and presence detection",
-    icon: "💬"
+    title: "URL Shortener",
+    prompt: "Design a URL shortening service like bit.ly with analytics and high availability",
+    icon: "🔗"
   },
   {
-    title: "Data Analytics Pipeline",
-    prompt: "Build a data analytics pipeline with stream processing, data warehousing, and real-time dashboards",
+    title: "Video Streaming",
+    prompt: "Design a video streaming platform like YouTube with upload, transcoding, and CDN",
+    icon: "📺"
+  },
+  // Backend engineering
+  {
+    title: "Rate Limiter",
+    prompt: "Design a distributed rate limiter for an API gateway handling millions of requests",
+    icon: "🚦"
+  },
+  {
+    title: "Notification System",
+    prompt: "Design a notification system supporting push, email, and SMS with delivery guarantees",
+    icon: "🔔"
+  },
+  // ML engineering
+  {
+    title: "ML Feature Store",
+    prompt: "Design a feature store for ML models with real-time and batch feature serving",
+    icon: "🤖"
+  },
+  {
+    title: "Recommendation Engine",
+    prompt: "Design a recommendation system like Netflix with collaborative filtering and A/B testing",
+    icon: "🎯"
+  },
+  // Data engineering
+  {
+    title: "Data Lake",
+    prompt: "Design a data lake architecture with ingestion, processing, and governance layers",
+    icon: "🏞️"
+  },
+  {
+    title: "Real-Time Analytics",
+    prompt: "Design a real-time analytics dashboard with streaming data and sub-second queries",
     icon: "📊"
+  },
+  // More classics
+  {
+    title: "Uber/Lyft",
+    prompt: "Design a ride-sharing service with real-time matching, pricing, and location tracking",
+    icon: "🚗"
+  },
+  {
+    title: "Search Autocomplete",
+    prompt: "Design a search autocomplete system with typeahead suggestions and personalization",
+    icon: "🔍"
   }
 ];
 
