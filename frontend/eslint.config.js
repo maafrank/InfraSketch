@@ -26,4 +26,13 @@ export default defineConfig([
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
   },
+  // Test files and config files need Node.js globals
+  {
+    files: ['**/*.test.{js,jsx}', '**/*.spec.{js,jsx}', 'vitest.config.js', 'tests/**/*.{js,jsx}'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
 ])
