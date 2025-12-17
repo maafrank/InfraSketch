@@ -24,6 +24,33 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.utils.logger import log_event, EventType
 
 
+def _get_cors_headers(request: Request) -> dict:
+    """
+    Get CORS headers based on request origin.
+
+    This is needed because when middleware returns early (before call_next),
+    the CORS middleware doesn't get a chance to add headers to the response.
+    """
+    origin = request.headers.get("origin", "")
+    # Only return CORS headers for allowed origins
+    allowed_origins = [
+        "https://dr6smezctn6x0.cloudfront.net",
+        "https://infrasketch.net",
+        "https://www.infrasketch.net",
+    ]
+    # Add localhost for development
+    for port in range(5173, 5191):
+        allowed_origins.append(f"http://localhost:{port}")
+        allowed_origins.append(f"http://127.0.0.1:{port}")
+
+    if origin in allowed_origins:
+        return {
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Credentials": "true",
+        }
+    return {}
+
+
 # Clerk domain extracted from publishable key
 # Production: pk_live_Y2xlcmsuaW5mcmFza2V0Y2gubmV0JA decodes to "clerk.infrasketch.net$"
 # Development: pk_test_YmlnLWdpYmJvbi02MS5jbGVyay5hY2NvdW50cy5kZXYk decodes to "big-gibbon-61.clerk.accounts.dev$"
@@ -96,7 +123,8 @@ class ClerkAuthMiddleware(BaseHTTPMiddleware):
             )
             return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                content={"detail": "Missing or invalid Authorization header"}
+                content={"detail": "Missing or invalid Authorization header"},
+                headers=_get_cors_headers(request)
             )
 
         token = auth_header.replace("Bearer ", "")
@@ -117,7 +145,8 @@ class ClerkAuthMiddleware(BaseHTTPMiddleware):
             )
             return JSONResponse(
                 status_code=e.status_code,
-                content={"detail": e.detail}
+                content={"detail": e.detail},
+                headers=_get_cors_headers(request)
             )
         except Exception as e:
             log_event(
@@ -130,7 +159,8 @@ class ClerkAuthMiddleware(BaseHTTPMiddleware):
             )
             return JSONResponse(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                content={"detail": "Internal authentication error"}
+                content={"detail": "Internal authentication error"},
+                headers=_get_cors_headers(request)
             )
 
         # Continue to the route handler
