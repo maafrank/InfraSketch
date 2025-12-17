@@ -4,14 +4,18 @@
  */
 
 import '@testing-library/jest-dom'
+import { cleanup } from '@testing-library/react'
 import { vi, beforeAll, afterAll, afterEach } from 'vitest'
 import { server } from './mocks/server'
 
 // Start MSW server before all tests
 beforeAll(() => server.listen({ onUnhandledRequest: 'bypass' }))
 
-// Reset handlers after each test (important for test isolation)
-afterEach(() => server.resetHandlers())
+// Reset handlers and clean up DOM after each test (important for test isolation)
+afterEach(() => {
+  server.resetHandlers()
+  cleanup()
+})
 
 // Clean up after all tests
 afterAll(() => server.close())
