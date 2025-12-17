@@ -2,47 +2,47 @@ import { useState, useEffect } from 'react';
 
 const EXAMPLE_PROMPTS = [
   {
-    title: "Video Streaming Platform",
-    prompt: "Build a scalable video streaming platform with CDN, transcoding, and personalized recommendations",
-    icon: "🎬"
+    title: "Twitter Timeline",
+    prompt: "Design Twitter's home timeline with feed generation, caching, and real-time updates",
+    icon: "🐦"
   },
   {
-    title: "E-Commerce System",
-    prompt: "Design a microservices-based e-commerce platform with payment processing, inventory management, and order tracking",
+    title: "E-Commerce Checkout",
+    prompt: "Design a scalable e-commerce checkout flow with cart, payments, and inventory",
     icon: "🛒"
   },
   {
-    title: "Real-Time Chat App",
-    prompt: "Create a real-time chat application with WebSocket connections, message queues, and presence detection",
-    icon: "💬"
+    title: "URL Shortener",
+    prompt: "Design a URL shortening service like bit.ly with analytics and high availability",
+    icon: "🔗"
   },
   {
-    title: "Data Analytics Pipeline",
-    prompt: "Build a data analytics pipeline with stream processing, data warehousing, and real-time dashboards",
-    icon: "📊"
+    title: "Video Streaming",
+    prompt: "Design a video streaming platform like YouTube with upload, transcoding, and CDN",
+    icon: "📺"
   }
 ];
 
 const FEATURES = [
   {
-    icon: "🤖",
-    title: "Agent-Powered",
-    description: "Sketch generates professional system architecture diagrams from your descriptions"
+    icon: "🎯",
+    title: "Real Practice",
+    description: "Design systems the way interviews actually work, not static diagrams"
   },
   {
     icon: "💬",
-    title: "Interactive Chat",
-    description: "Click any component to ask questions and request modifications in real-time"
+    title: "Iterate Like an Interview",
+    description: "Ask 'what if traffic spikes 10x?' and watch your design evolve"
   },
   {
-    icon: "📕",
-    title: "Design Documents",
-    description: "Auto-generate comprehensive technical documentation with one click"
+    icon: "🧠",
+    title: "Learn the Why",
+    description: "Click any component to understand why it exists in your design"
   },
   {
-    icon: "📥",
-    title: "Export Ready",
-    description: "Download your diagrams as PNG, PDF, or Markdown files"
+    icon: "📄",
+    title: "Interview-Ready Docs",
+    description: "Export architecture summaries, tradeoffs, and component details"
   }
 ];
 
@@ -111,12 +111,12 @@ export default function LandingPage({ onGenerate, loading }) {
       <div className="hero-section">
         <div className="hero-content">
           <h1 className="hero-title">
-            Transform Ideas into System Diagrams
+            Practice System Design Interviews by Actually Designing Systems
           </h1>
           <p className="hero-subtitle">
-            Describe your system in plain English. Sketch generates professional architecture diagrams in seconds.
+            Stop memorizing diagrams. Start building real architectures. Describe a system, watch it appear, ask "what if?" and iterate like a real interview.
           </p>
-          <p className="hero-cta">100% Free</p>
+          <p className="hero-cta">No drag-and-drop. No blank canvas paralysis. Just design.</p>
         </div>
 
         {/* Main Input Form - Front and Center */}
@@ -180,9 +180,26 @@ export default function LandingPage({ onGenerate, loading }) {
         </div>
       </div>
 
+      {/* The Problem Section */}
+      <div className="problem-section">
+        <h2 className="problem-heading">The Problem</h2>
+        <p className="problem-lead">
+          System design interviews are brutal for one reason: you're expected to design real systems, but most learning tools only explain them.
+        </p>
+        <ul className="problem-list">
+          <li>Blog posts show static diagrams</li>
+          <li>Whiteboards punish hesitation</li>
+          <li>Diagram tools slow you down</li>
+          <li>AI chatbots talk but cannot build</li>
+        </ul>
+        <p className="problem-conclusion">
+          You know the concepts. You struggle to turn them into architecture under pressure.
+        </p>
+      </div>
+
       {/* Features Section */}
       <div className="features-section">
-        <h2 className="features-heading">Powerful Features</h2>
+        <h2 className="features-heading">The Solution</h2>
         <div className="features-grid">
           {FEATURES.map((feature, index) => (
             <div key={index} className="feature-card">
@@ -238,23 +255,23 @@ export default function LandingPage({ onGenerate, loading }) {
         <div className="steps-grid">
           <div className="step-card">
             <div className="step-number">1</div>
-            <h3 className="step-title">Describe Your System</h3>
+            <h3 className="step-title">Describe the System</h3>
             <p className="step-description">
-              Write a simple description of your architecture in plain English
+              "Design Twitter's timeline" or "Design a URL shortener"
             </p>
           </div>
           <div className="step-card">
             <div className="step-number">2</div>
-            <h3 className="step-title">Sketch Generates Diagram</h3>
+            <h3 className="step-title">Watch It Appear</h3>
             <p className="step-description">
-              Sketch creates a professional architecture diagram with all components
+              Services, databases, caches, queues in a clean, readable layout
             </p>
           </div>
           <div className="step-card">
             <div className="step-number">3</div>
-            <h3 className="step-title">Refine & Export</h3>
+            <h3 className="step-title">Iterate & Learn</h3>
             <p className="step-description">
-              Chat to make changes, generate docs, and export in your preferred format
+              Ask questions like an interviewer would, get explanations tied to your design
             </p>
           </div>
         </div>

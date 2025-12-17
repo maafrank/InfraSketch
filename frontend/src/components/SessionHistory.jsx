@@ -68,7 +68,7 @@ export default function SessionHistory() {
             />
             <div className="title-text">
               <h1>InfraSketch</h1>
-              <p>AI-Powered System Design Tool</p>
+              <p>Agent-Powered System Design Tool</p>
             </div>
           </div>
         </div>
