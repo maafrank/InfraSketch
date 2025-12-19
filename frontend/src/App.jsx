@@ -916,7 +916,7 @@ function AppContent({ resumeMode = false, isMobile }) {
               className="app-logo"
             />
             <div className="title-text">
-              <h1>InfraSketch</h1>
+              <span className="app-title-heading">InfraSketch</span>
               <p>Agent-Powered System Design Tool</p>
             </div>
           </div>
