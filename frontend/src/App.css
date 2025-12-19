@@ -59,7 +59,8 @@ body {
   flex-direction: column;
 }
 
-.app-header h1 {
+.app-header h1,
+.app-title-heading {
   font-size: 2rem;
   margin-bottom: 0.25rem;
 }
