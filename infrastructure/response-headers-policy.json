@@ -1,0 +1,52 @@
+{
+  "Name": "infrasketch-security-headers",
+  "Comment": "Security headers for InfraSketch frontend",
+  "SecurityHeadersConfig": {
+    "XSSProtection": {
+      "Override": true,
+      "Protection": true,
+      "ModeBlock": true
+    },
+    "FrameOptions": {
+      "Override": true,
+      "FrameOption": "DENY"
+    },
+    "ReferrerPolicy": {
+      "Override": true,
+      "ReferrerPolicy": "strict-origin-when-cross-origin"
+    },
+    "ContentSecurityPolicy": {
+      "Override": true,
+      "ContentSecurityPolicy": "default-src 'self'; script-src 'self' https://*.clerk.accounts.dev https://clerk.infrasketch.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://img.clerk.com; font-src 'self'; connect-src 'self' https://b31htlojb0.execute-api.us-east-1.amazonaws.com https://*.clerk.accounts.dev https://clerk.infrasketch.net; frame-src https://*.clerk.accounts.dev https://clerk.infrasketch.net; frame-ancestors 'none'"
+    },
+    "ContentTypeOptions": {
+      "Override": true
+    },
+    "StrictTransportSecurity": {
+      "Override": true,
+      "IncludeSubdomains": true,
+      "Preload": true,
+      "AccessControlMaxAgeSec": 31536000
+    }
+  },
+  "CustomHeadersConfig": {
+    "Quantity": 3,
+    "Items": [
+      {
+        "Header": "Cross-Origin-Opener-Policy",
+        "Value": "same-origin-allow-popups",
+        "Override": true
+      },
+      {
+        "Header": "Cross-Origin-Resource-Policy",
+        "Value": "same-origin",
+        "Override": true
+      },
+      {
+        "Header": "Permissions-Policy",
+        "Value": "geolocation=(), microphone=(), camera=()",
+        "Override": true
+      }
+    ]
+  }
+}
