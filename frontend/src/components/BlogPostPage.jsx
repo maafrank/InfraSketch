@@ -144,7 +144,7 @@ export default function BlogPostPage() {
                   return (
                     <div className="youtube-embed">
                       <iframe
-                        src={`https://www.youtube-nocookie.com/embed/${videoId}`}
+                        src={`https://www.youtube.com/embed/${videoId}`}
                         title={alt || "YouTube video"}
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowFullScreen
