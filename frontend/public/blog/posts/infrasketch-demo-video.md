@@ -4,8 +4,6 @@ Want to see how InfraSketch turns natural language into complete system architec
 
 [![Watch the InfraSketch Demo on YouTube](https://img.youtube.com/vi/4SnRbwlL2VU/maxresdefault.jpg)](https://www.youtube.com/watch?v=4SnRbwlL2VU)
 
-👆 **Click the image above to watch on YouTube** (3 minutes)
-
 ## What You'll See
 
 The demo walks through the core InfraSketch workflow:

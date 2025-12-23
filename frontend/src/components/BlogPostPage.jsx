@@ -133,7 +133,31 @@ export default function BlogPostPage() {
 
       <div className="blog-post-body">
         <div className="blog-post-content">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              img: ({ src, alt }) => {
+                // Check if this is a YouTube thumbnail - embed video instead
+                const youtubeMatch = src?.match(/img\.youtube\.com\/vi\/([^/]+)/);
+                if (youtubeMatch) {
+                  const videoId = youtubeMatch[1];
+                  return (
+                    <div className="youtube-embed">
+                      <iframe
+                        src={`https://www.youtube-nocookie.com/embed/${videoId}`}
+                        title={alt || "YouTube video"}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    </div>
+                  );
+                }
+                return <img src={src} alt={alt} />;
+              }
+            }}
+          >
+            {content}
+          </ReactMarkdown>
         </div>
       </div>
 
