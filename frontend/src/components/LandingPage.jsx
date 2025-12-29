@@ -46,6 +46,58 @@ const FEATURES = [
   }
 ];
 
+const LAUNCH_BADGES = [
+  {
+    name: "Product Hunt",
+    href: "https://www.producthunt.com/products/infrasketch-2?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-infrasketch-2",
+    imgSrc: "https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1053327&theme=light&t=1767037203955",
+    alt: "InfraSketch - Agent-Powered System Design | Product Hunt",
+    width: 250,
+    height: 54
+  },
+  {
+    name: "FoundrList",
+    href: "https://foundrlist.com/product/infrasketch-2",
+    imgSrc: "https://foundrlist.com/api/badge/infrasketch-2",
+    alt: "Live on FoundrList",
+    width: 168,
+    height: 64
+  },
+  {
+    name: "SaaSHub",
+    href: "https://www.saashub.com/infrasketch-net?utm_source=badge&utm_campaign=badge&utm_content=infrasketch-net&badge_variant=color&badge_kind=approved",
+    imgSrc: "https://cdn-b.saashub.com/img/badges/approved-color.png?v=1",
+    alt: "InfraSketch.net badge",
+    width: 150,
+    height: null
+  },
+  {
+    name: "TinyLaunch",
+    href: "https://tinylaunch.com",
+    imgSrc: "https://tinylaunch.com/tinylaunch_badge_launching_soon.svg",
+    alt: "TinyLaunch Badge",
+    width: 202,
+    height: null
+  },
+  {
+    name: "PeerPush",
+    href: "https://peerpush.net/p/infrasketch",
+    imgSrc: "https://peerpush.net/p/infrasketch/badge.png",
+    alt: "InfraSketch badge",
+    width: 230,
+    height: null
+  },
+  {
+    name: "TryLaunch",
+    href: "https://trylaunch.ai/launch/infrasketch",
+    imgSrc: "https://trylaunch.ai/launch-icon-light.png",
+    alt: "Live on Launch",
+    width: 20,
+    height: 20,
+    customStyle: true
+  }
+];
+
 const SCREENSHOTS = [
   {
     src: "/full-app-with-design-doc.png",
@@ -284,6 +336,104 @@ export default function LandingPage({ onGenerate, loading }) {
               Ask questions like an interviewer would, get explanations tied to your design
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Featured On Section */}
+      <div className="featured-on-section">
+        <h2 className="featured-on-heading">Featured On</h2>
+        <div className="featured-on-grid">
+          {/* Product Hunt */}
+          <a
+            href="https://www.producthunt.com/products/infrasketch-2?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-infrasketch-2"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="featured-badge-link"
+          >
+            <img
+              src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1053327&theme=light"
+              alt="InfraSketch - Product Hunt"
+              className="featured-badge-img"
+              width="250"
+              height="54"
+            />
+          </a>
+
+          {/* FoundrList */}
+          <a
+            href="https://foundrlist.com/product/infrasketch-2"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="featured-badge-link"
+          >
+            <img
+              src="https://foundrlist.com/api/badge/infrasketch-2"
+              alt="Live on FoundrList"
+              className="featured-badge-img"
+              width="168"
+              height="64"
+            />
+          </a>
+
+          {/* SaaSHub */}
+          <a
+            href="https://www.saashub.com/infrasketch-net?utm_source=badge&utm_campaign=badge&utm_content=infrasketch-net&badge_variant=color&badge_kind=approved"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="featured-badge-link"
+          >
+            <img
+              src="https://cdn-b.saashub.com/img/badges/approved-color.png?v=1"
+              alt="SaaSHub Approved"
+              className="featured-badge-img"
+            />
+          </a>
+
+          {/* TinyLaunch */}
+          <a
+            href="https://tinylaunch.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="featured-badge-link"
+          >
+            <img
+              src="https://tinylaunch.com/tinylaunch_badge_launching_soon.svg"
+              alt="TinyLaunch Badge"
+              className="featured-badge-img"
+              width="202"
+            />
+          </a>
+
+          {/* PeerPush */}
+          <a
+            href="https://peerpush.net/p/infrasketch"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="featured-badge-link"
+          >
+            <img
+              src="https://peerpush.net/p/infrasketch/badge.png"
+              alt="InfraSketch on PeerPush"
+              className="featured-badge-img"
+              width="230"
+            />
+          </a>
+
+          {/* TryLaunch */}
+          <a
+            href="https://trylaunch.ai/launch/infrasketch"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="featured-badge-link featured-badge-styled"
+          >
+            <img
+              src="https://trylaunch.ai/launch-icon-light.png"
+              alt="Launch"
+              width="20"
+              height="20"
+            />
+            <span>Live on Launch</span>
+          </a>
         </div>
       </div>
 

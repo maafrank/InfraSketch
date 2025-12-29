@@ -594,6 +594,74 @@ body {
   line-height: 1.6;
 }
 
+/* Featured On Section */
+.featured-on-section {
+  background: var(--bg-primary);
+  padding: 3rem 2rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.featured-on-heading {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2.5rem;
+}
+
+.featured-on-grid {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  align-items: center;
+  justify-items: center;
+}
+
+.featured-badge-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.featured-badge-link:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+
+.featured-badge-img {
+  display: block;
+  max-width: 250px;
+  height: auto;
+  object-fit: contain;
+}
+
+/* TryLaunch styled badge (matches their embed style) */
+.featured-badge-styled {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #1A1A1A;
+  color: #FFFFFF;
+  border: 1px solid #333333;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.featured-badge-styled:hover {
+  background: #2a2a2a;
+  opacity: 1;
+}
+
+.featured-badge-styled img {
+  display: block;
+}
+
 /* Landing Page Footer */
 .landing-footer {
   background: var(--bg-tertiary);
@@ -2976,6 +3044,21 @@ body {
     font-size: 14px;
     top: -10px;
     right: -10px;
+  }
+
+  /* Featured On Section - Mobile */
+  .featured-on-section {
+    padding: 2rem 1rem;
+  }
+
+  .featured-on-heading {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .featured-on-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
   }
 
   /* Footer - Mobile */
