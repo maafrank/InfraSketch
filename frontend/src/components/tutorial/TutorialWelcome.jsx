@@ -5,7 +5,7 @@
 import React from 'react';
 import './TutorialWelcome.css';
 
-const TutorialWelcome = ({ modalType, title, content, onAction }) => {
+const TutorialWelcome = ({ modalType, title, content, onAction, onSkip }) => {
   const isCompletion = modalType === 'completion';
 
   return (
@@ -64,9 +64,16 @@ const TutorialWelcome = ({ modalType, title, content, onAction }) => {
           {isCompletion ? 'Start Designing' : 'Start Tour'}
         </button>
 
-        {/* Estimated time */}
+        {/* Estimated time and skip link */}
         {!isCompletion && (
-          <p className="tutorial-welcome-time">Takes about 2 minutes</p>
+          <>
+            <p className="tutorial-welcome-time">Takes about 2 minutes</p>
+            {onSkip && (
+              <button className="tutorial-welcome-skip" onClick={onSkip}>
+                Skip tutorial
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -144,6 +144,23 @@
   color: var(--text-tertiary, #999999);
 }
 
+.tutorial-welcome-skip {
+  display: block;
+  margin: 12px auto 0;
+  background: none;
+  border: none;
+  color: var(--text-tertiary, #999999);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: color 0.2s ease;
+}
+
+.tutorial-welcome-skip:hover {
+  color: var(--text-secondary, #666666);
+  text-decoration: underline;
+}
+
 /* Dark mode */
 [data-theme="dark"] .tutorial-welcome-modal {
   background: var(--bg-primary, #1e1e1e);

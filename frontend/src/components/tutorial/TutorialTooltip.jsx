@@ -13,6 +13,7 @@ const TutorialTooltip = ({
   showLoading = false,
   onNext,
   onPrev,
+  onSkip,
   canGoBack = true,
   canGoForward = false,
   isLastStep = false,
@@ -94,20 +95,30 @@ const TutorialTooltip = ({
       {/* Navigation buttons */}
       {showNavigation && (
         <div className="tutorial-tooltip-nav">
-          <button
-            className="tutorial-nav-btn tutorial-nav-btn--prev"
-            onClick={onPrev}
-            disabled={!canGoBack}
-          >
-            Previous
-          </button>
-          <button
-            className="tutorial-nav-btn tutorial-nav-btn--next"
-            onClick={onNext}
-            disabled={!canGoForward}
-          >
-            {isLastStep ? 'Done' : 'Next'}
-          </button>
+          {onSkip && !isLastStep && (
+            <button
+              className="tutorial-skip-link"
+              onClick={onSkip}
+            >
+              Skip tutorial
+            </button>
+          )}
+          <div className="tutorial-tooltip-nav-buttons">
+            <button
+              className="tutorial-nav-btn tutorial-nav-btn--prev"
+              onClick={onPrev}
+              disabled={!canGoBack}
+            >
+              Previous
+            </button>
+            <button
+              className="tutorial-nav-btn tutorial-nav-btn--next"
+              onClick={onNext}
+              disabled={!canGoForward}
+            >
+              {isLastStep ? 'Done' : 'Next'}
+            </button>
+          </div>
         </div>
       )}
     </div>

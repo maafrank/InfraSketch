@@ -21,6 +21,7 @@ const TutorialOverlay = () => {
     totalPhases,
     nextStep,
     prevStep,
+    completeTutorial,
   } = useTutorial();
 
   const [spotlightRect, setSpotlightRect] = useState(null);
@@ -148,6 +149,7 @@ const TutorialOverlay = () => {
           title={currentStep.title}
           content={currentStep.content}
           onAction={() => nextStep()}
+          onSkip={completeTutorial}
         />
       </div>
     );
@@ -180,6 +182,7 @@ const TutorialOverlay = () => {
         showLoading={currentStep?.showLoading}
         onNext={nextStep}
         onPrev={prevStep}
+        onSkip={completeTutorial}
         canGoBack={currentStepIndex > 0}
         canGoForward={true}
         isLastStep={currentStep?.isLastStep}

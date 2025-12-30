@@ -108,11 +108,32 @@
 /* Navigation buttons */
 .tutorial-tooltip-nav {
   display: flex;
-  gap: 8px;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
   border-top: 1px solid var(--border-color, #e0e0e0);
   padding-top: 16px;
   margin-top: 8px;
+}
+
+.tutorial-tooltip-nav-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+/* Skip link */
+.tutorial-skip-link {
+  background: none;
+  border: none;
+  color: var(--text-tertiary, #999999);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 0;
+  transition: color 0.2s ease;
+}
+
+.tutorial-skip-link:hover {
+  color: var(--text-secondary, #666666);
+  text-decoration: underline;
 }
 
 .tutorial-nav-btn {
