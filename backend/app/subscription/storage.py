@@ -152,10 +152,9 @@ class SubscriberStorage:
         try:
             self.table.update_item(
                 Key={'user_id': user_id},
-                UpdateExpression='SET subscribed = :sub, unsubscribed_at = :unsub_at, updated_at = :updated',
+                UpdateExpression='SET subscribed = :sub, updated_at = :updated REMOVE unsubscribed_at',
                 ExpressionAttributeValues={
                     ':sub': True,
-                    ':unsub_at': None,
                     ':updated': now
                 }
             )
