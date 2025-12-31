@@ -14,6 +14,8 @@ import SessionHistorySidebar from './components/SessionHistorySidebar';
 import NodePalette from './components/NodePalette';
 import ThemeToggle from './components/ThemeToggle';
 import TutorialOverlay from './components/tutorial/TutorialOverlay';
+import CreditBalance from './components/CreditBalance';
+import InsufficientCreditsModal from './components/InsufficientCreditsModal';
 import {
   generateDiagram,
   pollDiagramStatus,
@@ -112,6 +114,10 @@ function AppContent({ resumeMode = false, isMobile }) {
 
   // Tutorial add node modal prefill state
   const [addNodeModalPrefillData, setAddNodeModalPrefillData] = useState(null);
+
+  // Billing state
+  const [insufficientCreditsError, setInsufficientCreditsError] = useState(null);
+  const [refreshCredits, setRefreshCredits] = useState(null);
 
   // Auth - Set up token getter for API client
   const { getToken, isSignedIn } = useAuth();
@@ -324,6 +330,16 @@ function AppContent({ resumeMode = false, isMobile }) {
       } catch (error) {
         console.error('Failed to generate diagram:', error);
 
+        // Handle insufficient credits (402)
+        if (error.response?.status === 402) {
+          const detail = error.response.data?.detail || {};
+          setInsufficientCreditsError({
+            required: detail.required || 5,
+            available: detail.available || 0,
+          });
+          return;
+        }
+
         // Provide specific error messages based on error type
         let errorMessage = 'Failed to generate diagram. Please try again.';
 
@@ -412,11 +428,23 @@ function AppContent({ resumeMode = false, isMobile }) {
       }
     } catch (error) {
       console.error('Failed to send message:', error);
-      const errorMessage = {
-        role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+
+      // Handle insufficient credits (402)
+      if (error.response?.status === 402) {
+        const detail = error.response.data?.detail || {};
+        setInsufficientCreditsError({
+          required: detail.required || 1,
+          available: detail.available || 0,
+        });
+        // Remove the user message we just added since the request failed
+        setMessages((prev) => prev.slice(0, -1));
+      } else {
+        const errorMessage = {
+          role: 'assistant',
+          content: 'Sorry, I encountered an error. Please try again.',
+        };
+        setMessages((prev) => [...prev, errorMessage]);
+      }
     } finally {
       setChatLoading(false);
     }
@@ -729,8 +757,19 @@ function AppContent({ resumeMode = false, isMobile }) {
       }
     } catch (error) {
       console.error('Failed to generate design doc:', error);
-      alert('Failed to generate design document. Please try again.');
-      setDesignDocOpen(false); // Close panel on error
+
+      // Handle insufficient credits (402)
+      if (error.response?.status === 402) {
+        const detail = error.response.data?.detail || {};
+        setInsufficientCreditsError({
+          required: detail.required || 10,
+          available: detail.available || 0,
+        });
+        setDesignDocOpen(false); // Close panel on credits error
+      } else {
+        alert('Failed to generate design document. Please try again.');
+        setDesignDocOpen(false); // Close panel on error
+      }
     } finally {
       setDesignDocLoading(false);
     }
@@ -956,6 +995,12 @@ function AppContent({ resumeMode = false, isMobile }) {
               </>
             )}
           </div>
+          <SignedIn>
+            <CreditBalance
+              onUpgradeClick={() => navigate('/pricing')}
+              onRefresh={setRefreshCredits}
+            />
+          </SignedIn>
           <div className="auth-buttons">
             <ThemeToggle />
             <SignedOut>
@@ -1097,6 +1142,21 @@ function AppContent({ resumeMode = false, isMobile }) {
           sessionHistorySidebarWidth={sessionHistorySidebarWidth}
         />
       )}
+
+      {/* Insufficient Credits Modal */}
+      <InsufficientCreditsModal
+        isOpen={!!insufficientCreditsError}
+        onClose={() => setInsufficientCreditsError(null)}
+        required={insufficientCreditsError?.required}
+        available={insufficientCreditsError?.available}
+        onUpgrade={() => {
+          setInsufficientCreditsError(null);
+          navigate('/pricing');
+        }}
+        onCreditsUpdated={() => {
+          if (refreshCredits) refreshCredits();
+        }}
+      />
     </div>
   );
 }

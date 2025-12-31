@@ -124,6 +124,67 @@
   transform: none;
 }
 
+.settings-button--secondary {
+  background: transparent;
+  border: 1px solid var(--border-color, #e0e0e0);
+  color: var(--text-primary, #1a1a1a);
+}
+
+.settings-button--secondary:hover {
+  background: var(--bg-secondary, #f5f5f5);
+}
+
+/* Credits */
+.credits-balance {
+  font-size: 20px;
+  font-weight: 600;
+  color: #ffc107;
+}
+
+/* Credit History Table */
+.credit-history {
+  margin-top: 16px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-color, #e0e0e0);
+}
+
+.credit-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.credit-history-table th,
+.credit-history-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.credit-history-table th {
+  background: var(--bg-secondary, #f5f5f5);
+  font-weight: 600;
+  color: var(--text-secondary, #666666);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.credit-history-table tr:last-child td {
+  border-bottom: none;
+}
+
+.credit-history-table td.positive {
+  color: #4caf50;
+  font-weight: 500;
+}
+
+.credit-history-table td.negative {
+  color: #f44336;
+  font-weight: 500;
+}
+
 /* Settings Row */
 .settings-row {
   display: flex;
@@ -240,6 +301,29 @@
 
 [data-theme="dark"] .settings-signed-out p {
   color: var(--text-secondary, #a0a0a0);
+}
+
+[data-theme="dark"] .settings-button--secondary {
+  border-color: var(--border-color, #333333);
+  color: var(--text-primary, #ffffff);
+}
+
+[data-theme="dark"] .settings-button--secondary:hover {
+  background: var(--bg-secondary, #2d2d2d);
+}
+
+[data-theme="dark"] .credit-history {
+  border-color: var(--border-color, #333333);
+}
+
+[data-theme="dark"] .credit-history-table th {
+  background: var(--bg-secondary, #2d2d2d);
+  color: var(--text-secondary, #a0a0a0);
+}
+
+[data-theme="dark"] .credit-history-table th,
+[data-theme="dark"] .credit-history-table td {
+  border-bottom-color: var(--border-color, #333333);
 }
 
 /* Responsive */

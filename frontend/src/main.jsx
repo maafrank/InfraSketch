@@ -15,6 +15,7 @@ import ContactPage from './components/ContactPage.jsx'
 import BlogListPage from './components/BlogListPage.jsx'
 import BlogPostPage from './components/BlogPostPage.jsx'
 import SettingsPage from './components/SettingsPage.jsx'
+import PricingPage from './components/PricingPage.jsx'
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
@@ -40,6 +41,7 @@ createRoot(document.getElementById('root')).render(
               <Route path="/blog" element={<BlogListPage />} />
               <Route path="/blog/:slug" element={<BlogPostPage />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/pricing" element={<PricingPage />} />
             </Routes>
           </BrowserRouter>
         </ThemeProvider>

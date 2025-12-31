@@ -422,3 +422,65 @@ export const resetTutorial = async () => {
   const response = await client.post('/user/tutorial/reset');
   return response.data;
 };
+
+
+// =============================================================================
+// BILLING API
+// =============================================================================
+
+/**
+ * Get the current user's credit balance and subscription status.
+ *
+ * @returns {Promise<{
+ *   plan: string,
+ *   credits_balance: number,
+ *   credits_monthly_allowance: number,
+ *   credits_used_this_period: number,
+ *   subscription_status: string,
+ *   plan_started_at: string|null,
+ *   plan_expires_at: string|null,
+ *   last_credit_reset_at: string|null
+ * }>}
+ */
+export const getUserCredits = async () => {
+  const response = await client.get('/user/credits');
+  return response.data;
+};
+
+/**
+ * Get the user's credit transaction history.
+ *
+ * @param {number} limit - Maximum number of transactions to return (default 50)
+ * @returns {Promise<{transactions: Array}>}
+ */
+export const getCreditHistory = async (limit = 50) => {
+  const response = await client.get(`/user/credits/history?limit=${limit}`);
+  return response.data;
+};
+
+/**
+ * Redeem a promo code for credits.
+ *
+ * @param {string} code - The promo code to redeem
+ * @returns {Promise<{
+ *   success: boolean,
+ *   credits_granted: number,
+ *   new_balance: number,
+ *   message: string
+ * }>}
+ */
+export const redeemPromoCode = async (code) => {
+  const response = await client.post('/promo/redeem', { code });
+  return response.data;
+};
+
+/**
+ * Validate a promo code without redeeming it.
+ *
+ * @param {string} code - The promo code to validate
+ * @returns {Promise<{valid: boolean, credits?: number, error?: string}>}
+ */
+export const validatePromoCode = async (code) => {
+  const response = await client.post('/promo/validate', { code });
+  return response.data;
+};

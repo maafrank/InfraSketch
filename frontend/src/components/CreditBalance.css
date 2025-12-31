@@ -1,0 +1,88 @@
+.credit-balance {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  font-size: 14px;
+  color: #e0e0e0;
+  transition: all 0.2s ease;
+}
+
+.credit-balance.loading {
+  opacity: 0.6;
+}
+
+.credit-balance.low {
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+}
+
+.credit-balance.critical {
+  background: rgba(244, 67, 54, 0.15);
+  color: #f44336;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.credit-icon {
+  font-size: 16px;
+}
+
+.credit-count {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.credit-label {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.credit-balance .upgrade-button {
+  margin-left: 8px;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.credit-balance .upgrade-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .credit-balance {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+
+  .credit-icon {
+    font-size: 14px;
+  }
+
+  .credit-count {
+    font-size: 13px;
+  }
+
+  .credit-label {
+    display: none;
+  }
+
+  .credit-balance .upgrade-button {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+}

@@ -33,9 +33,60 @@ from app.utils.logger import (
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import SystemMessage
 from app.utils.secrets import get_anthropic_api_key
+from app.billing.storage import get_user_credits_storage
+from app.billing.credit_costs import calculate_cost
+from app.billing.promo_codes import redeem_promo_code, validate_promo_code
 import json
 import base64
 import time
+
+
+async def check_and_deduct_credits(
+    user_id: str,
+    action: str,
+    model: str = None,
+    session_id: str = None,
+    metadata: dict = None,
+) -> int:
+    """
+    Check if user has sufficient credits and deduct if so.
+
+    Args:
+        user_id: The authenticated user's ID
+        action: The action being performed (e.g., "diagram_generation")
+        model: Optional model name for model-specific pricing
+        session_id: Optional session ID for audit trail
+        metadata: Optional additional metadata for logging
+
+    Returns:
+        The number of credits deducted
+
+    Raises:
+        HTTPException 402 if insufficient credits
+    """
+    cost = calculate_cost(action, model)
+    storage = get_user_credits_storage()
+
+    success, credits = storage.deduct_credits(
+        user_id=user_id,
+        amount=cost,
+        action=action,
+        session_id=session_id,
+        metadata=metadata or {},
+    )
+
+    if not success:
+        raise HTTPException(
+            status_code=402,
+            detail={
+                "error": "insufficient_credits",
+                "required": cost,
+                "available": credits.credits_balance,
+                "message": "You don't have enough credits. Please upgrade your plan or purchase more credits.",
+            },
+        )
+
+    return cost
 
 router = APIRouter()
 
@@ -419,6 +470,14 @@ async def generate_diagram(request: GenerateRequest, http_request: Request, back
         # Use specified model or default to Haiku (alias auto-updates to latest)
         model = request.model or "claude-haiku-4-5"
 
+        # Check and deduct credits BEFORE creating session
+        await check_and_deduct_credits(
+            user_id=user_id,
+            action="diagram_generation",
+            model=model,
+            metadata={"prompt_length": len(request.prompt)},
+        )
+
         # Create session immediately with "generating" status
         session_id = session_manager.create_session_for_generation(
             user_id=user_id,
@@ -547,6 +606,16 @@ async def chat(request: ChatRequest, http_request: Request, background_tasks: Ba
         # Verify ownership
         if not session_manager.verify_ownership(request.session_id, user_id):
             raise HTTPException(status_code=403, detail="You don't have permission to access this session")
+
+        # Check and deduct credits for chat message
+        model_to_use = request.model if request.model else session.model
+        await check_and_deduct_credits(
+            user_id=user_id,
+            action="chat_message",
+            model=model_to_use,
+            session_id=request.session_id,
+            metadata={"message_length": len(request.message)},
+        )
 
         # Check if this is the first message and name hasn't been generated
         is_first_message = len(session.messages) == 0
@@ -1588,6 +1657,13 @@ async def generate_design_doc(session_id: str, request: ExportRequest, backgroun
         # Verify access
         session = verify_session_access(session_id, user_id, http_request)
 
+        # Check and deduct credits for design doc generation
+        await check_and_deduct_credits(
+            user_id=user_id,
+            action="design_doc_generation",
+            session_id=session_id,
+        )
+
         # Check if already generating
         if session.design_doc_status.status == "generating":
             return JSONResponse(content={
@@ -1769,6 +1845,14 @@ async def export_design_doc_from_session(session_id: str, request: ExportRequest
         # Check if design doc exists
         if not session.design_doc:
             raise HTTPException(status_code=404, detail="Design document not found. Generate one first.")
+
+        # Check and deduct credits for export (PDF/markdown generation)
+        await check_and_deduct_credits(
+            user_id=user_id,
+            action="design_doc_export",
+            session_id=session_id,
+            metadata={"format": format},
+        )
 
         print(f"\n=== EXPORT DESIGN DOC FROM SESSION ===")
         print(f"Session ID: {session_id}")
@@ -2411,3 +2495,316 @@ async def reset_tutorial(http_request: Request):
         raise HTTPException(status_code=500, detail="Failed to reset tutorial status")
 
     return {"success": True, "message": "Tutorial reset successfully"}
+
+
+# =============================================================================
+# BILLING ENDPOINTS
+# =============================================================================
+
+
+class RedeemPromoRequest(BaseModel):
+    """Request body for redeeming a promo code."""
+    code: str
+
+
+@router.get("/user/credits")
+async def get_user_credits(http_request: Request):
+    """
+    Get current user's credit balance and subscription status.
+
+    Returns:
+        JSON with plan, credit balances, and subscription info
+    """
+    user_id = getattr(http_request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
+
+    storage = get_user_credits_storage()
+    credits = storage.get_or_create_credits(user_id)
+
+    return {
+        "plan": credits.plan,
+        "credits_balance": credits.credits_balance,
+        "credits_monthly_allowance": credits.credits_monthly_allowance,
+        "credits_used_this_period": credits.credits_used_this_period,
+        "subscription_status": credits.subscription_status,
+        "plan_started_at": credits.plan_started_at.isoformat() if credits.plan_started_at else None,
+        "plan_expires_at": credits.plan_expires_at.isoformat() if credits.plan_expires_at else None,
+        "last_credit_reset_at": credits.last_credit_reset_at.isoformat() if credits.last_credit_reset_at else None,
+    }
+
+
+@router.get("/user/credits/history")
+async def get_credit_history(http_request: Request, limit: int = 50):
+    """
+    Get user's credit transaction history.
+
+    Args:
+        limit: Maximum number of transactions to return (default 50)
+
+    Returns:
+        JSON with list of transactions
+    """
+    user_id = getattr(http_request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
+
+    storage = get_user_credits_storage()
+    transactions = storage.get_transaction_history(user_id, limit=limit)
+
+    return {
+        "transactions": [
+            {
+                "transaction_id": t.transaction_id,
+                "type": t.type,
+                "amount": t.amount,
+                "balance_after": t.balance_after,
+                "action": t.action,
+                "session_id": t.session_id,
+                "metadata": t.metadata,
+                "created_at": t.created_at.isoformat(),
+            }
+            for t in transactions
+        ]
+    }
+
+
+@router.post("/promo/redeem")
+async def redeem_promo(request: RedeemPromoRequest, http_request: Request):
+    """
+    Redeem a promo code for credits.
+
+    Args:
+        request: Request body with promo code
+
+    Returns:
+        JSON with success status and credits granted
+    """
+    user_id = getattr(http_request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
+
+    success, error, credits_granted = redeem_promo_code(request.code, user_id)
+
+    if not success:
+        raise HTTPException(status_code=400, detail=error)
+
+    # Get updated balance
+    storage = get_user_credits_storage()
+    updated_credits = storage.get_credits(user_id)
+
+    return {
+        "success": True,
+        "credits_granted": credits_granted,
+        "new_balance": updated_credits.credits_balance if updated_credits else credits_granted,
+        "message": f"Successfully redeemed {credits_granted} credits!",
+    }
+
+
+@router.post("/promo/validate")
+async def validate_promo(request: RedeemPromoRequest, http_request: Request):
+    """
+    Validate a promo code without redeeming it.
+
+    Args:
+        request: Request body with promo code
+
+    Returns:
+        JSON with validity status and code info
+    """
+    user_id = getattr(http_request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
+
+    is_valid, error = validate_promo_code(request.code, user_id)
+
+    if not is_valid:
+        return {
+            "valid": False,
+            "error": error,
+        }
+
+    # Get code info for display
+    from app.billing.promo_codes import get_promo_code_info
+    code_info = get_promo_code_info(request.code)
+
+    return {
+        "valid": True,
+        "credits": code_info["credits"] if code_info else 0,
+    }
+
+
+# =============================================================================
+# CLERK BILLING WEBHOOK
+# =============================================================================
+
+
+# Clerk plan ID to our plan name mapping
+CLERK_PLAN_ID_MAP = {
+    "cplan_37cOR2Mjs1jWOjaJfUGTX0U1Jf4": "pro",
+    "cplan_37cOpDf5Cm7GGUl2K8lUarQf7Bp": "enterprise",
+}
+
+
+def _get_plan_from_clerk_id(plan_id: str) -> str:
+    """Map Clerk plan ID to our plan name."""
+    # First check exact match
+    if plan_id in CLERK_PLAN_ID_MAP:
+        return CLERK_PLAN_ID_MAP[plan_id]
+    # Fall back to fuzzy match on plan key
+    plan_id_lower = plan_id.lower()
+    if "pro" in plan_id_lower:
+        return "pro"
+    elif "enterprise" in plan_id_lower:
+        return "enterprise"
+    return "free"
+
+
+@router.post("/webhooks/clerk-billing")
+async def clerk_billing_webhook(http_request: Request):
+    """
+    Handle Clerk Billing webhook events for subscription changes.
+
+    Events handled:
+    - subscription.created/updated/active/pastDue: Handle subscription state
+    - subscriptionItem.created/updated/active/canceled/ended: Handle plan changes
+    - user.created: Initialize credits for new users
+
+    Note: This endpoint is exempt from Clerk auth middleware (public webhook).
+    """
+    import os
+    from svix.webhooks import Webhook, WebhookVerificationError
+
+    try:
+        # Get raw body for signature verification
+        body = await http_request.body()
+        headers = dict(http_request.headers)
+
+        # Verify webhook signature (if secret is configured)
+        webhook_secret = os.environ.get("CLERK_BILLING_WEBHOOK_SECRET")
+        if webhook_secret:
+            try:
+                wh = Webhook(webhook_secret)
+                payload = wh.verify(body, headers)
+            except WebhookVerificationError:
+                print("Clerk billing webhook signature verification failed")
+                raise HTTPException(status_code=401, detail="Invalid webhook signature")
+        else:
+            # In development, parse without verification
+            payload = json.loads(body)
+            print("WARNING: Clerk billing webhook signature not verified (no secret configured)")
+
+        event_type = payload.get("type")
+        data = payload.get("data", {})
+
+        print(f"\n=== CLERK BILLING WEBHOOK ===")
+        print(f"Event type: {event_type}")
+        print(f"Data: {json.dumps(data, indent=2)}")
+
+        storage = get_user_credits_storage()
+
+        # Helper to extract user_id from webhook data
+        # Clerk puts user_id in different places depending on event type:
+        # - subscription.* events: data.payer.user_id
+        # - subscriptionItem.* events: data.payer.user_id
+        # - user.* events: data.id
+        def get_user_id_from_data(d: dict) -> str | None:
+            # Try payer.user_id first (subscription and subscriptionItem events)
+            payer = d.get("payer", {})
+            if payer and payer.get("user_id"):
+                return payer.get("user_id")
+            # Fall back to direct user_id
+            return d.get("user_id")
+
+        # Handle user.created - initialize credits for new users
+        if event_type == "user.created":
+            user_id = data.get("id")
+            if user_id:
+                # This will create credits with free tier defaults if not exists
+                storage.get_or_create_credits(user_id)
+                print(f"Initialized credits for new user {user_id}")
+
+        # Handle subscription events
+        elif event_type in ["subscription.created", "subscription.active"]:
+            user_id = get_user_id_from_data(data)
+            plan_id = data.get("plan_id", "")
+            subscription_id = data.get("id")
+            stripe_customer_id = data.get("stripe_customer_id")
+
+            if user_id:
+                plan = _get_plan_from_clerk_id(plan_id)
+                storage.update_plan(
+                    user_id=user_id,
+                    new_plan=plan,
+                    clerk_subscription_id=subscription_id,
+                    stripe_customer_id=stripe_customer_id,
+                )
+                print(f"Created/activated subscription for user {user_id}: {plan}")
+
+        elif event_type == "subscription.updated":
+            user_id = get_user_id_from_data(data)
+            plan_id = data.get("plan_id", "")
+            subscription_id = data.get("id")
+
+            if user_id:
+                plan = _get_plan_from_clerk_id(plan_id)
+                storage.update_plan(
+                    user_id=user_id,
+                    new_plan=plan,
+                    clerk_subscription_id=subscription_id,
+                )
+                print(f"Updated subscription for user {user_id}: {plan}")
+
+        elif event_type == "subscription.pastDue":
+            user_id = get_user_id_from_data(data)
+            if user_id:
+                credits = storage.get_credits(user_id)
+                if credits:
+                    credits.subscription_status = "past_due"
+                    storage.save_credits(credits)
+                    print(f"Marked subscription as past_due for user {user_id}")
+
+        # Handle subscriptionItem events (for plan changes)
+        elif event_type in ["subscriptionItem.created", "subscriptionItem.active", "subscriptionItem.updated"]:
+            # subscriptionItem contains plan details
+            user_id = get_user_id_from_data(data)
+            plan_id = data.get("plan_id", "")
+            subscription_id = data.get("subscription_id")
+
+            if user_id and plan_id:
+                plan = _get_plan_from_clerk_id(plan_id)
+                storage.update_plan(
+                    user_id=user_id,
+                    new_plan=plan,
+                    clerk_subscription_id=subscription_id,
+                )
+                print(f"SubscriptionItem {event_type} for user {user_id}: {plan}")
+
+        elif event_type in ["subscriptionItem.canceled", "subscriptionItem.ended"]:
+            # User canceled or subscription ended - revert to free
+            user_id = get_user_id_from_data(data)
+            if user_id:
+                storage.update_plan(
+                    user_id=user_id,
+                    new_plan="free",
+                )
+                print(f"Subscription canceled/ended for user {user_id}, reverted to free")
+
+        elif event_type == "subscriptionItem.upcoming":
+            # Upcoming renewal - could use this to reset credits
+            user_id = get_user_id_from_data(data)
+            if user_id:
+                storage.reset_monthly_credits(user_id)
+                print(f"Reset monthly credits for upcoming renewal: user {user_id}")
+
+        # Log unhandled events for debugging
+        else:
+            print(f"Unhandled Clerk billing event: {event_type}")
+
+        return {"received": True}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error processing Clerk billing webhook: {e}")
+        raise HTTPException(status_code=500, detail=f"Webhook processing failed: {str(e)}")

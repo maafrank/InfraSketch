@@ -1,0 +1,362 @@
+.pricing-page {
+  min-height: 100vh;
+  background: linear-gradient(145deg, #0f0f1a, #1a1a2e);
+  color: #fff;
+  padding: 40px 20px;
+}
+
+.pricing-header {
+  max-width: 1200px;
+  margin: 0 auto 48px auto;
+  text-align: center;
+}
+
+.back-button {
+  position: absolute;
+  left: 20px;
+  top: 20px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #e0e0e0;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.back-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.pricing-header h1 {
+  font-size: 36px;
+  font-weight: 700;
+  margin: 0 0 12px 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.pricing-subtitle {
+  color: #888;
+  font-size: 18px;
+  margin: 0;
+}
+
+.pricing-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-bottom: 60px;
+}
+
+.pricing-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 32px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.pricing-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+
+.pricing-card.highlighted {
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.pricing-card.current {
+  border-color: rgba(76, 175, 80, 0.5);
+  background: rgba(76, 175, 80, 0.05);
+}
+
+.popular-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 4px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.plan-name {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+  color: #fff;
+}
+
+.plan-price {
+  margin-bottom: 8px;
+}
+
+.plan-price .price {
+  font-size: 48px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.plan-price .period {
+  font-size: 16px;
+  color: #888;
+}
+
+.plan-credits {
+  margin-bottom: 24px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.plan-credits .credits-count {
+  font-size: 24px;
+  font-weight: 600;
+  color: #ffc107;
+}
+
+.plan-credits .credits-label {
+  font-size: 14px;
+  color: #888;
+  margin-left: 8px;
+}
+
+.plan-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px 0;
+}
+
+.plan-features li {
+  padding: 8px 0;
+  color: #b0b0b0;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plan-features li::before {
+  content: '✓';
+  color: #4caf50;
+  font-weight: bold;
+}
+
+.plan-cta {
+  width: 100%;
+  padding: 14px 24px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.plan-cta:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+}
+
+.plan-cta.current {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+  cursor: default;
+}
+
+.plan-cta:disabled {
+  opacity: 0.7;
+}
+
+/* Promo Section */
+.promo-section {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 32px;
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.promo-section h2 {
+  font-size: 24px;
+  margin: 0 0 8px 0;
+}
+
+.promo-section > p {
+  color: #888;
+  margin: 0 0 24px 0;
+}
+
+.promo-form {
+  display: flex;
+  gap: 12px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.promo-input {
+  flex: 1;
+  padding: 14px 18px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 16px;
+  font-family: monospace;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.promo-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.promo-submit {
+  padding: 14px 24px;
+  background: #4caf50;
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.promo-submit:hover:not(:disabled) {
+  background: #43a047;
+}
+
+.promo-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.promo-signin-note {
+  color: #888;
+  font-size: 13px;
+  margin-top: 12px;
+}
+
+.promo-error {
+  color: #f44336;
+  font-size: 14px;
+  margin-top: 12px;
+}
+
+.promo-success {
+  color: #4caf50;
+  font-size: 14px;
+  margin-top: 12px;
+}
+
+/* Credit Costs Section */
+.credit-costs-section {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 32px;
+  text-align: center;
+}
+
+.credit-costs-section h2 {
+  font-size: 24px;
+  margin: 0 0 8px 0;
+}
+
+.credit-costs-section > p {
+  color: #888;
+  margin: 0 0 24px 0;
+}
+
+.credit-costs-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.credit-cost-item {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cost-action {
+  font-size: 14px;
+  color: #b0b0b0;
+}
+
+.cost-amount {
+  font-size: 20px;
+  font-weight: 600;
+  color: #ffc107;
+}
+
+.cost-note {
+  font-size: 12px;
+  color: #666;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 900px) {
+  .pricing-grid {
+    grid-template-columns: 1fr;
+    max-width: 400px;
+    margin: 0 auto 60px auto;
+  }
+
+  .pricing-card.highlighted {
+    order: -1;
+  }
+
+  .credit-costs-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .pricing-page {
+    padding: 20px 16px;
+  }
+
+  .back-button {
+    position: relative;
+    left: auto;
+    top: auto;
+    margin-bottom: 24px;
+  }
+
+  .pricing-header h1 {
+    font-size: 28px;
+  }
+
+  .pricing-subtitle {
+    font-size: 16px;
+  }
+
+  .promo-form {
+    flex-direction: column;
+  }
+
+  .credit-costs-grid {
+    grid-template-columns: 1fr;
+  }
+}
