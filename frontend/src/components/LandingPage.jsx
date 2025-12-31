@@ -25,24 +25,24 @@ const EXAMPLE_PROMPTS = [
 
 const FEATURES = [
   {
-    icon: "🎯",
-    title: "Real Practice",
-    description: "Design systems the way interviews actually work, not static diagrams"
+    icon: "✏️",
+    title: "Describe, Don't Draw",
+    description: "Tell our AI agent what you want to build. Watch your architecture appear in seconds."
   },
   {
     icon: "💬",
-    title: "Iterate Like an Interview",
-    description: "Ask 'what if traffic spikes 10x?' and watch your design evolve"
+    title: "Chat to Iterate",
+    description: "Ask 'what if we need 10x scale?' or 'add a cache layer' and watch your design evolve."
   },
   {
     icon: "🧠",
-    title: "Learn the Why",
-    description: "Click any component to understand why it exists in your design"
+    title: "Understand Every Component",
+    description: "Click any component to ask why it exists, explore tradeoffs, or consider alternatives."
   },
   {
     icon: "📄",
-    title: "Interview-Ready Docs",
-    description: "Export architecture summaries, tradeoffs, and component details"
+    title: "Export & Build",
+    description: "Generate a design doc with architecture diagrams, component details, and implementation notes."
   }
 ];
 
@@ -173,12 +173,14 @@ export default function LandingPage({ onGenerate, loading }) {
       <div className="hero-section">
         <div className="hero-content">
           <h1 className="hero-title">
-            Practice System Design Interviews by Actually Designing Systems
+            Describe a System.<br />
+            Watch It Come to Life.
           </h1>
           <p className="hero-subtitle">
-            Stop memorizing diagrams. Start building real architectures. Describe a system, watch it appear, ask "what if?" and iterate like a real interview.
+            InfraSketch's AI agent turns your ideas into architecture diagrams. Chat to iterate, ask questions, and refine. Then export a design doc and start building.
           </p>
-          <p className="hero-cta">No drag-and-drop. No blank canvas paralysis. Just design.</p>
+          <p className="hero-cta">No drag-and-drop. No blank canvas paralysis. Just describe what you need.</p>
+          <p className="hero-secondary">Perfect for prototyping, learning, or prepping for system design interviews.</p>
         </div>
 
         {/* Main Input Form - Front and Center */}
@@ -196,7 +198,7 @@ export default function LandingPage({ onGenerate, loading }) {
             disabled={loading || !prompt.trim()}
             className="landing-generate-button"
           >
-            {loading ? 'Generating...' : 'Generate System Design'}
+            {loading ? 'Sketching...' : 'Sketch My System'}
           </button>
 
           {/* Model selector below button */}
@@ -246,16 +248,16 @@ export default function LandingPage({ onGenerate, loading }) {
       <div className="problem-section">
         <h2 className="problem-heading">The Problem</h2>
         <p className="problem-lead">
-          System design interviews are brutal for one reason: you're expected to design real systems, but most learning tools only explain them.
+          Designing systems is hard. Turning ideas into clear architecture takes too long.
         </p>
         <ul className="problem-list">
-          <li>Blog posts show static diagrams</li>
-          <li>Whiteboards punish hesitation</li>
-          <li>Diagram tools slow you down</li>
-          <li>AI chatbots talk but cannot build</li>
+          <li>Diagramming tools are slow and tedious</li>
+          <li>AI chatbots explain but cannot build</li>
+          <li>Blank canvases lead to decision paralysis</li>
+          <li>Docs get outdated before you finish writing them</li>
         </ul>
         <p className="problem-conclusion">
-          You know the concepts. You struggle to turn them into architecture under pressure.
+          You need a tool that builds with you, not just talks at you.
         </p>
       </div>
 
@@ -317,23 +319,30 @@ export default function LandingPage({ onGenerate, loading }) {
         <div className="steps-grid">
           <div className="step-card">
             <div className="step-number">1</div>
-            <h3 className="step-title">Describe the System</h3>
+            <h3 className="step-title">Describe Your System</h3>
             <p className="step-description">
-              "Design Twitter's timeline" or "Design a URL shortener"
+              "Design a video streaming platform with CDN and recommendations"
             </p>
           </div>
           <div className="step-card">
             <div className="step-number">2</div>
             <h3 className="step-title">Watch It Appear</h3>
             <p className="step-description">
-              Services, databases, caches, queues in a clean, readable layout
+              Our AI agent creates your architecture: services, databases, caches, and connections
             </p>
           </div>
           <div className="step-card">
             <div className="step-number">3</div>
-            <h3 className="step-title">Iterate & Learn</h3>
+            <h3 className="step-title">Chat & Refine</h3>
             <p className="step-description">
-              Ask questions like an interviewer would, get explanations tied to your design
+              Ask questions, request changes. The agent updates your diagram and explains every decision.
+            </p>
+          </div>
+          <div className="step-card">
+            <div className="step-number">4</div>
+            <h3 className="step-title">Export & Build</h3>
+            <p className="step-description">
+              Generate a comprehensive design doc and get to building
             </p>
           </div>
         </div>
@@ -442,11 +451,12 @@ export default function LandingPage({ onGenerate, loading }) {
         <div className="footer-content">
           <div className="footer-brand">
             <span className="footer-logo">InfraSketch</span>
-            <p className="footer-tagline">Agent-powered system architecture design</p>
+            <p className="footer-tagline">AI-powered system design</p>
           </div>
           <div className="footer-links">
             <a href="/about">About</a>
             <a href="/blog">Blog</a>
+            <a href="/pricing">Pricing</a>
             <a href="/careers">Careers</a>
             <a href="/privacy">Privacy Policy</a>
             <a href="/terms">Terms of Service</a>

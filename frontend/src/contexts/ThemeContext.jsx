@@ -17,7 +17,7 @@ export default function ThemeProvider({ children }) {
       return 'dark';
     }
 
-    return 'light';
+    return 'dark';
   });
 
   useEffect(() => {

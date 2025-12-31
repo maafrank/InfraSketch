@@ -239,6 +239,13 @@ body {
   font-weight: 500;
 }
 
+.hero-secondary {
+  font-size: 0.9rem;
+  color: var(--text-tertiary);
+  opacity: 0.8;
+  margin-top: 0.5rem;
+}
+
 /* Landing Input Form */
 .landing-input-form {
   background: var(--bg-secondary);

@@ -248,7 +248,11 @@ export default function PricingPage() {
             </button>
           </form>
           {!isSignedIn && (
-            <p className="promo-signin-note">Sign in to redeem promo codes</p>
+            <div className="promo-signin-note">
+              <SignInButton mode="modal">
+                <button className="promo-signin-button">Sign in to redeem promo codes</button>
+              </SignInButton>
+            </div>
           )}
           {promoError && <p className="promo-error">{promoError}</p>}
           {promoSuccess && <p className="promo-success">{promoSuccess}</p>}
