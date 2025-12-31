@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 class TestGenerateDesignDoc:
     """Tests for POST /api/session/{session_id}/design-doc/generate"""
 
-    def test_generate_design_doc_starts_background_task(self, client_with_session):
+    def test_generate_design_doc_starts_background_task(self, client_with_session, mock_user_credits_storage):
         """Should start generation and return immediately."""
         client, session_id = client_with_session
 
@@ -26,7 +26,7 @@ class TestGenerateDesignDoc:
         data = response.json()
         assert data["status"] == "started"
 
-    def test_generate_design_doc_sets_status_tracking(self, client_with_session):
+    def test_generate_design_doc_sets_status_tracking(self, client_with_session, mock_user_credits_storage):
         """Should set design_doc_status with started_at tracking."""
         client, session_id = client_with_session
 
@@ -44,7 +44,7 @@ class TestGenerateDesignDoc:
         assert session.design_doc_status is not None
         assert session.design_doc_status.started_at is not None
 
-    def test_generate_design_doc_produces_document(self, client_with_session, mock_design_doc_generator):
+    def test_generate_design_doc_produces_document(self, client_with_session, mock_design_doc_generator, mock_user_credits_storage):
         """Should produce a design document after generation."""
         client, session_id = client_with_session
 
@@ -182,7 +182,7 @@ class TestUpdateDesignDoc:
 class TestExportDesignDoc:
     """Tests for POST /api/session/{session_id}/design-doc/export"""
 
-    def test_export_design_doc_returns_pdf(self, client_with_session, mocker):
+    def test_export_design_doc_returns_pdf(self, client_with_session, mocker, mock_user_credits_storage):
         """Should return PDF when format=pdf."""
         client, session_id = client_with_session
 
@@ -210,7 +210,7 @@ class TestExportDesignDoc:
         assert "filename" in data["pdf"]
         assert data["pdf"]["filename"].endswith(".pdf")
 
-    def test_export_design_doc_returns_markdown(self, client_with_session):
+    def test_export_design_doc_returns_markdown(self, client_with_session, mock_user_credits_storage):
         """Should return markdown when format=markdown."""
         client, session_id = client_with_session
 
@@ -243,7 +243,7 @@ class TestExportDesignDoc:
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
 
-    def test_export_design_doc_returns_both_formats(self, client_with_session, mocker):
+    def test_export_design_doc_returns_both_formats(self, client_with_session, mocker, mock_user_credits_storage):
         """Should return both PDF and markdown when format=both."""
         client, session_id = client_with_session
 

@@ -199,6 +199,10 @@
   gap: 12px;
 }
 
+.settings-row-control--buttons {
+  gap: 8px;
+}
+
 .theme-label {
   font-size: 14px;
   color: var(--text-secondary, #666666);

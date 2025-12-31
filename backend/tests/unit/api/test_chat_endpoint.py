@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 class TestChatEndpoint:
     """Tests for POST /api/chat"""
 
-    def test_chat_returns_response(self, client_with_session, mock_agent_graph):
+    def test_chat_returns_response(self, client_with_session, mock_agent_graph, mock_user_credits_storage):
         """Happy path: Chat returns response from agent."""
         client, session_id = client_with_session
 
@@ -40,7 +40,7 @@ class TestChatEndpoint:
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
 
-    def test_chat_adds_messages_to_session(self, client_with_session, mock_agent_graph):
+    def test_chat_adds_messages_to_session(self, client_with_session, mock_agent_graph, mock_user_credits_storage):
         """Should add user and assistant messages to session."""
         client, session_id = client_with_session
         user_message = "Add a Redis cache for session storage"
@@ -64,7 +64,7 @@ class TestChatEndpoint:
         user_msgs = [m for m in session.messages if m.role == "user"]
         assert any(m.content == user_message for m in user_msgs)
 
-    def test_chat_handles_node_id_focus(self, client_with_session, mock_agent_graph):
+    def test_chat_handles_node_id_focus(self, client_with_session, mock_agent_graph, mock_user_credits_storage):
         """Should handle node_id parameter for focused conversations."""
         client, session_id = client_with_session
         node_id = "api-gateway-1"  # From sample_node fixture
@@ -85,7 +85,7 @@ class TestChatEndpoint:
         session = session_manager.get_session(session_id)
         assert session.current_node == node_id
 
-    def test_chat_uses_session_model_by_default(self, client_with_session, mock_agent_graph):
+    def test_chat_uses_session_model_by_default(self, client_with_session, mock_agent_graph, mock_user_credits_storage):
         """Should use the session's model when none specified."""
         client, session_id = client_with_session
 
@@ -108,7 +108,7 @@ class TestChatEndpoint:
         call_args = mock_agent_graph.invoke.call_args[0][0]
         assert call_args["model"] == "claude-sonnet-4-5"
 
-    def test_chat_updates_model_when_specified(self, client_with_session, mock_agent_graph):
+    def test_chat_updates_model_when_specified(self, client_with_session, mock_agent_graph, mock_user_credits_storage):
         """Should update session model when model parameter is provided."""
         client, session_id = client_with_session
         new_model = "claude-sonnet-4-5"
@@ -129,7 +129,7 @@ class TestChatEndpoint:
         session = session_manager.get_session(session_id)
         assert session.model == new_model
 
-    def test_chat_invokes_agent_graph(self, client_with_session, mock_agent_graph):
+    def test_chat_invokes_agent_graph(self, client_with_session, mock_agent_graph, mock_user_credits_storage):
         """Should invoke agent graph with correct parameters."""
         client, session_id = client_with_session
         message = "Add a database"
@@ -151,7 +151,7 @@ class TestChatEndpoint:
         assert "session_id" in call_args
         assert call_args["session_id"] == session_id
 
-    def test_chat_returns_updated_diagram_when_changed(self, client_with_session, mock_agent_graph, sample_node):
+    def test_chat_returns_updated_diagram_when_changed(self, client_with_session, mock_agent_graph, sample_node, mock_user_credits_storage):
         """Should return diagram when tools modify it."""
         client, session_id = client_with_session
 
@@ -191,7 +191,7 @@ class TestChatEndpoint:
         # Diagram should be included when it changed
         assert data.get("diagram") is not None
 
-    def test_chat_returns_null_diagram_when_unchanged(self, client_with_session, mock_agent_graph):
+    def test_chat_returns_null_diagram_when_unchanged(self, client_with_session, mock_agent_graph, mock_user_credits_storage):
         """Should return null diagram when no changes were made."""
         client, session_id = client_with_session
 

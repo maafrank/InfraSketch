@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SignedIn, SignedOut, SignInButton, UserButton, useAuth } from '@clerk/clerk-react';
+import { SubscriptionDetailsButton } from '@clerk/clerk-react/experimental';
 import { useTheme } from '../contexts/useTheme';
 import { resetTutorial, setClerkTokenGetter, getUserCredits, getCreditHistory } from '../api/client';
 import ThemeToggle from './ThemeToggle';
@@ -160,12 +161,24 @@ export default function SettingsPage() {
                       {credits.plan === 'free' ? 'Free Plan' : `${credits.plan.charAt(0).toUpperCase() + credits.plan.slice(1)} Plan`}
                     </p>
                   </div>
-                  <div className="settings-row-control">
+                  <div className="settings-row-control settings-row-control--buttons">
+                    {credits.plan !== 'free' && (
+                      <SubscriptionDetailsButton
+                        onSubscriptionCancel={() => {
+                          // Refresh credits after cancellation
+                          fetchCredits();
+                        }}
+                      >
+                        <button className="settings-button settings-button--secondary">
+                          Manage Subscription
+                        </button>
+                      </SubscriptionDetailsButton>
+                    )}
                     <button
                       className="settings-button settings-button--primary"
                       onClick={() => navigate('/pricing')}
                     >
-                      {credits.plan === 'free' ? 'Upgrade' : 'Manage Plan'}
+                      {credits.plan === 'free' ? 'Upgrade' : 'Change Plan'}
                     </button>
                   </div>
                 </div>

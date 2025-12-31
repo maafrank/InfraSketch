@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 class TestGenerateEndpoint:
     """Tests for POST /api/generate"""
 
-    def test_generate_returns_session_id_and_generating_status(self, client):
+    def test_generate_returns_session_id_and_generating_status(self, client, mock_user_credits_storage):
         """Happy path: Generate returns session_id and generating status immediately."""
         response = client.post(
             "/api/generate",
@@ -24,7 +24,7 @@ class TestGenerateEndpoint:
         assert data["status"] == "generating"
         assert len(data["session_id"]) > 0
 
-    def test_generate_uses_default_model_when_not_specified(self, client):
+    def test_generate_uses_default_model_when_not_specified(self, client, mock_user_credits_storage):
         """Should use claude-haiku-4-5 when no model specified."""
         response = client.post(
             "/api/generate",
@@ -41,7 +41,7 @@ class TestGenerateEndpoint:
         assert session is not None
         assert session.model == "claude-haiku-4-5"
 
-    def test_generate_uses_specified_model(self, client):
+    def test_generate_uses_specified_model(self, client, mock_user_credits_storage):
         """Should use the model specified in the request."""
         response = client.post(
             "/api/generate",
@@ -61,7 +61,7 @@ class TestGenerateEndpoint:
         assert session is not None
         assert session.model == "claude-sonnet-4-5"
 
-    def test_generate_creates_session_with_prompt_stored(self, client):
+    def test_generate_creates_session_with_prompt_stored(self, client, mock_user_credits_storage):
         """Should create session with generation_prompt stored for background task."""
         prompt = "Create a database schema"
         response = client.post(
@@ -80,7 +80,7 @@ class TestGenerateEndpoint:
         assert session.diagram_generation_status is not None
         assert session.diagram_generation_status.started_at is not None
 
-    def test_generate_stores_prompt_in_session(self, client):
+    def test_generate_stores_prompt_in_session(self, client, mock_user_credits_storage):
         """Should store the prompt in session for background task."""
         prompt = "Design a real-time chat system"
         response = client.post(

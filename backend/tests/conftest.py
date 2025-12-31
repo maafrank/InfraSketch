@@ -430,6 +430,35 @@ def mock_subscriber_storage(mocker):
     return mock_storage
 
 
+@pytest.fixture
+def mock_user_credits_storage(mocker):
+    """Mock UserCreditsStorage to avoid DynamoDB calls in billing tests."""
+    from app.billing.models import UserCredits
+    from datetime import datetime
+
+    mock_storage = MagicMock()
+
+    # Create test user with plenty of credits
+    test_user_credits = UserCredits(
+        user_id="local-dev-user",
+        plan="pro",
+        credits_balance=10000,
+        credits_monthly_allowance=500,
+        credits_used_this_period=0,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
+    )
+
+    # Mock successful deduct_credits (returns tuple of (success, credits))
+    mock_storage.deduct_credits.return_value = (True, test_user_credits)
+    mock_storage.get_or_create_credits.return_value = test_user_credits
+    mock_storage.get_credits.return_value = test_user_credits
+    mock_storage.add_credits.return_value = test_user_credits
+
+    mocker.patch("app.api.routes.get_user_credits_storage", return_value=mock_storage)
+    return mock_storage
+
+
 # ============================================================================
 # Middleware Testing Fixtures
 # ============================================================================
