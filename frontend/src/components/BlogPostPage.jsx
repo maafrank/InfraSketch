@@ -5,9 +5,49 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import './BlogListPage.css';
 
+// Get related posts based on category and tags
+function getRelatedPosts(currentPost, allPosts, maxPosts = 3) {
+  if (!currentPost || !allPosts) return [];
+
+  const otherPosts = allPosts.filter(p => p.slug !== currentPost.slug);
+
+  // Score each post based on relevance
+  const scoredPosts = otherPosts.map(post => {
+    let score = 0;
+
+    // Same category = high relevance
+    if (post.category && currentPost.category && post.category === currentPost.category) {
+      score += 10;
+    }
+
+    // Shared tags = medium relevance
+    if (post.tags && currentPost.tags) {
+      const sharedTags = post.tags.filter(tag => currentPost.tags.includes(tag));
+      score += sharedTags.length * 3;
+    }
+
+    // Recency bonus (newer posts slightly preferred)
+    const postDate = new Date(post.date);
+    const daysSincePost = (Date.now() - postDate.getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSincePost < 30) score += 2;
+    else if (daysSincePost < 90) score += 1;
+
+    return { ...post, score };
+  });
+
+  // Sort by score (descending), then by date (most recent first)
+  scoredPosts.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return new Date(b.date) - new Date(a.date);
+  });
+
+  return scoredPosts.slice(0, maxPosts);
+}
+
 export default function BlogPostPage() {
   const { slug } = useParams();
   const [post, setPost] = useState(null);
+  const [allPosts, setAllPosts] = useState([]);
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -17,6 +57,7 @@ export default function BlogPostPage() {
     fetch('/blog/posts/index.json')
       .then(res => res.json())
       .then(data => {
+        setAllPosts(data.posts);
         const foundPost = data.posts.find(p => p.slug === slug);
         if (foundPost) {
           setPost(foundPost);
@@ -40,6 +81,9 @@ export default function BlogPostPage() {
         setLoading(false);
       });
   }, [slug]);
+
+  // Get related posts
+  const relatedPosts = getRelatedPosts(post, allPosts);
 
   if (loading) {
     return (
@@ -82,7 +126,7 @@ export default function BlogPostPage() {
       "name": "InfraSketch",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://infrasketch.net/InfraSketchLogoTransparent_01.png"
+        "url": "https://infrasketch.net/InfraSketchLogoTransparent_02.png"
       }
     },
     "mainEntityOfPage": {
@@ -90,6 +134,32 @@ export default function BlogPostPage() {
       "@id": `https://infrasketch.net/blog/${slug}`
     },
     "image": "https://infrasketch.net/og-image.png"
+  } : null;
+
+  // Generate BreadcrumbList schema for better SERP appearance
+  const breadcrumbSchema = post ? {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://infrasketch.net"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Blog",
+        "item": "https://infrasketch.net/blog"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": post.title,
+        "item": `https://infrasketch.net/blog/${slug}`
+      }
+    ]
   } : null;
 
   return (
@@ -119,6 +189,11 @@ export default function BlogPostPage() {
           {/* Article Schema */}
           <script type="application/ld+json">
             {JSON.stringify(articleSchema)}
+          </script>
+
+          {/* Breadcrumb Schema */}
+          <script type="application/ld+json">
+            {JSON.stringify(breadcrumbSchema)}
           </script>
         </Helmet>
       )}
@@ -160,6 +235,32 @@ export default function BlogPostPage() {
           </ReactMarkdown>
         </div>
       </div>
+
+      {/* Related Posts Section */}
+      {relatedPosts.length > 0 && (
+        <div className="related-posts-section">
+          <div className="related-posts-container">
+            <h2 className="related-posts-title">Related Articles</h2>
+            <div className="related-posts-grid">
+              {relatedPosts.map(relatedPost => (
+                <Link
+                  key={relatedPost.slug}
+                  to={`/blog/${relatedPost.slug}`}
+                  className="related-post-card"
+                >
+                  <span className="related-post-category">{relatedPost.category || 'Article'}</span>
+                  <h3 className="related-post-title">{relatedPost.title}</h3>
+                  <p className="related-post-description">{relatedPost.description}</p>
+                  <div className="related-post-meta">
+                    {new Date(relatedPost.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {relatedPost.readingTime && ` • ${relatedPost.readingTime}`}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <footer className="blog-footer">
         <div className="footer-content">

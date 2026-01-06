@@ -16,6 +16,10 @@ import BlogListPage from './components/BlogListPage.jsx'
 import BlogPostPage from './components/BlogPostPage.jsx'
 import SettingsPage from './components/SettingsPage.jsx'
 import PricingPage from './components/PricingPage.jsx'
+import SystemDesignToolPage from './components/SystemDesignToolPage.jsx'
+import AIDiagramGeneratorPage from './components/AIDiagramGeneratorPage.jsx'
+import ArchitectureDiagramToolPage from './components/ArchitectureDiagramToolPage.jsx'
+import ComparePage from './components/ComparePage.jsx'
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
@@ -42,6 +46,10 @@ createRoot(document.getElementById('root')).render(
               <Route path="/blog/:slug" element={<BlogPostPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/pricing" element={<PricingPage />} />
+              <Route path="/tools/system-design-tool" element={<SystemDesignToolPage />} />
+              <Route path="/tools/ai-diagram-generator" element={<AIDiagramGeneratorPage />} />
+              <Route path="/tools/architecture-diagram-tool" element={<ArchitectureDiagramToolPage />} />
+              <Route path="/compare" element={<ComparePage />} />
             </Routes>
           </BrowserRouter>
         </ThemeProvider>

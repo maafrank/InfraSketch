@@ -1,13 +1,59 @@
 {
   "posts": [
     {
+      "slug": "complete-guide-system-design",
+      "title": "The Complete Guide to System Design in 2026",
+      "description": "Master system design from fundamentals to advanced patterns. Learn scalability, caching, databases, and architecture patterns used by top tech companies.",
+      "date": "2026-01-06",
+      "author": "InfraSketch Team",
+      "readingTime": "25 min read",
+      "image": "/og-image.png",
+      "category": "system-design",
+      "tags": ["system design", "architecture", "scalability", "distributed systems"]
+    },
+    {
+      "slug": "system-design-interview-cheat-sheet",
+      "title": "System Design Interview Cheat Sheet: The Ultimate Guide",
+      "description": "A comprehensive cheat sheet for system design interviews. Includes frameworks, patterns, common questions, and quick references for Google, Meta, Amazon interviews.",
+      "date": "2026-01-06",
+      "author": "InfraSketch Team",
+      "readingTime": "18 min read",
+      "image": "/og-image.png",
+      "category": "interviews",
+      "tags": ["system design interview", "FAANG", "interview prep", "cheat sheet"]
+    },
+    {
+      "slug": "architecture-diagram-best-practices",
+      "title": "Architecture Diagram Best Practices: A Complete Guide",
+      "description": "Learn how to create effective software architecture diagrams. Covers diagram types, C4 model, best practices, common mistakes, and tools.",
+      "date": "2026-01-06",
+      "author": "InfraSketch Team",
+      "readingTime": "15 min read",
+      "image": "/og-image.png",
+      "category": "architecture",
+      "tags": ["architecture diagram", "C4 model", "documentation", "best practices"]
+    },
+    {
+      "slug": "best-ai-diagram-tools-2026",
+      "title": "Best AI Diagram Tools Compared: 2026 Guide",
+      "description": "Compare the top AI-powered diagram tools including InfraSketch, Eraser, ChatGPT, Whimsical, and Miro. Find the best tool for your needs.",
+      "date": "2026-01-06",
+      "author": "InfraSketch Team",
+      "readingTime": "12 min read",
+      "image": "/og-image.png",
+      "category": "tools",
+      "tags": ["AI diagram tools", "comparison", "Eraser", "Lucidchart", "Miro"]
+    },
+    {
       "slug": "infrasketch-demo-video",
       "title": "Watch: Design System Architecture in 3 Minutes with InfraSketch",
       "description": "See InfraSketch in action - a quick demo showing how to generate complete system architecture diagrams from natural language.",
       "date": "2025-01-20",
       "author": "Matt Frank",
       "readingTime": "3 min read",
-      "image": "/og-image.png"
+      "image": "/og-image.png",
+      "category": "product",
+      "tags": ["demo", "video", "tutorial"]
     },
     {
       "slug": "ai-tools-senior-engineer-promotion",
@@ -16,7 +62,9 @@
       "date": "2025-01-18",
       "author": "Matt Frank",
       "readingTime": "5 min read",
-      "image": "/og-image.png"
+      "image": "/og-image.png",
+      "category": "career",
+      "tags": ["career growth", "AI tools", "engineering"]
     },
     {
       "slug": "what-is-system-design",
@@ -25,7 +73,9 @@
       "date": "2025-01-15",
       "author": "InfraSketch Team",
       "readingTime": "8 min read",
-      "image": "/og-image.png"
+      "image": "/og-image.png",
+      "category": "system-design",
+      "tags": ["system design", "beginners", "fundamentals"]
     },
     {
       "slug": "ai-system-design-tools-2025",
@@ -34,7 +84,9 @@
       "date": "2025-01-10",
       "author": "InfraSketch Team",
       "readingTime": "6 min read",
-      "image": "/og-image.png"
+      "image": "/og-image.png",
+      "category": "tools",
+      "tags": ["AI tools", "comparison", "architecture diagrams"]
     },
     {
       "slug": "system-design-interview-guide",
@@ -43,7 +95,9 @@
       "date": "2025-01-05",
       "author": "InfraSketch Team",
       "readingTime": "10 min read",
-      "image": "/og-image.png"
+      "image": "/og-image.png",
+      "category": "interviews",
+      "tags": ["interviews", "system design", "preparation"]
     }
   ]
 }

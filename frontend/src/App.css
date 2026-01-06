@@ -3183,3 +3183,535 @@ body {
 .history-toggle-button:active {
   transform: scale(0.95);
 }
+
+/* =========================================
+   Tool Landing Pages Styles
+   ========================================= */
+
+.tool-landing-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.tool-hero-section {
+  padding: 4rem 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.tool-back-link {
+  display: inline-block;
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  margin-bottom: 2rem;
+  font-size: 0.9rem;
+  transition: color 0.2s;
+}
+
+.tool-back-link:hover {
+  color: white;
+}
+
+.tool-hero-title {
+  font-size: 3rem;
+  color: white;
+  margin-bottom: 1.5rem;
+  font-weight: 700;
+}
+
+.tool-hero-subtitle {
+  font-size: 1.25rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.tool-cta-button {
+  display: inline-block;
+  background: white;
+  color: #667eea;
+  padding: 1rem 2.5rem;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.tool-cta-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.tool-section {
+  padding: 4rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  background: white;
+}
+
+.tool-section h2 {
+  font-size: 2rem;
+  color: #1a1a1a;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.tool-section p {
+  font-size: 1.1rem;
+  color: #555;
+  line-height: 1.7;
+  max-width: 800px;
+  margin: 0 auto 1rem;
+}
+
+.tool-section-alt {
+  background: #f8f9fa;
+}
+
+.section-intro {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+/* Use Cases Grid */
+.use-cases-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.use-case-card {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.use-case-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.use-case-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.use-case-card h3 {
+  font-size: 1.25rem;
+  color: #1a1a1a;
+  margin-bottom: 0.75rem;
+}
+
+.use-case-card p {
+  font-size: 1rem;
+  color: #666;
+  margin: 0;
+}
+
+/* FAQ Styles */
+.faq-list {
+  max-width: 800px;
+  margin: 2rem auto 0;
+}
+
+.faq-item {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.tool-section-alt .faq-item {
+  background: white;
+}
+
+.faq-item h3 {
+  font-size: 1.1rem;
+  color: #1a1a1a;
+  margin-bottom: 0.75rem;
+}
+
+.faq-item p {
+  font-size: 1rem;
+  color: #555;
+  margin: 0;
+  text-align: left;
+}
+
+/* CTA Section */
+.tool-cta-section {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  text-align: center;
+}
+
+.tool-cta-section h2 {
+  color: white;
+}
+
+.tool-cta-section p {
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 2rem;
+}
+
+/* Component Grid (Architecture page) */
+.component-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.component-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: white;
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.component-icon {
+  font-size: 2rem;
+}
+
+.component-info h3 {
+  font-size: 1rem;
+  color: #1a1a1a;
+  margin-bottom: 0.25rem;
+}
+
+.component-info p {
+  font-size: 0.875rem;
+  color: #666;
+  margin: 0;
+}
+
+/* Cloud Grid */
+.cloud-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.cloud-card {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.cloud-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.cloud-card h3 {
+  font-size: 1.25rem;
+  color: #1a1a1a;
+  margin-bottom: 0.75rem;
+}
+
+.cloud-card p {
+  font-size: 0.95rem;
+  color: #666;
+  margin: 0;
+}
+
+/* Example Prompts List */
+.example-prompts-list {
+  max-width: 700px;
+  margin: 2rem auto 0;
+}
+
+.example-prompt-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: white;
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 0.75rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.example-prompt-icon {
+  font-size: 1.5rem;
+}
+
+.example-prompt-item span:last-child {
+  font-size: 0.95rem;
+  color: #444;
+  font-style: italic;
+}
+
+/* Learn More Section (Blog Links on Landing Pages) */
+.learn-more-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.learn-more-card {
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 2px solid transparent;
+}
+
+.learn-more-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
+  border-color: #667eea;
+}
+
+.learn-more-icon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.learn-more-card h3 {
+  font-size: 1.1rem;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+}
+
+.learn-more-card p {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* =========================================
+   Compare Page Styles
+   ========================================= */
+
+.compare-page .tool-hero-section {
+  padding-bottom: 2rem;
+}
+
+.comparison-table-wrapper {
+  overflow-x: auto;
+  margin-top: 2rem;
+}
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: 1rem;
+  text-align: center;
+  border-bottom: 1px solid #eee;
+}
+
+.comparison-table th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #1a1a1a;
+  position: relative;
+}
+
+.comparison-table th.highlight {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.highlight-badge {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: normal;
+  opacity: 0.9;
+  margin-top: 0.25rem;
+}
+
+.comparison-table td.highlight {
+  background: rgba(102, 126, 234, 0.05);
+}
+
+.feature-name {
+  text-align: left;
+  font-weight: 500;
+  color: #333;
+}
+
+.comparison-table .check {
+  color: #22c55e;
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.comparison-table .cross {
+  color: #ef4444;
+  font-size: 1.25rem;
+}
+
+/* Tool Details Grid */
+.tool-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.tool-detail-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.tool-detail-card.highlight {
+  border: 2px solid #667eea;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+}
+
+.tool-detail-card h3 {
+  font-size: 1.25rem;
+  color: #1a1a1a;
+  margin-bottom: 0.75rem;
+}
+
+.tool-description {
+  font-size: 0.95rem;
+  color: #555;
+  margin-bottom: 1rem;
+}
+
+.tool-best-for {
+  font-size: 0.9rem;
+  color: #666;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+
+.tool-try-button {
+  display: inline-block;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  margin-top: 1rem;
+  transition: all 0.2s;
+}
+
+.tool-try-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Why Choose Grid */
+.why-choose-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.why-choose-card {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.why-choose-card h3 {
+  font-size: 1.1rem;
+  color: #1a1a1a;
+  margin-bottom: 0.75rem;
+}
+
+.why-choose-card p {
+  font-size: 0.95rem;
+  color: #555;
+  margin: 0;
+  text-align: left;
+}
+
+/* When to Use Grid */
+.when-to-use-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.when-to-use-card {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.when-to-use-card h3 {
+  font-size: 1.1rem;
+  color: #1a1a1a;
+  margin-bottom: 1rem;
+}
+
+.when-to-use-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.when-to-use-card li {
+  padding: 0.5rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+  color: #555;
+  font-size: 0.95rem;
+}
+
+.when-to-use-card li::before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  color: #667eea;
+}
+
+/* Mobile Responsiveness for Tool Pages */
+@media (max-width: 768px) {
+  .tool-hero-title {
+    font-size: 2rem;
+  }
+
+  .tool-hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .tool-section {
+    padding: 2rem 1rem;
+  }
+
+  .tool-section h2 {
+    font-size: 1.5rem;
+  }
+
+  .comparison-table-wrapper {
+    margin: 2rem -1rem 0;
+    padding: 0 1rem;
+  }
+}
