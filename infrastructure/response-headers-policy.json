@@ -1,6 +1,6 @@
 {
-  "Name": "infrasketch-security-headers",
   "Comment": "Security headers for InfraSketch frontend",
+  "Name": "infrasketch-security-headers",
   "SecurityHeadersConfig": {
     "XSSProtection": {
       "Override": true,
@@ -17,7 +17,7 @@
     },
     "ContentSecurityPolicy": {
       "Override": true,
-      "ContentSecurityPolicy": "default-src 'self'; script-src 'self' https://*.clerk.accounts.dev https://clerk.infrasketch.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://img.clerk.com; font-src 'self'; connect-src 'self' https://b31htlojb0.execute-api.us-east-1.amazonaws.com https://*.clerk.accounts.dev https://clerk.infrasketch.net; frame-src https://*.clerk.accounts.dev https://clerk.infrasketch.net; frame-ancestors 'none'"
+      "ContentSecurityPolicy": "default-src 'self'; script-src 'self' https://*.clerk.accounts.dev https://clerk.infrasketch.net https://js.stripe.com https://*.stripe.com blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://img.clerk.com https://api.producthunt.com https://foundrlist.com https://cdn-b.saashub.com https://tinylaunch.com https://www.tinylaunch.com https://peerpush.net https://trylaunch.ai https://*.stripe.com https://www.nxgntools.com https://launchigniter.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://b31htlojb0.execute-api.us-east-1.amazonaws.com https://*.clerk.accounts.dev https://clerk.infrasketch.net https://api.stripe.com https://*.stripe.com; frame-src https://*.clerk.accounts.dev https://clerk.infrasketch.net https://js.stripe.com https://*.stripe.com; frame-ancestors 'none'; worker-src 'self' blob:"
     },
     "ContentTypeOptions": {
       "Override": true

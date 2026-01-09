@@ -443,6 +443,37 @@ export default function LandingPage({ onGenerate, loading }) {
             />
             <span>Live on Launch</span>
           </a>
+
+          {/* NextGen Tools */}
+          <a
+            href="https://www.nxgntools.com/tools/infrasketch?utm_source=infrasketch"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="featured-badge-link"
+          >
+            <img
+              src="https://www.nxgntools.com/api/embed/infrasketch?type=FIND_US_ON&hideUpvotes=true"
+              alt="NextGen Tools Badge - The #1 AI Tools Directory & Launch Platform"
+              className="featured-badge-img"
+              style={{ height: '48px', width: 'auto' }}
+            />
+          </a>
+
+          {/* LaunchIgniter */}
+          <a
+            href="https://launchigniter.com/product/infrasketch?ref=badge-infrasketch"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="featured-badge-link"
+          >
+            <img
+              src="https://launchigniter.com/api/badge/infrasketch?theme=dark"
+              alt="Featured on LaunchIgniter"
+              className="featured-badge-img"
+              width="212"
+              height="55"
+            />
+          </a>
         </div>
       </div>
 

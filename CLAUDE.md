@@ -674,6 +674,29 @@ Both servers have auto-reload enabled (`--reload` for backend, Vite HMR for fron
 - Backend: Packages dependencies for Linux, creates Lambda zip, uploads to S3, updates function
 - Frontend: Builds React app, syncs to S3, invalidates CloudFront cache
 
+**Updating CloudFront Security Headers (CSP):**
+
+IMPORTANT: The `./deploy-frontend.sh` script does NOT update CloudFront response headers. If you add external resources (images, scripts, fonts) that need CSP whitelisting, you must manually update the CloudFront response headers policy:
+
+1. Edit `infrastructure/response-headers-policy.json` with the new domains
+2. Run these AWS CLI commands to apply the changes:
+```bash
+# Get policy ID
+POLICY_ID=$(aws cloudfront list-response-headers-policies --query "ResponseHeadersPolicyList.Items[?ResponseHeadersPolicy.ResponseHeadersPolicyConfig.Name=='infrasketch-security-headers'].ResponseHeadersPolicy.Id" --output text)
+
+# Get current ETag (required for updates)
+ETAG=$(aws cloudfront get-response-headers-policy --id $POLICY_ID --query 'ETag' --output text)
+
+# Update the policy
+aws cloudfront update-response-headers-policy --id $POLICY_ID --if-match $ETAG --response-headers-policy-config file://infrastructure/response-headers-policy.json
+```
+
+Common CSP directives to update:
+- `img-src` - External images (badges, logos)
+- `script-src` - External scripts (analytics, widgets)
+- `connect-src` - API endpoints
+- `frame-src` - Iframes (auth popups, embeds)
+
 **Logging Resources:**
 - CloudWatch Log Groups:
   - `/aws/lambda/infrasketch-backend` - Application logs with structured JSON events
