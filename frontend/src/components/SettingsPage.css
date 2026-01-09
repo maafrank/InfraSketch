@@ -22,13 +22,14 @@
 .settings-header-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  min-width: 100px;
 }
 
-.settings-header-left h1 {
+.settings-header-title {
   margin: 0;
   font-size: 24px;
   font-weight: 600;
+  text-align: center;
 }
 
 .back-button {
@@ -53,6 +54,8 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  min-width: 100px;
+  justify-content: flex-end;
 }
 
 /* Content */

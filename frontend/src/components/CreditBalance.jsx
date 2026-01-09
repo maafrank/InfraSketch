@@ -67,14 +67,24 @@ export default function CreditBalance({ onUpgradeClick, onRefresh }) {
   const isCritical = balance < 3;
 
   return (
-    <div className={`credit-balance ${isLow ? 'low' : ''} ${isCritical ? 'critical' : ''}`}>
+    <div
+      className={`credit-balance ${isLow ? 'low' : ''} ${isCritical ? 'critical' : ''}`}
+      onClick={onUpgradeClick}
+      onKeyDown={(e) => e.key === 'Enter' && onUpgradeClick?.()}
+      role="button"
+      tabIndex={0}
+      title="View pricing"
+    >
       <span className="credit-icon">⚡</span>
       <span className="credit-count">{balance}</span>
       <span className="credit-label">credits</span>
       {isLow && (
         <button
           className="upgrade-button"
-          onClick={onUpgradeClick}
+          onClick={(e) => {
+            e.stopPropagation();
+            onUpgradeClick?.();
+          }}
           title="Get more credits"
         >
           Get More

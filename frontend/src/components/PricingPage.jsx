@@ -36,7 +36,7 @@ const PLANS = [
     id: 'pro',
     clerkPlanId: CLERK_PLAN_IDS.pro,
     name: 'Pro',
-    price: '$19',
+    price: '$9.99',
     period: '/month',
     credits: 500,
     features: [
@@ -53,17 +53,18 @@ const PLANS = [
     id: 'enterprise',
     clerkPlanId: CLERK_PLAN_IDS.enterprise,
     name: 'Enterprise',
-    price: '$49',
-    period: '/month',
-    credits: 2000,
+    price: 'Custom',
+    period: '',
+    credits: 'Unlimited',
     features: [
-      '2000 credits per month',
+      'Unlimited credits',
       'Everything in Pro',
-      'Team collaboration (coming soon)',
-      'API access (coming soon)',
-      'Priority support',
+      'Team collaboration',
+      'API access',
+      'Dedicated support',
     ],
-    cta: 'Upgrade to Enterprise',
+    cta: 'Contact Us',
+    isContactUs: true,
   },
 ];
 
@@ -171,7 +172,7 @@ export default function PricingPage() {
                 </div>
                 <div className="plan-credits">
                   <span className="credits-count">{plan.credits}</span>
-                  <span className="credits-label">credits/month</span>
+                  <span className="credits-label">{typeof plan.credits === 'number' ? 'credits/month' : ''}</span>
                 </div>
                 <ul className="plan-features">
                   {plan.features.map((feature, index) => (
@@ -193,6 +194,14 @@ export default function PricingPage() {
                   <button className="plan-cta" disabled>
                     {currentPlan !== 'free' ? 'Downgrade via Settings' : 'Sign in to start'}
                   </button>
+                ) : plan.isContactUs ? (
+                  // Enterprise - Contact Us button
+                  <a
+                    href="mailto:matt@infrasketch.net?subject=InfraSketch Enterprise Inquiry"
+                    className="plan-cta contact-us"
+                  >
+                    {plan.cta}
+                  </a>
                 ) : (
                   // Paid plans - use Clerk CheckoutButton
                   <>

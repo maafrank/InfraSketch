@@ -1,5 +1,5 @@
 import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
+import { createRoot, hydrateRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { ClerkProvider } from '@clerk/clerk-react'
 import { HelmetProvider } from 'react-helmet-async'
@@ -27,7 +27,7 @@ if (!PUBLISHABLE_KEY) {
   console.warn("Missing Publishable Key. Authentication features will not work.")
 }
 
-createRoot(document.getElementById('root')).render(
+const AppRoot = (
   <StrictMode>
     <HelmetProvider>
       <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
@@ -55,5 +55,14 @@ createRoot(document.getElementById('root')).render(
         </ThemeProvider>
       </ClerkProvider>
     </HelmetProvider>
-  </StrictMode>,
+  </StrictMode>
 )
+
+const rootElement = document.getElementById('root')
+
+// Use hydration if the page was prerendered (has content)
+if (rootElement.hasChildNodes()) {
+  hydrateRoot(rootElement, AppRoot)
+} else {
+  createRoot(rootElement).render(AppRoot)
+}

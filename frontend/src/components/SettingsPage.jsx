@@ -124,8 +124,8 @@ export default function SettingsPage() {
             </svg>
             Back
           </button>
-          <h1>Settings</h1>
         </div>
+        <h1 className="settings-header-title">Settings</h1>
         <div className="settings-header-right">
           <ThemeToggle />
           <SignedOut>

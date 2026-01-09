@@ -3,9 +3,17 @@ import { createContext, useState, useEffect } from 'react';
 // Context is internal - not exported to avoid fast refresh issues
 const ThemeContext = createContext();
 
+// Check if we're in a browser environment (for SSR/prerendering safety)
+const isBrowser = typeof window !== 'undefined';
+
 // Provider component - default export (component-only file for fast refresh)
 export default function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
+    // During prerendering, default to dark theme
+    if (!isBrowser) {
+      return 'dark';
+    }
+
     // Check localStorage first
     const savedTheme = localStorage.getItem('infrasketch-theme');
     if (savedTheme) {
@@ -21,6 +29,8 @@ export default function ThemeProvider({ children }) {
   });
 
   useEffect(() => {
+    if (!isBrowser) return;
+
     // Apply theme to document
     document.documentElement.setAttribute('data-theme', theme);
 
@@ -29,6 +39,8 @@ export default function ThemeProvider({ children }) {
   }, [theme]);
 
   useEffect(() => {
+    if (!isBrowser) return;
+
     // Listen for system theme changes
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = (e) => {
