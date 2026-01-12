@@ -47,5 +47,10 @@ def handler(event, context):
             return {"statusCode": 400, "body": f"Unknown async task: {async_task}"}
 
     # Otherwise, handle as normal API Gateway request
-    mangum_handler = Mangum(app, lifespan="off")
+    # Configure text_mime_types to include SVG so it doesn't get base64 encoded
+    mangum_handler = Mangum(
+        app,
+        lifespan="off",
+        text_mime_types=["image/svg+xml"]  # Treat SVG as text, not binary
+    )
     return mangum_handler(event, context)

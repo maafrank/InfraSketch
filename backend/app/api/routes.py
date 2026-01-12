@@ -2808,3 +2808,43 @@ async def clerk_billing_webhook(http_request: Request):
     except Exception as e:
         print(f"Error processing Clerk billing webhook: {e}")
         raise HTTPException(status_code=500, detail=f"Webhook processing failed: {str(e)}")
+
+
+# =============================================================================
+# BADGES
+# =============================================================================
+
+from app.utils.badge_generator import get_monthly_visitors_badge_svg
+
+
+@router.get("/badges/monthly-visitors.svg")
+async def get_monthly_visitors_badge():
+    """
+    Generate an SVG badge showing the monthly visitor count.
+
+    This endpoint is public (no authentication required).
+    The badge displays unique visitor IPs from CloudFront logs over the last 30 days.
+    Results are cached in DynamoDB for 24 hours.
+    """
+    try:
+        svg_content = get_monthly_visitors_badge_svg()
+
+        return Response(
+            content=svg_content,
+            media_type="image/svg+xml",
+            headers={
+                "Cache-Control": "public, max-age=3600",  # Cache for 1 hour
+            }
+        )
+    except Exception as e:
+        print(f"Error generating monthly visitors badge: {e}")
+        # Return a fallback badge on error
+        fallback_svg = '''<svg xmlns="http://www.w3.org/2000/svg" width="140" height="28" viewBox="0 0 140 28">
+  <rect width="140" height="28" rx="6" ry="6" fill="#2d2d2d"/>
+  <text x="12" y="18" font-family="sans-serif" font-size="11" fill="#aaa">Monthly visitors</text>
+</svg>'''
+        return Response(
+            content=fallback_svg,
+            media_type="image/svg+xml",
+            headers={"Cache-Control": "public, max-age=300"}  # Short cache on error
+        )

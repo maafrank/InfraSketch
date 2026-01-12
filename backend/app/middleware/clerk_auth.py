@@ -85,6 +85,7 @@ class ClerkAuthMiddleware(BaseHTTPMiddleware):
         "/api/unsubscribe/",  # Email unsubscribe links (token-based auth)
         "/api/resubscribe/",  # Email re-subscribe links (token-based auth)
         "/api/webhooks/",  # Webhook endpoints (use signature verification instead)
+        "/api/badges/",  # Badge images (public, no auth required)
     ]
 
     async def dispatch(self, request: Request, call_next):

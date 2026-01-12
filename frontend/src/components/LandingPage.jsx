@@ -474,6 +474,15 @@ export default function LandingPage({ onGenerate, loading }) {
               height="55"
             />
           </a>
+
+          {/* Monthly Visitors Badge */}
+          <div className="featured-badge-link monthly-visitors-badge">
+            <img
+              src={`${import.meta.env.VITE_API_URL}/api/badges/monthly-visitors.svg`}
+              alt="Monthly Visitors"
+              className="featured-badge-img"
+            />
+          </div>
         </div>
       </div>
 
