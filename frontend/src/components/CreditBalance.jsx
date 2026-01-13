@@ -13,18 +13,25 @@ export default function CreditBalance({ onUpgradeClick, onRefresh }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Set up token getter
-  useEffect(() => {
-    if (getToken) {
-      setClerkTokenGetter(getToken);
-    }
-  }, [getToken]);
-
   const fetchCredits = useCallback(async () => {
-    if (!isSignedIn) return;
+    if (!isSignedIn) {
+      setLoading(false);
+      return;
+    }
+
+    // Wait for getToken to be available before making API calls
+    // This prevents race conditions where API calls happen before auth is ready
+    if (!getToken) {
+      // Don't set loading to false - we'll retry when getToken becomes available
+      return;
+    }
 
     try {
+      // Ensure token getter is set before every API call
+      setClerkTokenGetter(getToken);
+
       const data = await getUserCredits();
+      console.log('CreditBalance: Received credits data:', data);
       setCredits(data);
       setError(null);
     } catch (err) {
@@ -33,7 +40,7 @@ export default function CreditBalance({ onUpgradeClick, onRefresh }) {
     } finally {
       setLoading(false);
     }
-  }, [isSignedIn]);
+  }, [isSignedIn, getToken]);
 
   // Initial fetch and periodic refresh
   useEffect(() => {

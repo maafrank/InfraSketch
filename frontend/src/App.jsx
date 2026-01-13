@@ -50,7 +50,7 @@ const SettingsIcon = () => (
 
 // Main App wrapper - handles auth detection and provides TutorialProvider
 function App({ resumeMode = false }) {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, getToken } = useAuth();
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -63,7 +63,7 @@ function App({ resumeMode = false }) {
   }, []);
 
   return (
-    <TutorialProvider isSignedIn={isSignedIn} isMobile={isMobile}>
+    <TutorialProvider isSignedIn={isSignedIn} isMobile={isMobile} getToken={getToken}>
       <AppContent resumeMode={resumeMode} isMobile={isMobile} />
     </TutorialProvider>
   );

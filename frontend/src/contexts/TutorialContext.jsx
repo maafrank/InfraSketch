@@ -5,11 +5,11 @@
 
 import React, { createContext, useState, useCallback, useEffect } from 'react';
 import { TUTORIAL_STEPS, getPhaseNumber, TOTAL_PHASES } from '../data/tutorialSteps';
-import { getUserPreferences, completeTutorial as apiCompleteTutorial } from '../api/client';
+import { getUserPreferences, completeTutorial as apiCompleteTutorial, setClerkTokenGetter } from '../api/client';
 
 const TutorialContext = createContext(null);
 
-export const TutorialProvider = ({ children, isSignedIn, isMobile }) => {
+export const TutorialProvider = ({ children, isSignedIn, isMobile, getToken }) => {
   // Core state
   const [isActive, setIsActive] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -55,14 +55,27 @@ export const TutorialProvider = ({ children, isSignedIn, isMobile }) => {
         return;
       }
 
+      // Wait for getToken to be available before making API calls
+      // This prevents race conditions where API calls happen before auth is ready
+      if (!getToken) {
+        return; // Will re-run when getToken becomes available
+      }
+
       try {
+        // Ensure token getter is set before making the API call
+        setClerkTokenGetter(getToken);
+
         const prefs = await getUserPreferences();
+        console.log('TutorialContext: Received preferences:', prefs);
         setHasCompleted(prefs.tutorial_completed);
 
         // Auto-start tutorial for new users
         if (!prefs.tutorial_completed) {
+          console.log('TutorialContext: Tutorial not completed, starting tutorial');
           setIsActive(true);
           setCurrentStepIndex(0);
+        } else {
+          console.log('TutorialContext: Tutorial already completed, skipping');
         }
       } catch (error) {
         console.error('Failed to fetch user preferences:', error);
@@ -74,7 +87,7 @@ export const TutorialProvider = ({ children, isSignedIn, isMobile }) => {
     };
 
     checkTutorialStatus();
-  }, [isSignedIn, isMobile]);
+  }, [isSignedIn, isMobile, getToken]);
 
   // Track last applied step to prevent re-applying effects
   const [lastAppliedStepIndex, setLastAppliedStepIndex] = useState(-1);
