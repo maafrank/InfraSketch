@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, SignedIn, SignedOut, SignInButton } from '@clerk/clerk-react';
 import { CheckoutButton } from '@clerk/clerk-react/experimental';
+import { Helmet } from 'react-helmet-async';
 import { redeemPromoCode, getUserCredits, setClerkTokenGetter } from '../api/client';
 import './PricingPage.css';
 
@@ -141,8 +142,63 @@ export default function PricingPage() {
     return planOrder[planId] > planOrder[currentPlan];
   };
 
+  // Structured data for pricing page SEO
+  const pricingSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": "InfraSketch",
+    "description": "AI-powered system design tool for creating architecture diagrams",
+    "brand": {
+      "@type": "Brand",
+      "name": "InfraSketch"
+    },
+    "offers": [
+      {
+        "@type": "Offer",
+        "name": "Free Plan",
+        "price": "0",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock",
+        "description": "25 credits per month, AI-powered diagram generation, chat-based modifications"
+      },
+      {
+        "@type": "Offer",
+        "name": "Pro Plan",
+        "price": "9.99",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock",
+        "priceValidUntil": "2026-12-31",
+        "description": "500 credits per month, priority queue, Claude Sonnet 4.5 access"
+      }
+    ]
+  };
+
   return (
     <div className="pricing-page">
+      <Helmet>
+        <title>Pricing | Free AI System Design Tool | InfraSketch</title>
+        <meta name="description" content="InfraSketch pricing plans. Start free with 25 credits/month. Upgrade to Pro for 500 credits at $9.99/month. Create AI-powered architecture diagrams and design documents." />
+        <meta name="keywords" content="free system design tool, AI diagram generator pricing, architecture diagram tool free, system design tool cost, InfraSketch pricing" />
+        <link rel="canonical" href="https://infrasketch.net/pricing" />
+
+        {/* Open Graph */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://infrasketch.net/pricing" />
+        <meta property="og:title" content="InfraSketch Pricing - Free AI System Design Tool" />
+        <meta property="og:description" content="Start free with 25 credits/month. Create AI-powered architecture diagrams and design documents." />
+        <meta property="og:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
+
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="InfraSketch Pricing - Free AI System Design Tool" />
+        <meta name="twitter:description" content="Start free with 25 credits/month. Create AI-powered architecture diagrams." />
+
+        {/* Structured Data for Price Rich Snippets */}
+        <script type="application/ld+json">
+          {JSON.stringify(pricingSchema)}
+        </script>
+      </Helmet>
+
       <header className="pricing-header">
         <button className="back-button" onClick={() => navigate('/')}>
           ← Back to App

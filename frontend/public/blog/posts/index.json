@@ -1,6 +1,39 @@
 {
   "posts": [
     {
+      "slug": "aws-architecture-diagram-generator",
+      "title": "AWS Architecture Diagram Generator: Create Cloud Diagrams with AI",
+      "description": "Learn how to create professional AWS architecture diagrams using AI. Compare tools, explore patterns, and generate cloud infrastructure diagrams in seconds.",
+      "date": "2026-01-13",
+      "author": "InfraSketch Team",
+      "readingTime": "10 min read",
+      "image": "/og-image.png",
+      "category": "tools",
+      "tags": ["aws architecture diagram generator", "aws diagram", "cloud architecture", "AI tools", "infrastructure diagram"]
+    },
+    {
+      "slug": "system-design-interview-prep-practice",
+      "title": "System Design Interview Prep: Ultimate Practice Guide for 2026",
+      "description": "Complete system design interview preparation guide with 4-week study plan, top 15 questions, RESHADED framework, and practice strategies using AI tools.",
+      "date": "2026-01-13",
+      "author": "InfraSketch Team",
+      "readingTime": "18 min read",
+      "image": "/og-image.png",
+      "category": "interviews",
+      "tags": ["system design interview prep", "interview preparation", "FAANG", "tech interviews", "practice guide"]
+    },
+    {
+      "slug": "data-lake-architecture-diagram",
+      "title": "Data Lake Architecture Diagram: Design Patterns and Best Practices",
+      "description": "Complete guide to data lake architecture with medallion pattern, component diagrams, AWS/Azure implementations, and best practices for 2026.",
+      "date": "2026-01-13",
+      "author": "InfraSketch Team",
+      "readingTime": "15 min read",
+      "image": "/og-image.png",
+      "category": "architecture",
+      "tags": ["data lake architecture diagram", "data lake", "medallion architecture", "data engineering", "analytics"]
+    },
+    {
       "slug": "complete-guide-system-design",
       "title": "The Complete Guide to System Design in 2026",
       "description": "Master system design from fundamentals to advanced patterns. Learn scalability, caching, databases, and architecture patterns used by top tech companies.",

@@ -3,36 +3,86 @@
 > Agent-powered system design tool that generates architecture diagrams from natural language
 
 ## What is InfraSketch?
-InfraSketch is a free agent-powered tool that transforms plain English descriptions into professional system architecture diagrams. Sketch, our AI design agent, helps software engineers, startup founders, students, and anyone who needs to visualize distributed systems.
+
+InfraSketch is a free AI-powered system design tool that transforms plain English descriptions into professional system architecture diagrams. Sketch, our AI design agent (built on Claude by Anthropic), helps software engineers, startup founders, students, and anyone who needs to visualize distributed systems.
+
+## Core Value Proposition
+
+- **No drag-and-drop required**: Describe your system, watch it appear
+- **Conversational iteration**: Chat with the AI to refine your design
+- **Instant documentation**: Generate comprehensive design documents
+- **Interview prep**: Practice system design questions with immediate visual feedback
 
 ## Key Features
+
 - Natural language to architecture diagram generation
-- Conversational refinement - click any component to ask questions or request changes
+- Conversational refinement (click any component to ask questions or request changes)
 - Auto-generated technical design documents
 - Export to PNG, PDF, or Markdown
 - Session history and real-time collaboration
-- Powered by Sketch, our AI design agent (built on Claude by Anthropic)
+- Multiple AI model options (Claude Haiku 4.5, Claude Sonnet 4.5)
+- Collapsible component grouping for complex architectures
+
+## Target Users
+
+- Software engineers and system architects
+- Engineering interview candidates (system design interviews)
+- Technical leads and engineering managers
+- Students learning distributed systems
+- Product managers needing architecture overviews
+- Startup founders prototyping MVPs
 
 ## Use Cases
+
 - System design interview preparation
 - Technical documentation for teams
 - Architecture planning and iteration
-- Cloud infrastructure visualization
+- Cloud infrastructure visualization (AWS, GCP, Azure)
 - Microservices design
 - Educational learning about distributed systems
+- Rapid prototyping of new systems
 
 ## Example Prompts
+
 - "Build a scalable video streaming platform with CDN, transcoding, and recommendations"
 - "Design a microservices e-commerce platform with payment processing and inventory"
 - "Create a real-time chat application with WebSocket and message queues"
+- "Design Twitter's home timeline with feed generation and caching"
+- "Build a URL shortening service like bit.ly with analytics"
+
+## Supported Architecture Types
+
+- Cloud Infrastructure (AWS, GCP, Azure)
+- Microservices architectures
+- Event-driven systems
+- Data lakes and data warehouses
+- Real-time streaming systems
+- API gateway patterns
+
+## Pricing
+
+- **Free**: 25 credits/month, all core features
+- **Pro** ($9.99/month): 500 credits/month, priority queue, Sonnet 4.5 access
+- **Enterprise**: Custom pricing, unlimited credits, team features
 
 ## Technology Stack
+
 - Frontend: React, React Flow, Vite
 - Backend: FastAPI, LangGraph, Python
 - AI: Claude by Anthropic
 - Infrastructure: AWS Lambda, DynamoDB, CloudFront
 
 ## Links
+
 - Website: https://infrasketch.net
-- About: https://infrasketch.net/about
 - Blog: https://infrasketch.net/blog
+- Pricing: https://infrasketch.net/pricing
+- About: https://infrasketch.net/about
+- System Design Tool: https://infrasketch.net/tools/system-design-tool
+- AI Diagram Generator: https://infrasketch.net/tools/ai-diagram-generator
+- Architecture Diagram Tool: https://infrasketch.net/tools/architecture-diagram-tool
+- RSS Feed: https://infrasketch.net/blog/feed.xml
+
+## Contact
+
+- Email: matt@infrasketch.net

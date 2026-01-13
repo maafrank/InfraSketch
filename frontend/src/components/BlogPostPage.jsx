@@ -168,6 +168,9 @@ export default function BlogPostPage() {
         <Helmet>
           <title>{post.title} | InfraSketch Blog</title>
           <meta name="description" content={post.description} />
+          {post.tags && post.tags.length > 0 && (
+            <meta name="keywords" content={post.tags.join(', ')} />
+          )}
           <link rel="canonical" href={`https://infrasketch.net/blog/${slug}`} />
 
           {/* Open Graph */}

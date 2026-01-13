@@ -1,10 +1,45 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>https://infrasketch.net/</loc>
-    <lastmod>2025-12-04</lastmod>
+    <lastmod>2026-01-13</lastmod>
     <priority>1.0</priority>
     <changefreq>weekly</changefreq>
+    <image:image>
+      <image:loc>https://infrasketch.net/full-app-with-design-doc.png</image:loc>
+      <image:title>InfraSketch AI System Design Tool Screenshot</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://infrasketch.net/tools/system-design-tool</loc>
+    <lastmod>2026-01-13</lastmod>
+    <priority>1.0</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://infrasketch.net/tools/ai-diagram-generator</loc>
+    <lastmod>2026-01-13</lastmod>
+    <priority>1.0</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://infrasketch.net/tools/architecture-diagram-tool</loc>
+    <lastmod>2026-01-13</lastmod>
+    <priority>1.0</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://infrasketch.net/blog</loc>
+    <lastmod>2026-01-13</lastmod>
+    <priority>0.9</priority>
+    <changefreq>weekly</changefreq>
+  </url>
+  <url>
+    <loc>https://infrasketch.net/compare</loc>
+    <lastmod>2026-01-13</lastmod>
+    <priority>0.9</priority>
+    <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/about</loc>
@@ -12,10 +47,52 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://infrasketch.net/blog</loc>
-    <lastmod>2025-12-04</lastmod>
+    <loc>https://infrasketch.net/pricing</loc>
+    <lastmod>2026-01-13</lastmod>
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://infrasketch.net/blog/aws-architecture-diagram-generator</loc>
+    <lastmod>2026-01-13</lastmod>
     <priority>0.9</priority>
-    <changefreq>weekly</changefreq>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://infrasketch.net/blog/system-design-interview-prep-practice</loc>
+    <lastmod>2026-01-13</lastmod>
+    <priority>0.9</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://infrasketch.net/blog/data-lake-architecture-diagram</loc>
+    <lastmod>2026-01-13</lastmod>
+    <priority>0.9</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://infrasketch.net/blog/complete-guide-system-design</loc>
+    <lastmod>2026-01-06</lastmod>
+    <priority>0.9</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://infrasketch.net/blog/system-design-interview-cheat-sheet</loc>
+    <lastmod>2026-01-06</lastmod>
+    <priority>0.9</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://infrasketch.net/blog/architecture-diagram-best-practices</loc>
+    <lastmod>2026-01-06</lastmod>
+    <priority>0.9</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://infrasketch.net/blog/best-ai-diagram-tools-2026</loc>
+    <lastmod>2026-01-06</lastmod>
+    <priority>0.9</priority>
+    <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/blog/infrasketch-demo-video</loc>
@@ -43,40 +120,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://infrasketch.net/blog/complete-guide-system-design</loc>
-    <lastmod>2026-01-06</lastmod>
-    <priority>0.9</priority>
-    <changefreq>monthly</changefreq>
-  </url>
-  <url>
-    <loc>https://infrasketch.net/blog/system-design-interview-cheat-sheet</loc>
-    <lastmod>2026-01-06</lastmod>
-    <priority>0.9</priority>
-    <changefreq>monthly</changefreq>
-  </url>
-  <url>
-    <loc>https://infrasketch.net/blog/architecture-diagram-best-practices</loc>
-    <lastmod>2026-01-06</lastmod>
-    <priority>0.9</priority>
-    <changefreq>monthly</changefreq>
-  </url>
-  <url>
-    <loc>https://infrasketch.net/blog/best-ai-diagram-tools-2026</loc>
-    <lastmod>2026-01-06</lastmod>
-    <priority>0.9</priority>
-    <changefreq>monthly</changefreq>
-  </url>
-  <url>
-    <loc>https://infrasketch.net/privacy</loc>
-    <lastmod>2025-12-02</lastmod>
-    <priority>0.3</priority>
-  </url>
-  <url>
-    <loc>https://infrasketch.net/terms</loc>
-    <lastmod>2025-12-02</lastmod>
-    <priority>0.3</priority>
-  </url>
-  <url>
     <loc>https://infrasketch.net/contact</loc>
     <lastmod>2025-12-01</lastmod>
     <priority>0.5</priority>
@@ -87,33 +130,13 @@
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://infrasketch.net/tools/system-design-tool</loc>
-    <lastmod>2026-01-06</lastmod>
-    <priority>0.9</priority>
-    <changefreq>monthly</changefreq>
+    <loc>https://infrasketch.net/privacy</loc>
+    <lastmod>2025-12-02</lastmod>
+    <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://infrasketch.net/tools/ai-diagram-generator</loc>
-    <lastmod>2026-01-06</lastmod>
-    <priority>0.9</priority>
-    <changefreq>monthly</changefreq>
-  </url>
-  <url>
-    <loc>https://infrasketch.net/tools/architecture-diagram-tool</loc>
-    <lastmod>2026-01-06</lastmod>
-    <priority>0.9</priority>
-    <changefreq>monthly</changefreq>
-  </url>
-  <url>
-    <loc>https://infrasketch.net/compare</loc>
-    <lastmod>2026-01-06</lastmod>
-    <priority>0.8</priority>
-    <changefreq>monthly</changefreq>
-  </url>
-  <url>
-    <loc>https://infrasketch.net/pricing</loc>
-    <lastmod>2026-01-06</lastmod>
-    <priority>0.7</priority>
-    <changefreq>monthly</changefreq>
+    <loc>https://infrasketch.net/terms</loc>
+    <lastmod>2025-12-02</lastmod>
+    <priority>0.3</priority>
   </url>
 </urlset>

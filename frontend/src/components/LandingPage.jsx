@@ -168,8 +168,105 @@ export default function LandingPage({ onGenerate, loading }) {
     setCurrentScreenshot(index);
   };
 
+  // Structured data for SEO
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "SoftwareApplication",
+        "name": "InfraSketch",
+        "description": "AI-powered system design tool that generates architecture diagrams from natural language descriptions. Create AWS, microservices, and cloud architecture diagrams in seconds.",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Web Browser",
+        "url": "https://infrasketch.net",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD",
+          "description": "Free tier with 25 credits per month"
+        },
+        "featureList": [
+          "Natural language to architecture diagram generation",
+          "AI-powered conversational design refinement",
+          "Auto-generated technical design documents",
+          "Export to PNG, PDF, or Markdown",
+          "Session history and collaboration",
+          "Multiple AI model options (Haiku, Sonnet)",
+          "Collapsible component grouping"
+        ],
+        "screenshot": "https://infrasketch.net/full-app-with-design-doc.png"
+      },
+      {
+        "@type": "HowTo",
+        "name": "How to Create AI Architecture Diagrams with InfraSketch",
+        "description": "Generate professional system architecture diagrams using AI in 4 simple steps",
+        "totalTime": "PT2M",
+        "tool": {
+          "@type": "HowToTool",
+          "name": "InfraSketch"
+        },
+        "step": [
+          {
+            "@type": "HowToStep",
+            "position": 1,
+            "name": "Describe Your System",
+            "text": "Enter a natural language description of your system architecture, such as 'Design a video streaming platform with CDN and recommendations'",
+            "url": "https://infrasketch.net/#step1"
+          },
+          {
+            "@type": "HowToStep",
+            "position": 2,
+            "name": "Watch It Appear",
+            "text": "Our AI agent creates your architecture including services, databases, caches, and connections automatically",
+            "url": "https://infrasketch.net/#step2"
+          },
+          {
+            "@type": "HowToStep",
+            "position": 3,
+            "name": "Chat and Refine",
+            "text": "Ask questions or request changes like 'add a cache layer' and watch your design evolve with explanations",
+            "url": "https://infrasketch.net/#step3"
+          },
+          {
+            "@type": "HowToStep",
+            "position": 4,
+            "name": "Export and Build",
+            "text": "Generate a comprehensive design document with architecture diagrams, component details, and implementation notes",
+            "url": "https://infrasketch.net/#step4"
+          }
+        ]
+      }
+    ]
+  };
+
   return (
     <div className="landing-page">
+      <Helmet>
+        <title>AI System Design Tool | Architecture Diagram Generator | InfraSketch</title>
+        <meta name="description" content="Free AI system design tool. Describe your architecture in plain English and get instant diagrams. Create AWS, microservices, and cloud architecture diagrams in seconds. Perfect for system design interview prep." />
+        <meta name="keywords" content="system design tool, AI diagram generator, architecture diagram generator, system design interview prep, ai architecture generator, system design diagram, aws architecture diagram generator, cloud architecture tool, microservices design, system design online tool" />
+        <link rel="canonical" href="https://infrasketch.net/" />
+
+        {/* Open Graph */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://infrasketch.net/" />
+        <meta property="og:title" content="InfraSketch - AI System Design Tool" />
+        <meta property="og:description" content="Transform ideas into professional system architecture diagrams with AI. Free to use." />
+        <meta property="og:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
+        <meta property="og:site_name" content="InfraSketch" />
+
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="InfraSketch - AI System Design Tool" />
+        <meta name="twitter:description" content="Transform ideas into professional system architecture diagrams with AI." />
+        <meta name="twitter:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
+
+        {/* Structured Data */}
+        <script type="application/ld+json">
+          {JSON.stringify(structuredData)}
+        </script>
+      </Helmet>
+
       {/* Hero Section */}
       <div className="hero-section">
         <div className="hero-content">
