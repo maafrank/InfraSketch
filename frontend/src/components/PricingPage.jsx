@@ -186,7 +186,7 @@ export default function PricingPage() {
         <meta property="og:url" content="https://infrasketch.net/pricing" />
         <meta property="og:title" content="InfraSketch Pricing - Free AI System Design Tool" />
         <meta property="og:description" content="Start free with 25 credits/month. Create AI-powered architecture diagrams and design documents." />
-        <meta property="og:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
+        <meta property="og:image" content="https://infrasketch.net/FullAppWithDesignDoc.png" />
 
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />

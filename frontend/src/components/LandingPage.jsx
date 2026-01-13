@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { useScrollAnimation, useStaggeredAnimation } from '../hooks/useScrollAnimation';
 
 const EXAMPLE_PROMPTS = [
   {
@@ -142,6 +143,17 @@ export default function LandingPage({ onGenerate, loading }) {
   const [model, setModel] = useState('claude-haiku-4-5'); // Default to Haiku (always latest)
   const [currentScreenshot, setCurrentScreenshot] = useState(0);
 
+  // Scroll animations for sections
+  const problemAnimation = useScrollAnimation();
+  const featuresAnimation = useScrollAnimation();
+  const showcaseAnimation = useScrollAnimation();
+  const howItWorksAnimation = useScrollAnimation();
+  const featuredOnAnimation = useScrollAnimation();
+
+  // Staggered animations for cards
+  const featureCards = useStaggeredAnimation(FEATURES.length, { staggerDelay: 100 });
+  const stepCards = useStaggeredAnimation(3, { staggerDelay: 150 });
+
   // Auto-rotate screenshots every 4 seconds
   useEffect(() => {
     const interval = setInterval(() => {
@@ -245,14 +257,14 @@ export default function LandingPage({ onGenerate, loading }) {
         <meta property="og:url" content="https://infrasketch.net/" />
         <meta property="og:title" content="InfraSketch - AI System Design Tool" />
         <meta property="og:description" content="Transform ideas into professional system architecture diagrams with AI. Free to use." />
-        <meta property="og:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
+        <meta property="og:image" content="https://infrasketch.net/FullAppWithDesignDoc.png" />
         <meta property="og:site_name" content="InfraSketch" />
 
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="InfraSketch - AI System Design Tool" />
         <meta name="twitter:description" content="Transform ideas into professional system architecture diagrams with AI." />
-        <meta name="twitter:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
+        <meta name="twitter:image" content="https://infrasketch.net/FullAppWithDesignDoc.png" />
 
         {/* Structured Data */}
         <script type="application/ld+json">
@@ -336,7 +348,10 @@ export default function LandingPage({ onGenerate, loading }) {
       </div>
 
       {/* The Problem Section */}
-      <div className="problem-section">
+      <div
+        ref={problemAnimation.ref}
+        className={`problem-section scroll-animate ${problemAnimation.isVisible ? 'visible' : ''}`}
+      >
         <h2 className="problem-heading">The Problem</h2>
         <p className="problem-lead">
           Designing systems is hard. Turning ideas into clear architecture takes too long.
@@ -353,11 +368,19 @@ export default function LandingPage({ onGenerate, loading }) {
       </div>
 
       {/* Features Section */}
-      <div className="features-section">
+      <div
+        ref={featuresAnimation.ref}
+        className={`features-section scroll-animate ${featuresAnimation.isVisible ? 'visible' : ''}`}
+      >
         <h2 className="features-heading">The Solution</h2>
         <div className="features-grid">
           {FEATURES.map((feature, index) => (
-            <div key={index} className="feature-card">
+            <div
+              key={index}
+              ref={featureCards[index].ref}
+              className={`feature-card scroll-animate ${featureCards[index].isVisible ? 'visible' : ''}`}
+              style={featureCards[index].style}
+            >
               <div className="feature-icon">{feature.icon}</div>
               <h3 className="feature-title">{feature.title}</h3>
               <p className="feature-description">{feature.description}</p>
@@ -367,7 +390,10 @@ export default function LandingPage({ onGenerate, loading }) {
       </div>
 
       {/* Screenshots Showcase - Carousel */}
-      <div className="showcase-section">
+      <div
+        ref={showcaseAnimation.ref}
+        className={`showcase-section scroll-animate ${showcaseAnimation.isVisible ? 'visible' : ''}`}
+      >
         <h2 className="showcase-heading">See It In Action</h2>
         <div className="showcase-carousel">
           <div className="carousel-container">
@@ -405,24 +431,39 @@ export default function LandingPage({ onGenerate, loading }) {
       </div>
 
       {/* How It Works */}
-      <div className="how-it-works-section">
+      <div
+        ref={howItWorksAnimation.ref}
+        className={`how-it-works-section scroll-animate ${howItWorksAnimation.isVisible ? 'visible' : ''}`}
+      >
         <h2 className="how-it-works-heading">How It Works</h2>
         <div className="steps-grid">
-          <div className="step-card">
+          <div
+            ref={stepCards[0].ref}
+            className={`step-card scroll-animate ${stepCards[0].isVisible ? 'visible' : ''}`}
+            style={stepCards[0].style}
+          >
             <div className="step-number">1</div>
             <h3 className="step-title">Describe Your System</h3>
             <p className="step-description">
               Tell the AI what you want to build in plain English. No templates, no drag-and-drop, just describe it.
             </p>
           </div>
-          <div className="step-card">
+          <div
+            ref={stepCards[1].ref}
+            className={`step-card scroll-animate ${stepCards[1].isVisible ? 'visible' : ''}`}
+            style={stepCards[1].style}
+          >
             <div className="step-number">2</div>
             <h3 className="step-title">Generate & Iterate</h3>
             <p className="step-description">
               Watch your architecture appear in seconds. Ask questions, request changes, and refine your design through conversation.
             </p>
           </div>
-          <div className="step-card">
+          <div
+            ref={stepCards[2].ref}
+            className={`step-card scroll-animate ${stepCards[2].isVisible ? 'visible' : ''}`}
+            style={stepCards[2].style}
+          >
             <div className="step-number">3</div>
             <h3 className="step-title">Export & Build</h3>
             <p className="step-description">
@@ -433,7 +474,10 @@ export default function LandingPage({ onGenerate, loading }) {
       </div>
 
       {/* Featured On Section */}
-      <div className="featured-on-section">
+      <div
+        ref={featuredOnAnimation.ref}
+        className={`featured-on-section scroll-animate ${featuredOnAnimation.isVisible ? 'visible' : ''}`}
+      >
         <h2 className="featured-on-heading">Featured On</h2>
         <div className="featured-on-grid">
           {/* Product Hunt */}

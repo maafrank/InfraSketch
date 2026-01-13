@@ -111,14 +111,14 @@
 }
 
 .settings-button--primary {
-  background: linear-gradient(135deg, #667eea, #9f7aea);
+  background: linear-gradient(135deg, #00ff41, #00cc33);
   border: none;
-  color: white;
+  color: #0a0a0a;
 }
 
 .settings-button--primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 255, 65, 0.3);
 }
 
 .settings-button--primary:disabled {
@@ -220,14 +220,14 @@
 }
 
 .settings-link {
-  color: var(--primary-color, #667eea);
+  color: var(--terminal-green, #00ff41);
   text-decoration: none;
   font-size: 14px;
   transition: color 0.2s ease;
 }
 
 .settings-link:hover {
-  color: var(--primary-color-dark, #5a6fd6);
+  color: var(--terminal-green-dim, #00cc33);
   text-decoration: underline;
 }
 
@@ -251,10 +251,10 @@
 /* Sign in button (reused from App) */
 .sign-in-button {
   padding: 8px 16px;
-  background: linear-gradient(135deg, #667eea, #9f7aea);
+  background: linear-gradient(135deg, #00ff41, #00cc33);
   border: none;
   border-radius: 8px;
-  color: white;
+  color: #0a0a0a;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -263,7 +263,7 @@
 
 .sign-in-button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 255, 65, 0.3);
 }
 
 /* Dark mode */

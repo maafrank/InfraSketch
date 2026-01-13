@@ -144,6 +144,63 @@ def remove_background_inverted(img, threshold=25):
     return Image.fromarray(arr)
 
 
+def colorize_green(img, threshold=230):
+    """
+    Create a green (#00ff41) version of the logo.
+    Takes original image (dark logo on light background) and makes
+    the logo green while keeping background transparent.
+    """
+    # Convert to RGBA
+    rgba = img.convert("RGBA")
+    arr = np.array(rgba)
+
+    # Find logo pixels (non-white/non-background)
+    is_logo = np.any(arr[:, :, :3] < threshold, axis=2)
+
+    # Find background pixels
+    is_background = ~is_logo
+
+    # Set logo pixels to green (#00ff41 = RGB(0, 255, 65))
+    arr[is_logo, 0] = 0    # R
+    arr[is_logo, 1] = 255  # G
+    arr[is_logo, 2] = 65   # B
+    arr[is_logo, 3] = 255  # A (fully opaque)
+
+    # Set background to transparent
+    arr[is_background, 3] = 0
+
+    return Image.fromarray(arr)
+
+
+def colorize_green_with_background(img, threshold=230):
+    """
+    Create a green (#00ff41) version of the logo with dark background (#0a0a0a).
+    Takes original image (dark logo on light background) and makes
+    the logo green on a dark background.
+    """
+    # Convert to RGB
+    rgb = img.convert("RGB")
+    arr = np.array(rgb)
+
+    # Find logo pixels (non-white/non-background)
+    is_logo = np.any(arr < threshold, axis=2)
+
+    # Find background pixels
+    is_background = ~is_logo
+
+    # Set logo pixels to green (#00ff41 = RGB(0, 255, 65))
+    arr[is_logo, 0] = 0    # R
+    arr[is_logo, 1] = 255  # G
+    arr[is_logo, 2] = 65   # B
+
+    # Set background to dark (#0a0a0a = RGB(10, 10, 10))
+    arr[is_background, 0] = 10  # R
+    arr[is_background, 1] = 10  # G
+    arr[is_background, 2] = 10  # B
+
+    return Image.fromarray(arr)
+
+
 def main():
     print(f"Loading source image: {SOURCE_IMAGE}")
     img = Image.open(SOURCE_IMAGE)
@@ -202,7 +259,31 @@ def main():
     inverted_256_transparent.save(inverted_256_transparent_path)
     print(f"Saved: {inverted_256_transparent_path}")
 
-    print("\nAll 8 logo variants generated successfully!")
+    # 9. Green with dark background (full size) -> _03
+    green = colorize_green_with_background(original)
+    green_path = os.path.join(OUTPUT_DIR, "InfraSketchLogo_03.png")
+    green.save(green_path)
+    print(f"Saved: {green_path}")
+
+    # 10. Green with dark background 256x256 -> _03
+    green_256 = colorize_green_with_background(original_256)
+    green_256_path = os.path.join(OUTPUT_DIR, "InfraSketchLogo_03_256.png")
+    green_256.save(green_256_path)
+    print(f"Saved: {green_256_path}")
+
+    # 11. Green transparent (full size) -> _03
+    green_transparent = colorize_green(original)
+    green_transparent_path = os.path.join(OUTPUT_DIR, "InfraSketchLogoTransparent_03.png")
+    green_transparent.save(green_transparent_path)
+    print(f"Saved: {green_transparent_path}")
+
+    # 12. Green 256x256 transparent -> _03
+    green_256_transparent = colorize_green(original_256)
+    green_256_transparent_path = os.path.join(OUTPUT_DIR, "InfraSketchLogoTransparent_03_256.png")
+    green_256_transparent.save(green_256_transparent_path)
+    print(f"Saved: {green_256_transparent_path}")
+
+    print("\nAll 12 logo variants generated successfully!")
     print(f"Output directory: {OUTPUT_DIR}")
 
 

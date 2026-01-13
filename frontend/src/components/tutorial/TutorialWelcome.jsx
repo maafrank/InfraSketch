@@ -14,7 +14,7 @@ const TutorialWelcome = ({ modalType, title, content, onAction, onSkip }) => {
         {/* Logo */}
         <div className="tutorial-welcome-logo">
           <img
-            src="/InfraSketchLogoTransparent_01_256.png"
+            src="/InfraSketchLogoTransparent_03_256.png"
             alt="InfraSketch"
             width="80"
             height="80"

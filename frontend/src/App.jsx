@@ -12,7 +12,7 @@ import DesignDocPanel from './components/DesignDocPanel';
 import AddNodeModal from './components/AddNodeModal';
 import SessionHistorySidebar from './components/SessionHistorySidebar';
 import NodePalette from './components/NodePalette';
-import ThemeToggle from './components/ThemeToggle';
+// ThemeToggle removed - terminal theme is always dark
 import TutorialOverlay from './components/tutorial/TutorialOverlay';
 import CreditBalance from './components/CreditBalance';
 import InsufficientCreditsModal from './components/InsufficientCreditsModal';
@@ -950,7 +950,7 @@ function AppContent({ resumeMode = false, isMobile }) {
         >
           <div className="title-with-logo">
             <img
-              src={theme === 'dark' ? "/InfraSketchLogoTransparent_02_256.png" : "/InfraSketchLogoTransparent_01_256.png"}
+              src="/InfraSketchLogoTransparent_03_256.png"
               alt="InfraSketch Logo"
               className="app-logo"
             />
@@ -1009,7 +1009,6 @@ function AppContent({ resumeMode = false, isMobile }) {
                 className="header-visitors-badge"
               />
             </SignedOut>
-            <ThemeToggle />
             <SignedOut>
               <SignInButton mode="modal">
                 <button className="sign-in-button">

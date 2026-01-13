@@ -95,13 +95,13 @@
 }
 
 .action-button.primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: linear-gradient(135deg, #00ff41 0%, #00cc33 100%);
+  color: #0a0a0a;
 }
 
 .action-button.primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 255, 65, 0.4);
 }
 
 .action-button.secondary {
@@ -146,7 +146,7 @@
 
 .promo-input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #00ff41;
 }
 
 .promo-input::placeholder {

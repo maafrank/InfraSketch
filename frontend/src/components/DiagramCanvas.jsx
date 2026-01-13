@@ -342,12 +342,12 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
       label: edge.labels.length > 0 ? edge.labels.join(', ') : null,
       animated: edge.animated,
       style: {
-        stroke: selectedEdge === edge.id ? '#667eea' : '#888',
+        stroke: selectedEdge === edge.id ? '#00ff41' : '#888',
         strokeWidth: selectedEdge === edge.id ? 3 : 2,
       },
       markerEnd: {
         type: 'arrowclosed',
-        color: selectedEdge === edge.id ? '#667eea' : '#888',
+        color: selectedEdge === edge.id ? '#00ff41' : '#888',
       },
     }));
 

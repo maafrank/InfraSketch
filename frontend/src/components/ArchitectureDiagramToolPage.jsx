@@ -125,12 +125,12 @@ export default function ArchitectureDiagramToolPage() {
         <meta property="og:title" content="Architecture Diagram Tool | Software Architecture Diagrams" />
         <meta property="og:description" content="Create software architecture diagrams with AI. Design AWS, GCP, Azure, and microservices architectures." />
         <meta property="og:url" content="https://infrasketch.net/tools/architecture-diagram-tool" />
-        <meta property="og:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
+        <meta property="og:image" content="https://infrasketch.net/FullAppWithDesignDoc.png" />
 
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Architecture Diagram Tool | Software Architecture Diagrams" />
         <meta name="twitter:description" content="Create software architecture diagrams with AI. Design AWS, GCP, Azure, and microservices architectures." />
-        <meta name="twitter:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
+        <meta name="twitter:image" content="https://infrasketch.net/FullAppWithDesignDoc.png" />
 
         <script type="application/ld+json">
           {JSON.stringify(pageSchema)}

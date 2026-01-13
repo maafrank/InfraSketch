@@ -1,197 +1,168 @@
 :root {
-  /* Brand Colors */
-  --brand-purple: #667eea;
-  --brand-purple-dark: #764ba2;
-  --brand-purple-light: rgba(102, 126, 234, 0.2);
-  --brand-purple-lighter: rgba(102, 126, 234, 0.4);
-  --brand-purple-lightest: #eef2ff;
+  /* Terminal Theme - Dark backgrounds */
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #0d1117;
+  --bg-tertiary: #161b22;
+  --bg-card: #1c2128;
+  --bg-header: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+  --bg-landing-gradient-end: #000000;
 
-  /* Light Mode Colors */
-  --bg-primary: #e8e8e6;
-  --bg-secondary: #f5f5f3;
-  --bg-tertiary: white;
-  --bg-header: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --bg-landing-gradient-end: #d5d5d0;
+  /* Terminal accent colors */
+  --terminal-green: #00ff41;
+  --terminal-green-dim: #00cc33;
+  --terminal-cyan: #00d4ff;
+  --terminal-amber: #ffb000;
+  --terminal-red: #ff3333;
+  --terminal-magenta: #ff00ff;
+
+  /* Brand Colors - Terminal green as primary */
+  --brand-primary: #00ff41;
+  --brand-primary-dim: #00cc33;
+  --brand-primary-light: rgba(0, 255, 65, 0.15);
+  --brand-primary-lighter: rgba(0, 255, 65, 0.25);
+  --brand-primary-lightest: rgba(0, 255, 65, 0.05);
 
   /* Text Colors */
-  --text-primary: #1a202c;
-  --text-secondary: #4a5568;
-  --text-tertiary: #718096;
-  --text-muted: #999;
-  --text-inverse: white;
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-tertiary: #6e7681;
+  --text-muted: #484f58;
+  --text-inverse: #0a0a0a;
+  --text-accent: #00ff41;
 
   /* Border Colors */
-  --border-color: #d0d0cc;
-  --border-light: #e0e0e0;
-  --border-dark: #cbd5e0;
+  --border-color: #30363d;
+  --border-light: #21262d;
+  --border-dark: #484f58;
+  --border-glow: rgba(0, 255, 65, 0.3);
 
-  /* Shadow Colors */
-  --shadow-xs: 0 2px 4px rgba(0, 0, 0, 0.05);
-  --shadow-sm: rgba(0, 0, 0, 0.1);
-  --shadow-md: rgba(0, 0, 0, 0.15);
-  --shadow-lg: rgba(0, 0, 0, 0.2);
-  --shadow-xl: rgba(0, 0, 0, 0.25);
-  --shadow-brand: rgba(102, 126, 234, 0.2);
+  /* Shadow Colors - Subtle glows */
+  --shadow-xs: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-sm: rgba(0, 0, 0, 0.4);
+  --shadow-md: rgba(0, 0, 0, 0.5);
+  --shadow-lg: rgba(0, 0, 0, 0.6);
+  --shadow-xl: rgba(0, 0, 0, 0.7);
+  --shadow-brand: rgba(0, 255, 65, 0.2);
+  --shadow-glow: 0 0 20px rgba(0, 255, 65, 0.15);
 
-  /* Node Type Colors - Light Mode */
-  --node-database: #4A90E2;
-  --node-cache: #F5A623;
-  --node-server: #7ED321;
-  --node-api: #BD10E0;
-  --node-loadbalancer: #50E3C2;
-  --node-queue: #D0021B;
-  --node-cdn: #9013FE;
-  --node-gateway: #417505;
-  --node-storage: #B8E986;
-  --node-service: #8B572A;
+  /* Node Type Colors - Terminal palette */
+  --node-database: #00d4ff;
+  --node-cache: #ffb000;
+  --node-server: #00ff41;
+  --node-api: #ff00ff;
+  --node-loadbalancer: #00ffcc;
+  --node-queue: #ff6600;
+  --node-cdn: #9966ff;
+  --node-gateway: #66ff66;
+  --node-storage: #00ccff;
+  --node-service: #ff9933;
+  --node-group: #8b949e;
 
   /* Button Colors */
-  --btn-primary-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --btn-hover-shadow: rgba(102, 126, 234, 0.4);
-  --btn-danger: #ef4444;
-  --btn-danger-hover: #dc2626;
-  --btn-danger-light: #fff5f5;
+  --btn-primary-bg: linear-gradient(135deg, #00ff41 0%, #00cc33 100%);
+  --btn-primary-text: #0a0a0a;
+  --btn-hover-shadow: rgba(0, 255, 65, 0.4);
+  --btn-danger: #ff3333;
+  --btn-danger-hover: #ff0000;
+  --btn-danger-light: rgba(255, 51, 51, 0.1);
 
   /* Input Colors */
-  --input-bg: white;
-  --input-border: #d0d0cc;
-  --input-focus-border: #667eea;
-  --input-placeholder: #999;
+  --input-bg: #0d1117;
+  --input-border: #30363d;
+  --input-focus-border: #00ff41;
+  --input-focus-glow: rgba(0, 255, 65, 0.25);
+  --input-placeholder: #6e7681;
 
   /* Special Elements */
-  --scrollbar-thumb: #cbd5e0;
-  --scrollbar-track: #f5f5f3;
-  --edge-color: #b1b1b7;
-  --react-flow-bg: #e8e8e6;
+  --scrollbar-thumb: #30363d;
+  --scrollbar-thumb-hover: #484f58;
+  --scrollbar-track: #0d1117;
+  --edge-color: #30363d;
+  --react-flow-bg: #0a0a0a;
 
   /* Overlay Colors */
-  --overlay-bg: rgba(0, 0, 0, 0.5);
-  --loading-overlay: rgba(245, 245, 243, 0.95);
+  --overlay-bg: rgba(0, 0, 0, 0.8);
+  --loading-overlay: rgba(13, 17, 23, 0.95);
 
   /* Badge Colors */
-  --badge-bg: #dbeafe;
-  --badge-text: #1e40af;
+  --badge-bg: rgba(0, 255, 65, 0.1);
+  --badge-text: #00ff41;
+  --badge-border: rgba(0, 255, 65, 0.3);
 
   /* Spinner */
-  --spinner-border: rgba(255, 255, 255, 0.3);
+  --spinner-border: rgba(0, 255, 65, 0.2);
+  --spinner-active: #00ff41;
 
-  /* Gradients */
-  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --gradient-landing-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --gradient-landing-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  --gradient-landing-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  --gradient-landing-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  /* Gradients - Terminal style */
+  --gradient-primary: linear-gradient(135deg, #00ff41 0%, #00d4ff 100%);
+  --gradient-subtle: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+  --gradient-glow: radial-gradient(ellipse at center, rgba(0, 255, 65, 0.1) 0%, transparent 70%);
 
-  /* Transition timing */
-  --theme-transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  /* Typography */
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* Border radius - Sharp terminal style */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.2s ease;
+  --transition-slow: 0.3s ease;
 }
 
-[data-theme="dark"] {
-  /* Dark Mode Colors */
-  --bg-primary: #1a1a1a;
-  --bg-secondary: #2d2d2d;
-  --bg-tertiary: #3a3a3a;
-  --bg-header: linear-gradient(135deg, #7688f4 0%, #8654b2 100%);
-  --bg-landing-gradient-end: #0d0d0d;
-
-  /* Text Colors */
-  --text-primary: #e8e8e6;
-  --text-secondary: #b8b8b6;
-  --text-tertiary: #888886;
-  --text-muted: #666664;
-  --text-inverse: #1a1a1a;
-
-  /* Border Colors */
-  --border-color: #3d3d3d;
-  --border-light: #4a4a4a;
-  --border-dark: #2a2a2a;
-
-  /* Brand Colors - Dark Mode */
-  --brand-purple-light: rgba(118, 136, 244, 0.2);
-  --brand-purple-lighter: rgba(118, 136, 244, 0.4);
-  --brand-purple-lightest: #2d3561;
-
-  /* Shadow Colors */
-  --shadow-xs: 0 2px 4px rgba(0, 0, 0, 0.2);
-  --shadow-sm: rgba(0, 0, 0, 0.3);
-  --shadow-md: rgba(0, 0, 0, 0.4);
-  --shadow-lg: rgba(0, 0, 0, 0.5);
-  --shadow-xl: rgba(0, 0, 0, 0.6);
-  --shadow-brand: rgba(118, 136, 244, 0.3);
-
-  /* Node Type Colors - Dark Mode (brightened for contrast) */
-  --node-database: #5aa0f2;
-  --node-cache: #ffb633;
-  --node-server: #8ee331;
-  --node-api: #cd20f0;
-  --node-loadbalancer: #60f3d2;
-  --node-queue: #e0122b;
-  --node-cdn: #a023ff;
-  --node-gateway: #518515;
-  --node-storage: #c8f996;
-  --node-service: #9b673a;
-
-  /* Button Colors */
-  --btn-primary-bg: linear-gradient(135deg, #7688f4 0%, #8654b2 100%);
-  --btn-hover-shadow: rgba(118, 136, 244, 0.5);
-  --btn-danger: #f87171;
-  --btn-danger-hover: #ef4444;
-  --btn-danger-light: #3a2a2a;
-
-  /* Input Colors */
-  --input-bg: #2d2d2d;
-  --input-border: #3d3d3d;
-  --input-focus-border: #7688f4;
-  --input-placeholder: #666664;
-
-  /* Special Elements */
-  --scrollbar-thumb: #4a4a4a;
-  --scrollbar-track: #2d2d2d;
-  --edge-color: #6a6a6a;
-  --react-flow-bg: #1a1a1a;
-
-  /* Overlay Colors */
-  --overlay-bg: rgba(0, 0, 0, 0.7);
-  --loading-overlay: rgba(45, 45, 45, 0.95);
-
-  /* Badge Colors - Dark Mode */
-  --badge-bg: #1e3a8a;
-  --badge-text: #93c5fd;
-
-  /* Spinner - Dark Mode */
-  --spinner-border: rgba(118, 136, 244, 0.2);
-
-  /* Gradients - slightly brightened for dark mode */
-  --gradient-primary: linear-gradient(135deg, #7688f4 0%, #8654b2 100%);
-  --gradient-landing-1: linear-gradient(135deg, #7688f4 0%, #8654b2 100%);
-  --gradient-landing-2: linear-gradient(135deg, #ffa3fb 0%, #ff6777 100%);
-  --gradient-landing-3: linear-gradient(135deg, #5fbcfe 0%, #10f2fe 100%);
-  --gradient-landing-4: linear-gradient(135deg, #53f98b 0%, #48ffd7 100%);
-}
-
-/* Smooth theme transitions */
-*,
-*::before,
-*::after {
-  transition: var(--theme-transition);
-}
-
-/* Disable transitions on theme change to avoid flash */
-[data-theme] * {
-  transition: var(--theme-transition);
+/* Smooth transitions for interactive elements only */
+button,
+a,
+input,
+textarea,
+select {
+  transition: all var(--transition-fast);
 }
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--bg-primary);
   color: var(--text-primary);
 }
 
+/* Monospace for code-like elements */
+code,
+pre,
+.mono {
+  font-family: var(--font-mono);
+}
+
 #root {
   height: 100vh;
+}
+
+/* Custom scrollbar - Terminal style */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* Selection color */
+::selection {
+  background: rgba(0, 255, 65, 0.3);
+  color: #fff;
 }

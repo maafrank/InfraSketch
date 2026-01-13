@@ -94,7 +94,7 @@
   width: 16px;
   height: 16px;
   border: 2px solid var(--border-color, #e0e0e0);
-  border-top-color: var(--primary-color, #667eea);
+  border-top-color: var(--terminal-green, #00ff41);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -161,13 +161,13 @@
 }
 
 .tutorial-nav-btn--next {
-  background: var(--primary-color, #667eea);
+  background: var(--terminal-green, #00ff41);
   border: none;
-  color: white;
+  color: #0a0a0a;
 }
 
 .tutorial-nav-btn--next:hover:not(:disabled) {
-  background: var(--primary-color-dark, #5a6fd6);
+  background: var(--terminal-green-dim, #00cc33);
 }
 
 .tutorial-nav-btn--next:disabled {

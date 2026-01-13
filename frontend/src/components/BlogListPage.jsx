@@ -46,14 +46,14 @@ export default function BlogListPage() {
         <meta property="og:title" content="System Design Blog | InfraSketch" />
         <meta property="og:description" content="Learn about system design, software architecture patterns, and AI-powered development tools." />
         <meta property="og:url" content="https://infrasketch.net/blog" />
-        <meta property="og:image" content="https://infrasketch.net/og-image.png" />
+        <meta property="og:image" content="https://infrasketch.net/FullAppWithDesignDoc.png" />
         <meta property="og:site_name" content="InfraSketch" />
 
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="System Design Blog | InfraSketch" />
         <meta name="twitter:description" content="Learn about system design, software architecture patterns, and AI-powered development tools." />
-        <meta name="twitter:image" content="https://infrasketch.net/og-image.png" />
+        <meta name="twitter:image" content="https://infrasketch.net/FullAppWithDesignDoc.png" />
       </Helmet>
 
       <div className="blog-header">

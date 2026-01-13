@@ -126,14 +126,14 @@ export default function BlogPostPage() {
       "name": "InfraSketch",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://infrasketch.net/InfraSketchLogoTransparent_02.png"
+        "url": "https://infrasketch.net/InfraSketchLogoTransparent_03.png"
       }
     },
     "mainEntityOfPage": {
       "@type": "WebPage",
       "@id": `https://infrasketch.net/blog/${slug}`
     },
-    "image": "https://infrasketch.net/og-image.png"
+    "image": "https://infrasketch.net/FullAppWithDesignDoc.png"
   } : null;
 
   // Generate BreadcrumbList schema for better SERP appearance
@@ -178,7 +178,7 @@ export default function BlogPostPage() {
           <meta property="og:title" content={post.title} />
           <meta property="og:description" content={post.description} />
           <meta property="og:url" content={`https://infrasketch.net/blog/${slug}`} />
-          <meta property="og:image" content="https://infrasketch.net/og-image.png" />
+          <meta property="og:image" content="https://infrasketch.net/FullAppWithDesignDoc.png" />
           <meta property="og:site_name" content="InfraSketch" />
           <meta property="article:published_time" content={post.date} />
           <meta property="article:author" content="InfraSketch Team" />
@@ -187,7 +187,7 @@ export default function BlogPostPage() {
           <meta name="twitter:card" content="summary_large_image" />
           <meta name="twitter:title" content={post.title} />
           <meta name="twitter:description" content={post.description} />
-          <meta name="twitter:image" content="https://infrasketch.net/og-image.png" />
+          <meta name="twitter:image" content="https://infrasketch.net/FullAppWithDesignDoc.png" />
 
           {/* Article Schema */}
           <script type="application/ld+json">
