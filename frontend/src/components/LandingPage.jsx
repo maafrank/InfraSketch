@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 
 const EXAMPLE_PROMPTS = [
   {
@@ -475,14 +476,6 @@ export default function LandingPage({ onGenerate, loading }) {
             />
           </a>
 
-          {/* Monthly Visitors Badge */}
-          <div className="featured-badge-link monthly-visitors-badge">
-            <img
-              src={`${import.meta.env.VITE_API_URL}/api/badges/monthly-visitors.svg`}
-              alt="Monthly Visitors"
-              className="featured-badge-img"
-            />
-          </div>
         </div>
       </div>
 

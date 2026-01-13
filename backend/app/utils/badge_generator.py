@@ -8,14 +8,68 @@ Parses CloudFront logs from S3 and caches results in DynamoDB.
 import boto3
 import gzip
 import io
+import re
 import time
 from datetime import datetime, timedelta
 from typing import Optional
-import os
+from urllib.parse import unquote
 
 # S3 bucket containing CloudFront logs
 CLOUDFRONT_LOGS_BUCKET = "infrasketch-cloudfront-logs-059409992371"
 CLOUDFRONT_LOGS_PREFIX = "cloudfront/"
+
+# Bot detection patterns (case-insensitive)
+BOT_PATTERNS = [
+    r"bot",
+    r"crawler",
+    r"spider",
+    r"scraper",
+    r"facebook",
+    r"facebookexternalhit",
+    r"googlebot",
+    r"bingbot",
+    r"yandex",
+    r"baidu",
+    r"duckduckbot",
+    r"slurp",  # Yahoo
+    r"semrush",
+    r"ahrefs",
+    r"mj12bot",
+    r"dotbot",
+    r"petalbot",
+    r"bytespider",
+    r"gptbot",
+    r"claudebot",
+    r"anthropic",
+    r"ccbot",
+    r"dataforseo",
+    r"headless",
+    r"phantomjs",
+    r"selenium",
+    r"puppeteer",
+    r"playwright",
+    r"curl",
+    r"wget",
+    r"python-requests",
+    r"python-urllib",
+    r"go-http-client",
+    r"java/",
+    r"libwww",
+    r"apache-httpclient",
+    r"okhttp",
+    r"axios",
+    r"node-fetch",
+    r"undici",
+]
+
+# Compile regex pattern for efficiency
+BOT_REGEX = re.compile("|".join(BOT_PATTERNS), re.IGNORECASE)
+
+# Asset file extensions to exclude
+ASSET_EXTENSIONS = {
+    ".js", ".css", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico",
+    ".woff", ".woff2", ".ttf", ".eot", ".map", ".webp", ".avif"
+}
 
 # DynamoDB cache settings
 CACHE_TABLE = "infrasketch-sessions"
@@ -31,6 +85,30 @@ def get_dynamodb_client():
 def get_s3_client():
     """Get S3 client."""
     return boto3.client("s3", region_name="us-east-1")
+
+
+def is_bot(user_agent: str) -> bool:
+    """Check if user agent string indicates a bot/crawler."""
+    if not user_agent or user_agent == "-":
+        return True  # No user agent is suspicious
+    # URL decode the user agent (CloudFront logs are URL-encoded)
+    decoded_ua = unquote(user_agent)
+    return bool(BOT_REGEX.search(decoded_ua))
+
+
+def is_asset_request(uri_stem: str) -> bool:
+    """Check if the request is for a static asset (not a page view)."""
+    if not uri_stem:
+        return True
+    # Check if it ends with an asset extension
+    uri_lower = uri_stem.lower()
+    for ext in ASSET_EXTENSIONS:
+        if uri_lower.endswith(ext):
+            return True
+    # Also exclude /assets/ directory
+    if "/assets/" in uri_lower:
+        return True
+    return False
 
 
 def get_cached_visitor_count() -> Optional[int]:
@@ -82,20 +160,29 @@ def set_cached_visitor_count(count: int) -> None:
 
 def parse_cloudfront_logs_for_unique_ips(days: int = 30) -> int:
     """
-    Parse CloudFront logs from S3 and count unique visitor IPs.
+    Parse CloudFront logs from S3 and count unique human visitor IPs.
+
+    Filters out:
+    - Bots and crawlers (based on User-Agent)
+    - Asset requests (JS, CSS, images, etc.)
 
     Args:
         days: Number of days to look back (default 30)
 
     Returns:
-        Count of unique IP addresses
+        Count of unique human IP addresses
     """
     s3 = get_s3_client()
     unique_ips = set()
 
-    # Calculate date range
+    # Calculate date range (rolling lookback from today)
     end_date = datetime.utcnow()
     start_date = end_date - timedelta(days=days)
+
+    # CloudFront log fields (tab-separated):
+    # 0: date, 1: time, 2: x-edge-location, 3: sc-bytes, 4: c-ip,
+    # 5: cs-method, 6: cs(Host), 7: cs-uri-stem, 8: sc-status,
+    # 9: cs(Referer), 10: cs(User-Agent), ...
 
     try:
         # List all log files
@@ -134,14 +221,26 @@ def parse_cloudfront_logs_for_unique_ips(days: int = 30) -> int:
                     else:
                         content = response["Body"].read().decode("utf-8")
 
-                    # Parse each line and extract IP (5th field in CloudFront logs)
+                    # Parse each line
                     for line in content.split("\n"):
                         if line.startswith("#") or not line.strip():
                             continue
 
                         fields = line.split("\t")
-                        if len(fields) >= 5:
-                            ip = fields[4]  # c-ip field
+                        if len(fields) >= 11:
+                            ip = fields[4]           # c-ip field
+                            uri_stem = fields[7]     # cs-uri-stem field
+                            user_agent = fields[10]  # cs(User-Agent) field
+
+                            # Skip asset requests (JS, CSS, images, etc.)
+                            if is_asset_request(uri_stem):
+                                continue
+
+                            # Skip bots/crawlers
+                            if is_bot(user_agent):
+                                continue
+
+                            # This is a real human visitor viewing a page
                             unique_ips.add(ip)
 
                 except Exception as e:
@@ -177,14 +276,10 @@ def get_monthly_visitor_count() -> int:
 
 def format_visitor_count(count: int) -> str:
     """
-    Format visitor count for display (e.g., 6158 -> "6.2K").
+    Format visitor count for display with commas (e.g., 1996 -> "1,996").
+    No rounding - display the full number.
     """
-    if count >= 1_000_000:
-        return f"{count / 1_000_000:.1f}M"
-    elif count >= 1_000:
-        return f"{count / 1_000:.1f}K"
-    else:
-        return str(count)
+    return f"{count:,}"
 
 
 def generate_badge_svg(count: str) -> str:

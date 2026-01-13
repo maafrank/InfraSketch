@@ -1002,6 +1002,11 @@ function AppContent({ resumeMode = false, isMobile }) {
             />
           </SignedIn>
           <div className="auth-buttons">
+            <img
+              src={`${import.meta.env.VITE_API_URL}/api/badges/monthly-visitors.svg`}
+              alt="Monthly Visitors"
+              className="header-visitors-badge"
+            />
             <ThemeToggle />
             <SignedOut>
               <SignInButton mode="modal">

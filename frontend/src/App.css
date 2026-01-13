@@ -86,6 +86,13 @@ body {
 .auth-buttons {
   display: flex;
   align-items: center;
+  gap: 12px;
+}
+
+.header-visitors-badge {
+  height: 32px;
+  width: auto;
+  border-radius: 6px;
 }
 
 .sign-in-button {
