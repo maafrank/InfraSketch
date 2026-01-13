@@ -199,7 +199,7 @@ export default function LandingPage({ onGenerate, loading }) {
       {
         "@type": "HowTo",
         "name": "How to Create AI Architecture Diagrams with InfraSketch",
-        "description": "Generate professional system architecture diagrams using AI in 4 simple steps",
+        "description": "Generate professional system architecture diagrams using AI in 3 simple steps",
         "totalTime": "PT2M",
         "tool": {
           "@type": "HowToTool",
@@ -210,29 +210,22 @@ export default function LandingPage({ onGenerate, loading }) {
             "@type": "HowToStep",
             "position": 1,
             "name": "Describe Your System",
-            "text": "Enter a natural language description of your system architecture, such as 'Design a video streaming platform with CDN and recommendations'",
+            "text": "Tell the AI what you want to build in plain English. No templates, no drag-and-drop, just describe it.",
             "url": "https://infrasketch.net/#step1"
           },
           {
             "@type": "HowToStep",
             "position": 2,
-            "name": "Watch It Appear",
-            "text": "Our AI agent creates your architecture including services, databases, caches, and connections automatically",
+            "name": "Generate & Iterate",
+            "text": "Watch your architecture appear in seconds. Ask questions, request changes, and refine your design through conversation.",
             "url": "https://infrasketch.net/#step2"
           },
           {
             "@type": "HowToStep",
             "position": 3,
-            "name": "Chat and Refine",
-            "text": "Ask questions or request changes like 'add a cache layer' and watch your design evolve with explanations",
+            "name": "Export & Build",
+            "text": "Generate a comprehensive design doc with architecture diagrams, component details, and implementation notes. Then start building.",
             "url": "https://infrasketch.net/#step3"
-          },
-          {
-            "@type": "HowToStep",
-            "position": 4,
-            "name": "Export and Build",
-            "text": "Generate a comprehensive design document with architecture diagrams, component details, and implementation notes",
-            "url": "https://infrasketch.net/#step4"
           }
         ]
       }
@@ -419,28 +412,21 @@ export default function LandingPage({ onGenerate, loading }) {
             <div className="step-number">1</div>
             <h3 className="step-title">Describe Your System</h3>
             <p className="step-description">
-              "Design a video streaming platform with CDN and recommendations"
+              Tell the AI what you want to build in plain English. No templates, no drag-and-drop, just describe it.
             </p>
           </div>
           <div className="step-card">
             <div className="step-number">2</div>
-            <h3 className="step-title">Watch It Appear</h3>
+            <h3 className="step-title">Generate & Iterate</h3>
             <p className="step-description">
-              Our AI agent creates your architecture: services, databases, caches, and connections
+              Watch your architecture appear in seconds. Ask questions, request changes, and refine your design through conversation.
             </p>
           </div>
           <div className="step-card">
             <div className="step-number">3</div>
-            <h3 className="step-title">Chat & Refine</h3>
-            <p className="step-description">
-              Ask questions, request changes. The agent updates your diagram and explains every decision.
-            </p>
-          </div>
-          <div className="step-card">
-            <div className="step-number">4</div>
             <h3 className="step-title">Export & Build</h3>
             <p className="step-description">
-              Generate a comprehensive design doc and get to building
+              Generate a comprehensive design doc with architecture diagrams, component details, and implementation notes. Then start building.
             </p>
           </div>
         </div>
