@@ -3,7 +3,7 @@ DynamoDB storage for email subscribers.
 Handles opt-in/opt-out tracking for marketing emails.
 """
 import os
-import secrets
+import uuid
 import time
 from typing import Optional, List
 from datetime import datetime
@@ -61,9 +61,8 @@ class SubscriberStorage:
                 raise
 
     def _generate_token(self) -> str:
-        """Generate a cryptographically secure unsubscribe token."""
-        # Use secrets.token_urlsafe for security-sensitive tokens (not predictable like UUID)
-        return secrets.token_urlsafe(32)
+        """Generate a unique unsubscribe token."""
+        return str(uuid.uuid4())
 
     def _now_iso(self) -> str:
         """Get current time as ISO string."""

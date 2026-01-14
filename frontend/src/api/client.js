@@ -1,20 +1,8 @@
 import axios from 'axios';
 
-// Security: Validate API URL configuration
-const getApiBaseUrl = () => {
-  const envUrl = import.meta.env.VITE_API_URL;
-
-  // In production, VITE_API_URL must be configured
-  if (import.meta.env.PROD && !envUrl) {
-    console.error('SECURITY ERROR: VITE_API_URL is not configured in production');
-    // Still allow the app to work, but log the error prominently
-    // This prevents silent fallback to localhost in production
-  }
-
-  return envUrl ? `${envUrl}/api` : 'http://localhost:8000/api';
-};
-
-const API_BASE_URL = getApiBaseUrl();
+const API_BASE_URL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : 'http://localhost:8000/api';
 
 // Retry configuration
 const RETRY_CONFIG = {
