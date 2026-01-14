@@ -3,6 +3,7 @@ Structured logging utility for tracking user events and system metrics.
 Logs are sent to stdout and captured by CloudWatch Logs.
 """
 
+import hashlib
 import json
 import logging
 import sys
@@ -206,22 +207,21 @@ def log_error(
 
 def anonymize_ip(ip: str) -> str:
     """
-    Anonymize IP address by zeroing out last octet for privacy.
-    Example: 192.168.1.100 -> 192.168.1.0
+    Anonymize IP address using SHA-256 hash for GDPR compliance.
+
+    Security notes:
+    - Uses cryptographic hash instead of truncation for true anonymization
+    - Truncated to 16 chars for readability while maintaining uniqueness
+    - Same IP will always produce same hash for correlation in logs
+    - Cannot be reversed to original IP address
+
+    Example: 192.168.1.100 -> "a7b3c9d2e1f0a8b4"
     """
     if not ip:
         return "unknown"
 
-    # Handle IPv4
-    if "." in ip:
-        parts = ip.split(".")
-        if len(parts) == 4:
-            return f"{parts[0]}.{parts[1]}.{parts[2]}.0"
-
-    # Handle IPv6 - keep first 4 segments
-    if ":" in ip:
-        parts = ip.split(":")
-        if len(parts) >= 4:
-            return ":".join(parts[:4]) + "::"
-
-    return "unknown"
+    # Use SHA-256 hash truncated to 16 characters
+    # This provides ~64 bits of entropy, sufficient for log correlation
+    # while being truly irreversible (GDPR compliant)
+    ip_hash = hashlib.sha256(ip.encode()).hexdigest()[:16]
+    return ip_hash

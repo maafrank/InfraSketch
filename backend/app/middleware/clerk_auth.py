@@ -7,13 +7,19 @@ and extracts the user_id from the validated token.
 
 Flow:
 1. Extract JWT from Authorization header
-2. Fetch Clerk's public keys (cached for 1 hour)
+2. Fetch Clerk's public keys (cached for 15 minutes)
 3. Validate token signature and claims
 4. Attach user_id to request.state for use in routes
 5. Return 401 if token is missing/invalid
+
+Security Notes:
+- DISABLE_CLERK_AUTH is blocked in Lambda/production environments
+- Error messages are generic to avoid leaking JWT internals
+- JWKS cache uses asyncio.Lock for thread safety
 """
 
 import os
+import asyncio
 import jwt
 import requests
 from datetime import datetime, timedelta
@@ -22,6 +28,12 @@ from fastapi import Request, HTTPException, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.utils.logger import log_event, EventType
+
+
+# Security: Prevent auth bypass in production
+def _is_production_environment() -> bool:
+    """Check if running in AWS Lambda or production environment."""
+    return bool(os.environ.get('AWS_LAMBDA_FUNCTION_NAME') or os.environ.get('AWS_EXECUTION_ENV'))
 
 
 def _get_cors_headers(request: Request) -> dict:
@@ -60,7 +72,8 @@ JWKS_URL = f"https://{CLERK_DOMAIN}/.well-known/jwks.json"
 # Cache for Clerk's public keys (JWKS)
 _jwks_cache: Optional[Dict[str, Any]] = None
 _jwks_cache_expiry: Optional[datetime] = None
-JWKS_CACHE_TTL = timedelta(hours=1)  # Refresh keys every hour
+_jwks_cache_lock: asyncio.Lock = asyncio.Lock()
+JWKS_CACHE_TTL = timedelta(minutes=15)  # Refresh keys every 15 minutes (security best practice)
 
 
 class ClerkAuthMiddleware(BaseHTTPMiddleware):
@@ -92,11 +105,24 @@ class ClerkAuthMiddleware(BaseHTTPMiddleware):
         """
         Process each request and validate JWT token.
         """
-        # Check if Clerk auth is disabled (for local development)
+        # Check if Clerk auth is disabled (for local development ONLY)
+        # SECURITY: This bypass is blocked in production/Lambda environments
         if os.getenv("DISABLE_CLERK_AUTH", "false").lower() == "true":
-            # Set a dummy user_id for local development
-            request.state.user_id = "local-dev-user"
-            return await call_next(request)
+            if _is_production_environment():
+                # Log critical security warning and reject the bypass attempt
+                log_event(
+                    EventType.API_ERROR,
+                    metadata={
+                        "error": "CRITICAL: DISABLE_CLERK_AUTH attempted in production - blocked",
+                        "path": request.url.path,
+                        "method": request.method
+                    }
+                )
+                # Do NOT bypass auth in production, continue with normal validation
+            else:
+                # Local development only - set a dummy user_id
+                request.state.user_id = "local-dev-user"
+                return await call_next(request)
 
         # Skip auth for public endpoints
         if request.url.path in self.PUBLIC_PATHS:
@@ -183,19 +209,25 @@ class ClerkAuthMiddleware(BaseHTTPMiddleware):
         """
         global _jwks_cache, _jwks_cache_expiry
 
-        # Get JWKS (Clerk's public keys)
-        if _jwks_cache is None or _jwks_cache_expiry is None or datetime.now() > _jwks_cache_expiry:
-            # Fetch fresh JWKS
-            try:
-                response = requests.get(JWKS_URL, timeout=5)
-                response.raise_for_status()
-                _jwks_cache = response.json()
-                _jwks_cache_expiry = datetime.now() + JWKS_CACHE_TTL
-            except Exception as e:
-                raise HTTPException(
-                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                    detail=f"Failed to fetch Clerk public keys: {str(e)}"
-                )
+        # Get JWKS (Clerk's public keys) with thread-safe locking
+        async with _jwks_cache_lock:
+            if _jwks_cache is None or _jwks_cache_expiry is None or datetime.now() > _jwks_cache_expiry:
+                # Fetch fresh JWKS
+                try:
+                    response = requests.get(JWKS_URL, timeout=5)
+                    response.raise_for_status()
+                    _jwks_cache = response.json()
+                    _jwks_cache_expiry = datetime.now() + JWKS_CACHE_TTL
+                except Exception as e:
+                    # Log detailed error internally, return generic message
+                    log_event(
+                        EventType.API_ERROR,
+                        metadata={"error": f"JWKS fetch failed: {str(e)}"}
+                    )
+                    raise HTTPException(
+                        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                        detail="Authentication service temporarily unavailable"
+                    )
 
         # Decode token header to get key ID (kid)
         try:
@@ -204,12 +236,17 @@ class ClerkAuthMiddleware(BaseHTTPMiddleware):
             if not kid:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Token missing key ID (kid)"
+                    detail="Invalid or expired authentication token"
                 )
-        except Exception as e:
+        except jwt.exceptions.DecodeError:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f"Invalid token format: {str(e)}"
+                detail="Invalid or expired authentication token"
+            )
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired authentication token"
             )
 
         # Find the matching public key
@@ -221,9 +258,10 @@ class ClerkAuthMiddleware(BaseHTTPMiddleware):
                 break
 
         if not public_key:
+            # Key not found - could be rotated, try refreshing cache once
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token key ID (kid) not found in Clerk JWKS"
+                detail="Invalid or expired authentication token"
             )
 
         # Validate token signature and claims
@@ -243,7 +281,7 @@ class ClerkAuthMiddleware(BaseHTTPMiddleware):
             if not user_id:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Token missing subject (user_id)"
+                    detail="Invalid or expired authentication token"
                 )
 
             return user_id
@@ -251,10 +289,10 @@ class ClerkAuthMiddleware(BaseHTTPMiddleware):
         except jwt.ExpiredSignatureError:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token has expired"
+                detail="Invalid or expired authentication token"
             )
-        except jwt.InvalidTokenError as e:
+        except jwt.InvalidTokenError:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f"Invalid token: {str(e)}"
+                detail="Invalid or expired authentication token"
             )

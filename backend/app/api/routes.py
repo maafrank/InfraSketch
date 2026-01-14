@@ -2151,7 +2151,9 @@ async def unsubscribe_via_token(token: str, http_request: Request):
         )
 
         # Build re-subscribe URL with the same token
-        resubscribe_url = f"https://b31htlojb0.execute-api.us-east-1.amazonaws.com/prod/api/resubscribe/{token}"
+        # Use API_BASE_URL env var for configurability (defaults to production URL)
+        api_base = os.environ.get("API_BASE_URL", "https://b31htlojb0.execute-api.us-east-1.amazonaws.com/prod")
+        resubscribe_url = f"{api_base}/api/resubscribe/{token}"
 
         return HTMLResponse(
             content=f"""
@@ -2272,7 +2274,9 @@ async def resubscribe_via_token(token: str, http_request: Request):
         )
 
         # Build unsubscribe URL in case they want to undo
-        unsubscribe_url = f"https://b31htlojb0.execute-api.us-east-1.amazonaws.com/prod/api/unsubscribe/{token}"
+        # Use API_BASE_URL env var for configurability (defaults to production URL)
+        api_base = os.environ.get("API_BASE_URL", "https://b31htlojb0.execute-api.us-east-1.amazonaws.com/prod")
+        unsubscribe_url = f"{api_base}/api/unsubscribe/{token}"
 
         return HTMLResponse(
             content=f"""
@@ -2680,19 +2684,23 @@ async def clerk_billing_webhook(http_request: Request):
         body = await http_request.body()
         headers = dict(http_request.headers)
 
-        # Verify webhook signature (if secret is configured)
+        # Verify webhook signature - MANDATORY for security
+        # Billing webhooks can grant credits/upgrade plans, so verification is required
         webhook_secret = os.environ.get("CLERK_BILLING_WEBHOOK_SECRET")
-        if webhook_secret:
-            try:
-                wh = Webhook(webhook_secret)
-                payload = wh.verify(body, headers)
-            except WebhookVerificationError:
-                print("Clerk billing webhook signature verification failed")
-                raise HTTPException(status_code=401, detail="Invalid webhook signature")
-        else:
-            # In development, parse without verification
-            payload = json.loads(body)
-            print("WARNING: Clerk billing webhook signature not verified (no secret configured)")
+        if not webhook_secret:
+            # SECURITY: Reject unverified billing webhooks
+            log_error(
+                error_type="webhook_config_error",
+                error_message="CLERK_BILLING_WEBHOOK_SECRET not configured - billing webhook rejected",
+            )
+            raise HTTPException(status_code=500, detail="Webhook secret not configured")
+
+        try:
+            wh = Webhook(webhook_secret)
+            payload = wh.verify(body, headers)
+        except WebhookVerificationError:
+            print("Clerk billing webhook signature verification failed")
+            raise HTTPException(status_code=401, detail="Invalid webhook signature")
 
         event_type = payload.get("type")
         data = payload.get("data", {})

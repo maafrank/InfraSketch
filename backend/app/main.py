@@ -34,9 +34,11 @@ if extra_origins and extra_origins[0]:  # Check if not empty
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,  # Now safe with specific origins
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_credentials=True,  # Safe with specific origins (not wildcard)
+    # Security: Explicitly list allowed methods instead of wildcard
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    # Security: Explicitly list allowed headers instead of wildcard
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
 )
 
 # Add rate limiting middleware (60 requests per minute per IP)
