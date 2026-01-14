@@ -164,6 +164,29 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
   const dropTargetTimeoutRef = useRef(null);
   const isDraggingRef = useRef(false);
 
+  // Mobile zoom hint state
+  const [showZoomHint, setShowZoomHint] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile viewport
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Show zoom hint on first diagram load on mobile
+  useEffect(() => {
+    if (isMobile && diagram?.nodes?.length > 0) {
+      setShowZoomHint(true);
+      const timer = setTimeout(() => setShowZoomHint(false), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [isMobile, diagram?.nodes?.length]);
+
   // Function to apply layout to current nodes/edges
   const applyLayout = useCallback(() => {
     setNodes((currentNodes) => {
@@ -171,9 +194,10 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
         // Apply layout and trigger fitView
         getLayoutedElements(currentNodes, currentEdges, layoutDirection);
 
-        // Use fitView to center the diagram after layout
+        // Use fitView to center the diagram after layout (tighter padding on mobile)
         setTimeout(() => {
-          reactFlowInstance?.fitView({ padding: 0.2, duration: 400 });
+          const fitPadding = window.innerWidth <= 768 ? 0.05 : 0.2;
+          reactFlowInstance?.fitView({ padding: fitPadding, duration: 400 });
         }, 10);
 
         return currentEdges;
@@ -365,7 +389,8 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (nodes.length > 0 && reactFlowInstance) {
-        reactFlowInstance.fitView({ padding: 0.2, duration: 400 });
+        const fitPadding = window.innerWidth <= 768 ? 0.05 : 0.2;
+        reactFlowInstance.fitView({ padding: fitPadding, duration: 400 });
       }
     }, 100);
 
@@ -598,7 +623,9 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
             Add Component
           </button>
           <span className="action-separator">or</span>
-          <span className="chat-hint">Use the chat to describe your system →</span>
+          <span className="chat-hint">
+            {isMobile ? 'Tap 💬 to describe your system' : 'Use the chat to describe your system →'}
+          </span>
         </div>
 
         {/* Example Prompts */}
@@ -658,8 +685,9 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
         nodeTypes={nodeTypes}
         nodesDraggable={!mergingNodes}
         fitView
-        minZoom={0.1}
-        maxZoom={2}
+        fitViewOptions={{ padding: isMobile ? 0.05 : 0.2 }}
+        minZoom={0.05}
+        maxZoom={2.5}
         edgesReconnectable={true}
         edgesUpdatable={true}
         edgesFocusable={true}
@@ -667,6 +695,13 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
         <Background />
         <Controls />
       </ReactFlow>
+
+      {/* Mobile zoom hint */}
+      {showZoomHint && (
+        <div className="mobile-zoom-hint">
+          Pinch to zoom, drag to pan
+        </div>
+      )}
 
       {/* Empty state message */}
       {nodes.length === 0 && (

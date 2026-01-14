@@ -103,6 +103,9 @@ function AppContent({ resumeMode = false, isMobile }) {
   // Node palette state
   const [nodePaletteOpen, setNodePaletteOpen] = useState(false);
 
+  // Mobile chat state (for floating chat button)
+  const [mobileChatOpen, setMobileChatOpen] = useState(false);
+
   // Layout direction state
   const [layoutDirection, setLayoutDirection] = useState('TB'); // 'TB' (top-bottom) or 'LR' (left-right)
 
@@ -319,6 +322,8 @@ function AppContent({ resumeMode = false, isMobile }) {
           if (result.suggestions) {
             setSuggestions(result.suggestions);
           }
+          // Close mobile chat modal so user can see the diagram
+          setMobileChatOpen(false);
           console.log('Generated initial diagram:', result);
         } else {
           throw new Error(result.error || 'Failed to generate diagram');
@@ -853,9 +858,13 @@ function AppContent({ resumeMode = false, isMobile }) {
   // Handler for example prompt click
   const handleExampleClick = useCallback((prompt) => {
     setExamplePrompt(prompt);
+    // On mobile, also open the chat modal so user can see the prompt
+    if (isMobile) {
+      setMobileChatOpen(true);
+    }
     // Reset after a brief delay to allow the effect to trigger
     setTimeout(() => setExamplePrompt(null), 100);
-  }, []);
+  }, [isMobile]);
 
   // Helper function to convert base64 to blob
   const base64ToBlob = useCallback((base64, mimeType) => {
@@ -1068,7 +1077,7 @@ function AppContent({ resumeMode = false, isMobile }) {
           className="main-area"
           style={{
             marginLeft: isSignedIn ? `${(sessionHistoryOpen ? sessionHistorySidebarWidth : 0) + (designDocOpen ? designDocWidth : 0)}px` : '0px',
-            display: isMobile && (sessionHistoryOpen || designDocOpen || selectedNode) ? 'none' : 'flex'
+            display: isMobile && (sessionHistoryOpen || designDocOpen || selectedNode || mobileChatOpen) ? 'none' : 'flex'
           }}
         >
           {!isSignedIn && <LandingPage onGenerate={handleSendMessage} loading={loading} />}
@@ -1102,7 +1111,18 @@ function AppContent({ resumeMode = false, isMobile }) {
           )}
         </div>
 
-        {isSignedIn && (!isMobile || selectedNode) && (
+        {/* Floating chat button for mobile */}
+        {isSignedIn && isMobile && !mobileChatOpen && !selectedNode && (
+          <button
+            className={`floating-chat-button ${nodePaletteOpen ? 'palette-open' : ''}`}
+            onClick={() => setMobileChatOpen(true)}
+            title="Open chat"
+          >
+            <span role="img" aria-label="chat">💬</span>
+          </button>
+        )}
+
+        {isSignedIn && (!isMobile || selectedNode || mobileChatOpen) && (
           <ChatPanel
             selectedNode={selectedNode}
             messages={messages}
@@ -1111,7 +1131,10 @@ function AppContent({ resumeMode = false, isMobile }) {
             loadingStepText={loadingStepText}
             diagram={diagram}
             onWidthChange={handleChatPanelWidthChange}
-            onClose={() => setSelectedNode(null)}
+            onClose={() => {
+              setSelectedNode(null);
+              setMobileChatOpen(false);
+            }}
             onExitNodeFocus={handleExitNodeFocus}
             examplePrompt={examplePrompt}
             currentModel={currentModel}
