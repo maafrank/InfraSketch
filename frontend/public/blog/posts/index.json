@@ -1,6 +1,17 @@
 {
   "posts": [
     {
+      "slug": "top-7-architecture-diagram-tools",
+      "title": "Top 7 AI-Powered Tools for Software Architecture Diagrams",
+      "description": "Compare the best architecture diagram tools for developers in 2026, from diagrams-as-code to AI-powered generation. Includes InfraSketch, Mermaid, Structurizr, D2, and more.",
+      "date": "2026-01-13",
+      "author": "InfraSketch Team",
+      "readingTime": "5 min read",
+      "image": "/full-app-with-design-doc.png",
+      "category": "tools",
+      "tags": ["architecture diagram tools", "AI diagram generator", "diagrams as code", "Mermaid", "Structurizr", "D2", "PlantUML"]
+    },
+    {
       "slug": "aws-architecture-diagram-generator",
       "title": "AWS Architecture Diagram Generator: Create Cloud Diagrams with AI",
       "description": "Learn how to create professional AWS architecture diagrams using AI. Compare tools, explore patterns, and generate cloud infrastructure diagrams in seconds.",
