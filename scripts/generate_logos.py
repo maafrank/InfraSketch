@@ -146,7 +146,7 @@ def remove_background_inverted(img, threshold=25):
 
 def colorize_green(img, threshold=230):
     """
-    Create a green (#009926) version of the logo.
+    Create a green (#00b830) version of the logo.
     Takes original image (dark logo on light background) and makes
     the logo green while keeping background transparent.
     """
@@ -160,10 +160,10 @@ def colorize_green(img, threshold=230):
     # Find background pixels
     is_background = ~is_logo
 
-    # Set logo pixels to green (#009926 = RGB(0, 153, 38))
+    # Set logo pixels to green (#00b830 = RGB(0, 184, 48))
     arr[is_logo, 0] = 0    # R
-    arr[is_logo, 1] = 153  # G
-    arr[is_logo, 2] = 38   # B
+    arr[is_logo, 1] = 184  # G
+    arr[is_logo, 2] = 48   # B
     arr[is_logo, 3] = 255  # A (fully opaque)
 
     # Set background to transparent
@@ -174,7 +174,7 @@ def colorize_green(img, threshold=230):
 
 def colorize_green_with_background(img, threshold=230):
     """
-    Create a green (#009926) version of the logo with dark background (#0a0a0a).
+    Create a green (#00b830) version of the logo with dark background (#0a0a0a).
     Takes original image (dark logo on light background) and makes
     the logo green on a dark background.
     """
@@ -188,10 +188,10 @@ def colorize_green_with_background(img, threshold=230):
     # Find background pixels
     is_background = ~is_logo
 
-    # Set logo pixels to green (#009926 = RGB(0, 153, 38))
+    # Set logo pixels to green (#00b830 = RGB(0, 184, 48))
     arr[is_logo, 0] = 0    # R
-    arr[is_logo, 1] = 153  # G
-    arr[is_logo, 2] = 38   # B
+    arr[is_logo, 1] = 184  # G
+    arr[is_logo, 2] = 48   # B
 
     # Set background to dark (#0a0a0a = RGB(10, 10, 10))
     arr[is_background, 0] = 10  # R

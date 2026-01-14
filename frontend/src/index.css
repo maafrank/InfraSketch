@@ -8,19 +8,19 @@
   --bg-landing-gradient-end: #000000;
 
   /* Terminal accent colors */
-  --terminal-green: #009926;
-  --terminal-green-dim: #007a1f;
+  --terminal-green: #00b830;
+  --terminal-green-dim: #009926;
   --terminal-cyan: #00d4ff;
   --terminal-amber: #ffb000;
   --terminal-red: #ff3333;
   --terminal-magenta: #ff00ff;
 
   /* Brand Colors - Terminal green as primary */
-  --brand-primary: #009926;
-  --brand-primary-dim: #007a1f;
-  --brand-primary-light: rgba(0, 153, 38, 0.15);
-  --brand-primary-lighter: rgba(0, 153, 38, 0.25);
-  --brand-primary-lightest: rgba(0, 153, 38, 0.05);
+  --brand-primary: #00b830;
+  --brand-primary-dim: #009926;
+  --brand-primary-light: rgba(0, 184, 48, 0.15);
+  --brand-primary-lighter: rgba(0, 184, 48, 0.25);
+  --brand-primary-lightest: rgba(0, 184, 48, 0.05);
 
   /* Text Colors */
   --text-primary: #e6edf3;
@@ -28,13 +28,13 @@
   --text-tertiary: #6e7681;
   --text-muted: #484f58;
   --text-inverse: #0a0a0a;
-  --text-accent: #009926;
+  --text-accent: #00b830;
 
   /* Border Colors */
   --border-color: #30363d;
   --border-light: #21262d;
   --border-dark: #484f58;
-  --border-glow: rgba(0, 153, 38, 0.3);
+  --border-glow: rgba(0, 184, 48, 0.3);
 
   /* Shadow Colors - Subtle glows */
   --shadow-xs: 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -42,13 +42,13 @@
   --shadow-md: rgba(0, 0, 0, 0.5);
   --shadow-lg: rgba(0, 0, 0, 0.6);
   --shadow-xl: rgba(0, 0, 0, 0.7);
-  --shadow-brand: rgba(0, 153, 38, 0.2);
-  --shadow-glow: 0 0 20px rgba(0, 153, 38, 0.15);
+  --shadow-brand: rgba(0, 184, 48, 0.2);
+  --shadow-glow: 0 0 20px rgba(0, 184, 48, 0.15);
 
   /* Node Type Colors - Terminal palette */
   --node-database: #00d4ff;
   --node-cache: #ffb000;
-  --node-server: #009926;
+  --node-server: #00b830;
   --node-api: #ff00ff;
   --node-loadbalancer: #00ffcc;
   --node-queue: #ff6600;
@@ -59,9 +59,9 @@
   --node-group: #8b949e;
 
   /* Button Colors */
-  --btn-primary-bg: linear-gradient(135deg, #009926 0%, #007a1f 100%);
+  --btn-primary-bg: linear-gradient(135deg, #00b830 0%, #009926 100%);
   --btn-primary-text: #ffffff;
-  --btn-hover-shadow: rgba(0, 153, 38, 0.4);
+  --btn-hover-shadow: rgba(0, 184, 48, 0.4);
   --btn-danger: #ff3333;
   --btn-danger-hover: #ff0000;
   --btn-danger-light: rgba(255, 51, 51, 0.1);
@@ -69,8 +69,8 @@
   /* Input Colors */
   --input-bg: #0d1117;
   --input-border: #30363d;
-  --input-focus-border: #009926;
-  --input-focus-glow: rgba(0, 153, 38, 0.25);
+  --input-focus-border: #00b830;
+  --input-focus-glow: rgba(0, 184, 48, 0.25);
   --input-placeholder: #6e7681;
 
   /* Special Elements */
@@ -85,18 +85,18 @@
   --loading-overlay: rgba(13, 17, 23, 0.95);
 
   /* Badge Colors */
-  --badge-bg: rgba(0, 153, 38, 0.1);
-  --badge-text: #009926;
-  --badge-border: rgba(0, 153, 38, 0.3);
+  --badge-bg: rgba(0, 184, 48, 0.1);
+  --badge-text: #00b830;
+  --badge-border: rgba(0, 184, 48, 0.3);
 
   /* Spinner */
-  --spinner-border: rgba(0, 153, 38, 0.2);
-  --spinner-active: #009926;
+  --spinner-border: rgba(0, 184, 48, 0.2);
+  --spinner-active: #00b830;
 
   /* Gradients - Terminal style */
-  --gradient-primary: linear-gradient(135deg, #009926 0%, #00d4ff 100%);
+  --gradient-primary: linear-gradient(135deg, #00b830 0%, #00d4ff 100%);
   --gradient-subtle: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
-  --gradient-glow: radial-gradient(ellipse at center, rgba(0, 153, 38, 0.1) 0%, transparent 70%);
+  --gradient-glow: radial-gradient(ellipse at center, rgba(0, 184, 48, 0.1) 0%, transparent 70%);
 
   /* Typography */
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
@@ -163,6 +163,6 @@ pre,
 
 /* Selection color */
 ::selection {
-  background: rgba(0, 153, 38, 0.3);
+  background: rgba(0, 184, 48, 0.3);
   color: #fff;
 }

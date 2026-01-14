@@ -86,7 +86,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #009926, #007a1f);
+  background: linear-gradient(135deg, #00b830, #009926);
   color: #0a0a0a;
   font-size: 12px;
   font-weight: 600;
@@ -110,7 +110,7 @@
 .tutorial-welcome-stat-value {
   font-size: 32px;
   font-weight: 700;
-  color: var(--terminal-green, #009926);
+  color: var(--terminal-green, #00b830);
 }
 
 .tutorial-welcome-stat-label {
@@ -123,7 +123,7 @@
 .tutorial-welcome-button {
   width: 100%;
   padding: 16px 32px;
-  background: linear-gradient(135deg, #009926, #007a1f);
+  background: linear-gradient(135deg, #00b830, #009926);
   border: none;
   border-radius: 12px;
   color: #0a0a0a;
@@ -135,7 +135,7 @@
 
 .tutorial-welcome-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 153, 38, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 184, 48, 0.4);
 }
 
 .tutorial-welcome-time {

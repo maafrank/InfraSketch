@@ -17,7 +17,7 @@
 }
 
 .credit-balance:focus-visible {
-  outline: 2px solid #009926;
+  outline: 2px solid #00b830;
   outline-offset: 2px;
 }
 
@@ -58,7 +58,7 @@
 .credit-balance .upgrade-button {
   margin-left: 8px;
   padding: 4px 10px;
-  background: linear-gradient(135deg, #009926 0%, #007a1f 100%);
+  background: linear-gradient(135deg, #00b830 0%, #009926 100%);
   border: none;
   border-radius: 12px;
   color: #0a0a0a;
@@ -70,7 +70,7 @@
 
 .credit-balance .upgrade-button:hover {
   transform: scale(1.05);
-  box-shadow: 0 2px 8px rgba(0, 153, 38, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 184, 48, 0.4);
 }
 
 /* Mobile responsiveness */

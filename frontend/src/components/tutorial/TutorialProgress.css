@@ -44,7 +44,7 @@
 
 .tutorial-progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--terminal-green, #009926), var(--terminal-green-dim, #007a1f));
+  background: linear-gradient(90deg, var(--terminal-green, #00b830), var(--terminal-green-dim, #009926));
   border-radius: 3px;
   transition: width 0.3s ease;
 }

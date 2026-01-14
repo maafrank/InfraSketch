@@ -33,7 +33,7 @@
   font-size: 36px;
   font-weight: 700;
   margin: 0 0 12px 0;
-  background: linear-gradient(135deg, #009926 0%, #007a1f 100%);
+  background: linear-gradient(135deg, #00b830 0%, #009926 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -72,8 +72,8 @@
 }
 
 .pricing-card.highlighted {
-  border-color: #009926;
-  background: rgba(0, 153, 38, 0.1);
+  border-color: #00b830;
+  background: rgba(0, 184, 48, 0.1);
 }
 
 .pricing-card.current {
@@ -86,7 +86,7 @@
   top: -12px;
   left: 50%;
   transform: translateX(-50%);
-  background: linear-gradient(135deg, #009926 0%, #007a1f 100%);
+  background: linear-gradient(135deg, #00b830 0%, #009926 100%);
   color: #0a0a0a;
   padding: 4px 16px;
   border-radius: 20px;
@@ -164,13 +164,13 @@
   cursor: pointer;
   transition: all 0.2s;
   border: none;
-  background: linear-gradient(135deg, #009926 0%, #007a1f 100%);
+  background: linear-gradient(135deg, #00b830 0%, #009926 100%);
   color: #0a0a0a;
 }
 
 .plan-cta:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(0, 153, 38, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 184, 48, 0.4);
 }
 
 .plan-cta.current {
@@ -231,7 +231,7 @@ a.plan-cta.contact-us {
 
 .promo-input:focus {
   outline: none;
-  border-color: #009926;
+  border-color: #00b830;
 }
 
 .promo-submit {
@@ -261,7 +261,7 @@ a.plan-cta.contact-us {
 
 .promo-signin-button {
   padding: 10px 20px;
-  background: linear-gradient(135deg, #009926 0%, #007a1f 100%);
+  background: linear-gradient(135deg, #00b830 0%, #009926 100%);
   border: none;
   border-radius: 8px;
   color: #0a0a0a;
@@ -273,7 +273,7 @@ a.plan-cta.contact-us {
 
 .promo-signin-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 153, 38, 0.4);
+  box-shadow: 0 4px 16px rgba(0, 184, 48, 0.4);
 }
 
 .promo-error {
