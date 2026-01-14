@@ -61,8 +61,8 @@
 
 .blog-post-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 30px rgba(0, 255, 65, 0.15);
-  border-color: #00ff41;
+  box-shadow: 0 8px 30px rgba(0, 153, 38, 0.15);
+  border-color: #009926;
 }
 
 .blog-post-link {
@@ -179,7 +179,7 @@
 }
 
 .blog-post-content a {
-  color: #00ff41;
+  color: #009926;
   text-decoration: none;
 }
 
@@ -210,10 +210,10 @@
 }
 
 .blog-post-content blockquote {
-  border-left: 4px solid #00ff41;
+  border-left: 4px solid #009926;
   margin: 16px 0;
   padding: 12px 20px;
-  background: rgba(0, 255, 65, 0.05);
+  background: rgba(0, 153, 38, 0.05);
   border-radius: 0 8px 8px 0;
 }
 
@@ -251,7 +251,7 @@
 }
 
 .blog-post-content tr:hover {
-  background: rgba(0, 255, 65, 0.05);
+  background: rgba(0, 153, 38, 0.05);
 }
 
 /* Images in blog posts */
@@ -324,8 +324,8 @@
 
 .featured-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 30px rgba(0, 255, 65, 0.15);
-  border-color: #00ff41;
+  box-shadow: 0 8px 30px rgba(0, 153, 38, 0.15);
+  border-color: #009926;
 }
 
 .featured-card-icon {
@@ -337,7 +337,7 @@
   justify-content: center;
   background: var(--bg-secondary, #0d1117);
   border-radius: 8px;
-  color: #00ff41;
+  color: #009926;
 }
 
 .featured-card-icon-youtube {
@@ -355,7 +355,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #00ff41;
+  color: #009926;
   margin-bottom: 4px;
 }
 
@@ -475,9 +475,9 @@
 
 .related-post-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 6px 20px rgba(0, 255, 65, 0.15);
+  box-shadow: 0 6px 20px rgba(0, 153, 38, 0.15);
   background: var(--bg-card, #1c2128);
-  border-color: #00ff41;
+  border-color: #009926;
 }
 
 .related-post-category {
@@ -486,7 +486,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #00ff41;
+  color: #009926;
   margin-bottom: 8px;
 }
 

@@ -71,7 +71,7 @@ function App({ resumeMode = false }) {
 
 // AppContent - can use useTutorial since it's inside TutorialProvider
 function AppContent({ resumeMode = false, isMobile }) {
-  const { theme } = useTheme();
+  useTheme();
   const [sessionId, setSessionId] = useState(null);
   const [sessionName, setSessionName] = useState(null);
   const [diagram, setDiagram] = useState(null);

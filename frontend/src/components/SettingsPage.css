@@ -111,14 +111,14 @@
 }
 
 .settings-button--primary {
-  background: linear-gradient(135deg, #00ff41, #00cc33);
+  background: linear-gradient(135deg, #009926, #007a1f);
   border: none;
   color: #0a0a0a;
 }
 
 .settings-button--primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 255, 65, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 153, 38, 0.3);
 }
 
 .settings-button--primary:disabled {
@@ -220,14 +220,14 @@
 }
 
 .settings-link {
-  color: var(--terminal-green, #00ff41);
+  color: var(--terminal-green, #009926);
   text-decoration: none;
   font-size: 14px;
   transition: color 0.2s ease;
 }
 
 .settings-link:hover {
-  color: var(--terminal-green-dim, #00cc33);
+  color: var(--terminal-green-dim, #007a1f);
   text-decoration: underline;
 }
 
@@ -251,7 +251,7 @@
 /* Sign in button (reused from App) */
 .sign-in-button {
   padding: 8px 16px;
-  background: linear-gradient(135deg, #00ff41, #00cc33);
+  background: linear-gradient(135deg, #009926, #007a1f);
   border: none;
   border-radius: 8px;
   color: #0a0a0a;
@@ -263,7 +263,7 @@
 
 .sign-in-button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 255, 65, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 153, 38, 0.3);
 }
 
 /* Dark mode */
