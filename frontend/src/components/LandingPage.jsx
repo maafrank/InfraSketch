@@ -257,14 +257,14 @@ export default function LandingPage({ onGenerate, loading }) {
         <meta property="og:url" content="https://infrasketch.net/" />
         <meta property="og:title" content="InfraSketch - AI System Design Tool" />
         <meta property="og:description" content="Transform ideas into professional system architecture diagrams with AI. Free to use." />
-        <meta property="og:image" content="https://infrasketch.net/FullAppWithDesignDoc.png" />
+        <meta property="og:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
         <meta property="og:site_name" content="InfraSketch" />
 
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="InfraSketch - AI System Design Tool" />
         <meta name="twitter:description" content="Transform ideas into professional system architecture diagrams with AI." />
-        <meta name="twitter:image" content="https://infrasketch.net/FullAppWithDesignDoc.png" />
+        <meta name="twitter:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
 
         {/* Structured Data */}
         <script type="application/ld+json">
@@ -623,7 +623,7 @@ export default function LandingPage({ onGenerate, loading }) {
             <a href="/contact">Contact</a>
           </div>
           <div className="footer-bottom">
-            <p>&copy; 2025 InfraSketch. All rights reserved.</p>
+            <p>&copy; 2026 InfraSketch. All rights reserved.</p>
           </div>
         </div>
       </footer>

@@ -133,7 +133,7 @@ export default function BlogPostPage() {
       "@type": "WebPage",
       "@id": `https://infrasketch.net/blog/${slug}`
     },
-    "image": "https://infrasketch.net/FullAppWithDesignDoc.png"
+    "image": "https://infrasketch.net/full-app-with-design-doc.png"
   } : null;
 
   // Generate BreadcrumbList schema for better SERP appearance
@@ -178,7 +178,7 @@ export default function BlogPostPage() {
           <meta property="og:title" content={post.title} />
           <meta property="og:description" content={post.description} />
           <meta property="og:url" content={`https://infrasketch.net/blog/${slug}`} />
-          <meta property="og:image" content="https://infrasketch.net/FullAppWithDesignDoc.png" />
+          <meta property="og:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
           <meta property="og:site_name" content="InfraSketch" />
           <meta property="article:published_time" content={post.date} />
           <meta property="article:author" content="InfraSketch Team" />
@@ -187,7 +187,7 @@ export default function BlogPostPage() {
           <meta name="twitter:card" content="summary_large_image" />
           <meta name="twitter:title" content={post.title} />
           <meta name="twitter:description" content={post.description} />
-          <meta name="twitter:image" content="https://infrasketch.net/FullAppWithDesignDoc.png" />
+          <meta name="twitter:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
 
           {/* Article Schema */}
           <script type="application/ld+json">
@@ -279,7 +279,7 @@ export default function BlogPostPage() {
             <Link to="/contact">Contact</Link>
           </div>
           <div className="footer-bottom">
-            <p>&copy; 2025 InfraSketch. All rights reserved.</p>
+            <p>&copy; 2026 InfraSketch. All rights reserved.</p>
           </div>
         </div>
       </footer>

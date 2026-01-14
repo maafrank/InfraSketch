@@ -14,11 +14,12 @@ export default function AboutPage() {
         <meta property="og:title" content="About InfraSketch | Agent-Powered System Design Tool" />
         <meta property="og:description" content="Learn how InfraSketch transforms plain English descriptions into professional system architecture diagrams using Sketch, our AI design agent." />
         <meta property="og:url" content="https://infrasketch.net/about" />
-        <meta property="og:image" content="https://infrasketch.net/FullAppWithDesignDoc.png" />
+        <meta property="og:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
 
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="About InfraSketch | Agent-Powered System Design Tool" />
         <meta name="twitter:description" content="Learn how InfraSketch transforms plain English descriptions into professional system architecture diagrams using Sketch, our AI design agent." />
+        <meta name="twitter:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
       </Helmet>
 
       <div className="legal-header">

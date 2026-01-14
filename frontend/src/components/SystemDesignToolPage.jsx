@@ -148,12 +148,12 @@ export default function SystemDesignToolPage() {
         <meta property="og:title" content="System Design Tool | AI-Powered Architecture Diagrams" />
         <meta property="og:description" content="Free AI system design tool. Describe your architecture in plain English, get instant diagrams." />
         <meta property="og:url" content="https://infrasketch.net/tools/system-design-tool" />
-        <meta property="og:image" content="https://infrasketch.net/FullAppWithDesignDoc.png" />
+        <meta property="og:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
 
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="System Design Tool | AI-Powered Architecture Diagrams" />
         <meta name="twitter:description" content="Free AI system design tool. Describe your architecture in plain English, get instant diagrams." />
-        <meta name="twitter:image" content="https://infrasketch.net/FullAppWithDesignDoc.png" />
+        <meta name="twitter:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
 
         <script type="application/ld+json">
           {JSON.stringify(pageSchema)}
@@ -316,7 +316,7 @@ export default function SystemDesignToolPage() {
             <Link to="/contact">Contact</Link>
           </div>
           <div className="footer-bottom">
-            <p>&copy; 2025 InfraSketch. All rights reserved.</p>
+            <p>&copy; 2026 InfraSketch. All rights reserved.</p>
           </div>
         </div>
       </footer>

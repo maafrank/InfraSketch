@@ -39,6 +39,7 @@ export default function BlogListPage() {
       <Helmet>
         <title>System Design Blog | InfraSketch</title>
         <meta name="description" content="Learn about system design, software architecture patterns, and AI-powered development tools. Tutorials, guides, and best practices for engineers." />
+        <meta name="keywords" content="system design blog, software architecture tutorials, AI diagram generation, system design interview prep, distributed systems, cloud architecture, microservices patterns" />
         <link rel="canonical" href="https://infrasketch.net/blog" />
 
         {/* Open Graph */}
@@ -46,14 +47,14 @@ export default function BlogListPage() {
         <meta property="og:title" content="System Design Blog | InfraSketch" />
         <meta property="og:description" content="Learn about system design, software architecture patterns, and AI-powered development tools." />
         <meta property="og:url" content="https://infrasketch.net/blog" />
-        <meta property="og:image" content="https://infrasketch.net/FullAppWithDesignDoc.png" />
+        <meta property="og:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
         <meta property="og:site_name" content="InfraSketch" />
 
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="System Design Blog | InfraSketch" />
         <meta name="twitter:description" content="Learn about system design, software architecture patterns, and AI-powered development tools." />
-        <meta name="twitter:image" content="https://infrasketch.net/FullAppWithDesignDoc.png" />
+        <meta name="twitter:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
       </Helmet>
 
       <div className="blog-header">
@@ -154,7 +155,7 @@ export default function BlogListPage() {
             <Link to="/contact">Contact</Link>
           </div>
           <div className="footer-bottom">
-            <p>&copy; 2025 InfraSketch. All rights reserved.</p>
+            <p>&copy; 2026 InfraSketch. All rights reserved.</p>
           </div>
         </div>
       </footer>

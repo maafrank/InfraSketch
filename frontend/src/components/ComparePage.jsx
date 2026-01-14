@@ -139,12 +139,12 @@ export default function ComparePage() {
         <meta property="og:title" content="Compare Architecture Diagram Tools | InfraSketch vs Lucidchart vs Eraser" />
         <meta property="og:description" content="Compare AI architecture diagram tools. See how InfraSketch compares to Lucidchart, Eraser, Draw.io, and Miro." />
         <meta property="og:url" content="https://infrasketch.net/compare" />
-        <meta property="og:image" content="https://infrasketch.net/FullAppWithDesignDoc.png" />
+        <meta property="og:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
 
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Compare Architecture Diagram Tools" />
         <meta name="twitter:description" content="Compare AI architecture diagram tools. InfraSketch vs Lucidchart vs Eraser vs Draw.io." />
-        <meta name="twitter:image" content="https://infrasketch.net/FullAppWithDesignDoc.png" />
+        <meta name="twitter:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
 
         <script type="application/ld+json">
           {JSON.stringify(pageSchema)}
@@ -344,7 +344,7 @@ export default function ComparePage() {
             <Link to="/contact">Contact</Link>
           </div>
           <div className="footer-bottom">
-            <p>&copy; 2025 InfraSketch. All rights reserved.</p>
+            <p>&copy; 2026 InfraSketch. All rights reserved.</p>
           </div>
         </div>
       </footer>

@@ -28,9 +28,12 @@ export default function ContactPage() {
         <meta property="og:title" content="Contact Us | InfraSketch" />
         <meta property="og:description" content="Get in touch with the InfraSketch team. We'd love to hear your questions, feedback, or feature requests." />
         <meta property="og:url" content="https://infrasketch.net/contact" />
+        <meta property="og:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
 
-        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Contact Us | InfraSketch" />
+        <meta name="twitter:description" content="Get in touch with the InfraSketch team." />
+        <meta name="twitter:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
       </Helmet>
 
       <div className="legal-header">

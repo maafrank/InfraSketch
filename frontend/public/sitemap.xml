@@ -43,8 +43,9 @@
   </url>
   <url>
     <loc>https://infrasketch.net/about</loc>
-    <lastmod>2025-12-01</lastmod>
+    <lastmod>2026-01-13</lastmod>
     <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/pricing</loc>
@@ -121,13 +122,15 @@
   </url>
   <url>
     <loc>https://infrasketch.net/contact</loc>
-    <lastmod>2025-12-01</lastmod>
+    <lastmod>2026-01-13</lastmod>
     <priority>0.5</priority>
+    <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/careers</loc>
-    <lastmod>2025-12-01</lastmod>
+    <lastmod>2026-01-13</lastmod>
     <priority>0.4</priority>
+    <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/privacy</loc>

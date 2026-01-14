@@ -14,9 +14,12 @@ export default function CareersPage() {
         <meta property="og:title" content="Careers at InfraSketch" />
         <meta property="og:description" content="Join InfraSketch and help build the future of agent-powered system design." />
         <meta property="og:url" content="https://infrasketch.net/careers" />
+        <meta property="og:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
 
-        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Careers at InfraSketch" />
+        <meta name="twitter:description" content="Join InfraSketch and help build the future of agent-powered system design." />
+        <meta name="twitter:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
       </Helmet>
 
       <div className="legal-header">
