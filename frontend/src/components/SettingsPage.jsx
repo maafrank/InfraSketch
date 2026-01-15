@@ -288,16 +288,6 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          {/* About Section */}
-          <section className="settings-section">
-            <h2>About</h2>
-            <div className="settings-links">
-              <a href="/about" className="settings-link">About InfraSketch</a>
-              <a href="/privacy" className="settings-link">Privacy Policy</a>
-              <a href="/terms" className="settings-link">Terms of Service</a>
-              <a href="/contact" className="settings-link">Contact Us</a>
-            </div>
-          </section>
         </SignedIn>
 
         <SignedOut>
@@ -310,6 +300,28 @@ export default function SettingsPage() {
           </div>
         </SignedOut>
       </main>
+
+      {/* Footer */}
+      <footer className="settings-footer">
+        <div className="footer-content">
+          <div className="footer-brand">
+            <span className="footer-logo">InfraSketch</span>
+            <p className="footer-tagline">AI-powered system design</p>
+          </div>
+          <div className="footer-links">
+            <a href="/about">About</a>
+            <a href="/blog">Blog</a>
+            <a href="/pricing">Pricing</a>
+            <a href="/careers">Careers</a>
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms of Service</a>
+            <a href="/contact">Contact</a>
+          </div>
+          <div className="footer-bottom">
+            <p>&copy; 2026 InfraSketch. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

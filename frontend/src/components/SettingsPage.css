@@ -2,6 +2,8 @@
 
 .settings-page {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   background: var(--bg-primary, #ffffff);
   color: var(--text-primary, #1a1a1a);
 }
@@ -60,9 +62,12 @@
 
 /* Content */
 .settings-content {
+  flex: 1;
   max-width: 640px;
   margin: 0 auto;
   padding: 32px 24px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Sections */
@@ -333,6 +338,77 @@
   border-bottom-color: var(--border-color, #333333);
 }
 
+/* Footer */
+.settings-footer {
+  background: var(--bg-tertiary, #f8f9fa);
+  border-top: 1px solid var(--border-color, #e0e0e0);
+  padding: 3rem 2rem 2rem;
+  margin-top: auto;
+}
+
+.settings-footer .footer-content {
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.settings-footer .footer-brand {
+  margin-bottom: 1.5rem;
+}
+
+.settings-footer .footer-logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  color: var(--terminal-green, #00b830);
+}
+
+.settings-footer .footer-tagline {
+  color: var(--text-tertiary, #888888);
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.settings-footer .footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.settings-footer .footer-links a {
+  color: var(--text-secondary, #666666);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.2s ease;
+}
+
+.settings-footer .footer-links a:hover {
+  color: var(--terminal-green, #00b830);
+}
+
+.settings-footer .footer-bottom {
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color, #e0e0e0);
+}
+
+.settings-footer .footer-bottom p {
+  color: var(--text-tertiary, #888888);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+/* Dark mode footer */
+[data-theme="dark"] .settings-footer {
+  background: var(--bg-tertiary, #141414);
+  border-top-color: var(--border-color, #333333);
+}
+
+[data-theme="dark"] .settings-footer .footer-bottom {
+  border-top-color: var(--border-color, #333333);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .settings-header {
@@ -351,5 +427,13 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
+  }
+
+  .settings-footer {
+    padding: 2rem 1rem 1.5rem;
+  }
+
+  .settings-footer .footer-links {
+    gap: 1rem 1.5rem;
   }
 }
