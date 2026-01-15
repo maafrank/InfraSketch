@@ -3,20 +3,42 @@ import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import '../App.css';
 
+const CALENDLY_URL = 'https://calendly.com/mattfrank_ai?hide_gdpr_banner=1&background_color=1a1a2e&text_color=e0e0e0&primary_color=00ff88';
+
 export default function ContactPage() {
   const [copied, setCopied] = useState(false);
+  const [widgetFailed, setWidgetFailed] = useState(false);
 
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://assets.calendly.com/assets/external/widget.js';
     script.async = true;
     document.body.appendChild(script);
+
+    // Detect widget failure after timeout (Calendly sometimes returns X-Frame-Options: DENY)
+    const failureTimer = setTimeout(() => {
+      const widgetIframe = document.querySelector('.calendly-inline-widget iframe');
+      if (!widgetIframe) {
+        setWidgetFailed(true);
+      }
+    }, 5000);
+
     return () => {
+      clearTimeout(failureTimer);
       if (document.body.contains(script)) {
         document.body.removeChild(script);
       }
     };
   }, []);
+
+  const openCalendlyPopup = () => {
+    if (window.Calendly) {
+      window.Calendly.initPopupWidget({ url: CALENDLY_URL });
+    } else {
+      // Fallback: open in new tab
+      window.open(CALENDLY_URL, '_blank');
+    }
+  };
   const email = 'contact@infrasketch.net';
 
   const handleCopyEmail = async () => {
@@ -74,11 +96,22 @@ export default function ContactPage() {
           <div className="contact-card calendly-card">
             <h2>Schedule a Call</h2>
             <p>Want to discuss your project or have a detailed conversation? Book a time that works for you:</p>
-            <div
-              className="calendly-inline-widget"
-              data-url="https://calendly.com/mattfrank_ai?hide_gdpr_banner=1&background_color=1a1a2e&text_color=e0e0e0&primary_color=00ff88"
-              style={{ minWidth: '320px', height: '700px' }}
-            />
+            {widgetFailed ? (
+              <div className="calendly-fallback">
+                <p style={{ marginBottom: '1rem', color: '#888' }}>
+                  The scheduling widget could not load. Click below to open in a popup:
+                </p>
+                <button onClick={openCalendlyPopup} className="calendly-fallback-button">
+                  Open Scheduler
+                </button>
+              </div>
+            ) : (
+              <div
+                className="calendly-inline-widget"
+                data-url={CALENDLY_URL}
+                style={{ minWidth: '320px', height: '700px' }}
+              />
+            )}
           </div>
         </section>
 

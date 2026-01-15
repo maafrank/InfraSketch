@@ -1015,6 +1015,31 @@ body {
   margin-top: 1rem;
 }
 
+.calendly-fallback {
+  text-align: center;
+  padding: 2rem;
+  margin-top: 1rem;
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
+}
+
+.calendly-fallback-button {
+  background: var(--accent-green);
+  color: var(--bg-primary);
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.calendly-fallback-button:hover {
+  background: #00cc6a;
+  transform: translateY(-1px);
+}
+
 /* Old Input Panel - Keep for backwards compatibility */
 .input-panel {
   position: absolute;

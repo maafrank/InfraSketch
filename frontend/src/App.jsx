@@ -135,6 +135,27 @@ function AppContent({ resumeMode = false, isMobile }) {
     setClerkTokenGetter(getToken);
   }, [getToken]);
 
+  // Restore draft prompt from localStorage after sign-in
+  // This handles the case where user typed a prompt on landing page before signing in
+  useEffect(() => {
+    if (isSignedIn) {
+      const draftPrompt = localStorage.getItem('infrasketch_draft_prompt');
+      const draftModel = localStorage.getItem('infrasketch_draft_model');
+
+      if (draftPrompt) {
+        // Restore the draft to the chat panel via examplePrompt
+        setExamplePrompt(draftPrompt);
+        if (draftModel) {
+          setCurrentModel(draftModel);
+        }
+
+        // Clear the saved draft from localStorage
+        localStorage.removeItem('infrasketch_draft_prompt');
+        localStorage.removeItem('infrasketch_draft_model');
+      }
+    }
+  }, [isSignedIn]);
+
   // Get tutorial context and register callbacks
   const { registerCallbacks } = useTutorial();
 
@@ -249,9 +270,15 @@ function AppContent({ resumeMode = false, isMobile }) {
     setSelectedNode(null);
   }, []);
 
-  const handleSendMessage = async (message) => {
+  const handleSendMessage = async (message, model) => {
+    // If model is provided (from landing page), use it; otherwise use current model
+    const modelToUse = model || currentModel;
+
     // Check if user is signed in, redirect to sign-in if not
     if (!isSignedIn) {
+      // Save draft prompt to localStorage before sign-in so it persists
+      localStorage.setItem('infrasketch_draft_prompt', message);
+      localStorage.setItem('infrasketch_draft_model', modelToUse);
       openSignIn();
       return;
     }
@@ -295,7 +322,7 @@ function AppContent({ resumeMode = false, isMobile }) {
 
       try {
         // Start async diagram generation (returns immediately with session_id)
-        const response = await generateDiagram(message, currentModel);
+        const response = await generateDiagram(message, modelToUse);
         const newSessionId = response.session_id;
         setSessionId(newSessionId);
 
