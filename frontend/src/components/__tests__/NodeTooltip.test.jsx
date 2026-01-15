@@ -436,8 +436,8 @@ describe('NodeTooltip', () => {
 
       await user.click(screen.getByTitle('Regenerate description with AI'));
 
-      // Button should show loading state
-      expect(screen.getByText('⏳')).toBeInTheDocument();
+      // Button should show loading spinner (Loader icon with .spinning class)
+      expect(document.querySelector('.spinning')).toBeInTheDocument();
 
       // Cleanup
       resolvePromise({ description: 'done' });
