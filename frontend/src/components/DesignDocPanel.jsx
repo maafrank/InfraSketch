@@ -195,7 +195,6 @@ export default function DesignDocPanel({
     try {
       // Apply layout before capturing to ensure clean organization
       if (onApplyLayout) {
-        console.log('Applying layout before screenshot...');
         onApplyLayout();
         // Wait for layout animation to complete (400ms animation + 100ms buffer)
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -408,10 +407,10 @@ export default function DesignDocPanel({
             disabled={exportLoading}
             className="export-dropdown"
           >
-            <option value="">Export ▼</option>
-            <option value="pdf">📕 PDF</option>
-            <option value="markdown">📝 Markdown</option>
-            <option value="png">🖼️ PNG</option>
+            <option value="">Export</option>
+            <option value="pdf">PDF</option>
+            <option value="markdown">Markdown</option>
+            <option value="png">PNG</option>
           </select>
         </div>
       </div>

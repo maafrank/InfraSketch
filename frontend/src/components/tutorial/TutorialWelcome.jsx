@@ -49,12 +49,8 @@ const TutorialWelcome = ({ modalType, title, content, onAction, onSkip }) => {
         {isCompletion && (
           <div className="tutorial-welcome-stats">
             <div className="tutorial-welcome-stat">
-              <span className="tutorial-welcome-stat-value">9</span>
-              <span className="tutorial-welcome-stat-label">Features learned</span>
-            </div>
-            <div className="tutorial-welcome-stat">
-              <span className="tutorial-welcome-stat-value">~2</span>
-              <span className="tutorial-welcome-stat-label">Minutes spent</span>
+              <span className="tutorial-welcome-stat-value">3</span>
+              <span className="tutorial-welcome-stat-label">Core features</span>
             </div>
           </div>
         )}
@@ -67,7 +63,7 @@ const TutorialWelcome = ({ modalType, title, content, onAction, onSkip }) => {
         {/* Estimated time and skip link */}
         {!isCompletion && (
           <>
-            <p className="tutorial-welcome-time">Takes about 2 minutes</p>
+            <p className="tutorial-welcome-time">Takes about 30 seconds</p>
             {onSkip && (
               <button className="tutorial-welcome-skip" onClick={onSkip}>
                 Skip tutorial

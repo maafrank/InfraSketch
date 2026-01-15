@@ -1079,8 +1079,8 @@ body {
 .input-panel button {
   width: 100%;
   padding: 1rem;
-  background: var(--gradient-primary);
-  color: var(--text-inverse);
+  background: var(--bg-user-message);
+  color: #ffffff;
   border: none;
   border-radius: 8px;
   font-size: 1rem;
@@ -2212,8 +2212,8 @@ body {
 }
 
 .message.user .message-content {
-  background: var(--gradient-primary);
-  color: var(--text-inverse);
+  background: var(--bg-user-message);
+  color: #ffffff;
   align-self: flex-end;
   max-width: 80%;
 }
@@ -2349,8 +2349,8 @@ body {
 
 .chat-input-form button {
   padding: 0.75rem 1.5rem;
-  background: var(--gradient-primary);
-  color: var(--text-inverse);
+  background: var(--bg-user-message);
+  color: #ffffff;
   border: none;
   border-radius: 8px;
   font-weight: 600;

@@ -97,10 +97,6 @@ client.interceptors.response.use(
       config.__retryCount += 1;
 
       const delay = getRetryDelay(config.__retryCount - 1);
-      console.log(
-        `Network error (${error.code || error.response?.status}), retrying in ${Math.round(delay)}ms... ` +
-        `(attempt ${config.__retryCount}/${RETRY_CONFIG.maxRetries})`
-      );
 
       // Wait before retrying
       await sleep(delay);
@@ -362,7 +358,6 @@ export const pollSessionName = async (sessionId, onUpdate = null, maxWaitTime = 
 
       // Check if name has been generated (not "Untitled Design" and name_generated is true)
       if (session.name && session.name !== 'Untitled Design' && session.name_generated !== false) {
-        console.log('Session name generated:', session.name);
         if (onUpdate) {
           onUpdate(session.name);
         }
@@ -371,8 +366,7 @@ export const pollSessionName = async (sessionId, onUpdate = null, maxWaitTime = 
           name: session.name,
         };
       }
-    } catch (error) {
-      console.error('Error polling session name:', error);
+    } catch {
       // Continue polling even on error (session might not be saved yet)
     }
 
@@ -381,7 +375,6 @@ export const pollSessionName = async (sessionId, onUpdate = null, maxWaitTime = 
   }
 
   // Timeout - return whatever name we have (might be null or "Untitled Design")
-  console.log('Session name polling timed out');
   return {
     success: false,
     name: null,

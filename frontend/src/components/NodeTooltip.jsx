@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Pencil, Loader, Sparkles } from 'lucide-react';
 
 export default function NodeTooltip({ node, onSave, onRegenerateDescription, edges = [], nodes = [] }) {
   // Calculate connected nodes - must be before any conditional returns (React hooks rule)
@@ -79,8 +80,7 @@ export default function NodeTooltip({ node, onSave, onRegenerateDescription, edg
     setIsRegenerating(true);
 
     try {
-      const response = await onRegenerateDescription(node.id);
-      console.log('AI regeneration response:', response);
+      await onRegenerateDescription(node.id);
       // The diagram will update automatically via App.jsx state management
       // No need to manually update here
     } catch (error) {
@@ -108,7 +108,7 @@ export default function NodeTooltip({ node, onSave, onRegenerateDescription, edg
                   disabled={isRegenerating}
                   title="Regenerate description with AI"
                 >
-                  {isRegenerating ? '⏳' : '✨'}
+                  {isRegenerating ? <Loader size={14} className="spinning" /> : <Sparkles size={14} />}
                 </button>
               )}
               <button
@@ -119,7 +119,7 @@ export default function NodeTooltip({ node, onSave, onRegenerateDescription, edg
                 }}
                 title="Edit node"
               >
-                ✏️
+                <Pencil size={14} />
               </button>
             </div>
           </>

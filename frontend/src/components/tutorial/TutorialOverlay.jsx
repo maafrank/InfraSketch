@@ -44,7 +44,6 @@ const TutorialOverlay = () => {
     const element = document.querySelector(target);
     if (!element) {
       // Target not found - might be loading, retry later
-      console.log('Tutorial target not found:', target);
       setSpotlightRect(null);
       return;
     }

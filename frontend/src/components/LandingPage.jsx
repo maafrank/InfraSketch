@@ -1,48 +1,49 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useScrollAnimation, useStaggeredAnimation } from '../hooks/useScrollAnimation';
+import { Twitter, ShoppingCart, Link, Tv, Pencil, MessageSquare, Brain, FileText } from 'lucide-react';
 
 const EXAMPLE_PROMPTS = [
   {
     title: "Twitter Timeline",
     prompt: "Design Twitter's home timeline with feed generation, caching, and real-time updates",
-    icon: "🐦"
+    icon: Twitter
   },
   {
     title: "E-Commerce Checkout",
     prompt: "Design a scalable e-commerce checkout flow with cart, payments, and inventory",
-    icon: "🛒"
+    icon: ShoppingCart
   },
   {
     title: "URL Shortener",
     prompt: "Design a URL shortening service like bit.ly with analytics and high availability",
-    icon: "🔗"
+    icon: Link
   },
   {
     title: "Video Streaming",
     prompt: "Design a video streaming platform like YouTube with upload, transcoding, and CDN",
-    icon: "📺"
+    icon: Tv
   }
 ];
 
 const FEATURES = [
   {
-    icon: "✏️",
+    icon: Pencil,
     title: "Describe, Don't Draw",
     description: "Tell our AI agent what you want to build. Watch your architecture appear in seconds."
   },
   {
-    icon: "💬",
+    icon: MessageSquare,
     title: "Chat to Iterate",
     description: "Ask 'what if we need 10x scale?' or 'add a cache layer' and watch your design evolve."
   },
   {
-    icon: "🧠",
+    icon: Brain,
     title: "Understand Every Component",
     description: "Click any component to ask why it exists, explore tradeoffs, or consider alternatives."
   },
   {
-    icon: "📄",
+    icon: FileText,
     title: "Export & Build",
     description: "Generate a design doc with architecture diagrams, component details, and implementation notes."
   }
@@ -339,7 +340,7 @@ export default function LandingPage({ onGenerate, loading }) {
                 className="example-prompt-card"
                 disabled={loading}
               >
-                <span className="example-icon">{example.icon}</span>
+                <span className="example-icon"><example.icon size={20} /></span>
                 <span className="example-title">{example.title}</span>
               </button>
             ))}
@@ -381,7 +382,7 @@ export default function LandingPage({ onGenerate, loading }) {
               className={`feature-card scroll-animate ${featureCards[index].isVisible ? 'visible' : ''}`}
               style={featureCards[index].style}
             >
-              <div className="feature-icon">{feature.icon}</div>
+              <div className="feature-icon"><feature.icon size={32} /></div>
               <h3 className="feature-title">{feature.title}</h3>
               <p className="feature-description">{feature.description}</p>
             </div>

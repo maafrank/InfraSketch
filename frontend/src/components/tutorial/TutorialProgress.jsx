@@ -9,13 +9,7 @@ const PHASE_NAMES = [
   '', // Phase 0 doesn't exist
   'Getting Started',
   'Edit with Chat',
-  'Add Components',
-  'Connections',
-  'Grouping',
-  'Canvas Tools',
-  'Design Doc',
-  'History',
-  'Finish',
+  'Documentation',
 ];
 
 const TutorialProgress = ({

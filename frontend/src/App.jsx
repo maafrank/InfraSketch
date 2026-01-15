@@ -232,7 +232,6 @@ function AppContent({ resumeMode = false, isMobile }) {
       // Users can reopen it if they want to view the design doc
       setDesignDocOpen(false);
 
-      console.log('Session loaded:', sessionData.session_id, 'Name:', sessionData.name);
     } catch (error) {
       console.error('Failed to load session:', error);
       alert('Failed to load session. It may have expired or you may not have access.');
@@ -326,15 +325,8 @@ function AppContent({ resumeMode = false, isMobile }) {
         const newSessionId = response.session_id;
         setSessionId(newSessionId);
 
-        console.log('Started diagram generation, polling for completion...', newSessionId);
-
         // Poll for completion (loading steps continue cycling naturally)
-        const result = await pollDiagramStatus(newSessionId, (status) => {
-          // Log progress for debugging
-          if (status.elapsed_seconds) {
-            console.log(`Diagram generation: ${status.status} (${status.elapsed_seconds.toFixed(1)}s)`);
-          }
-        });
+        const result = await pollDiagramStatus(newSessionId);
 
         // Stop the loading loop
         cancelLoading = true;
@@ -351,7 +343,6 @@ function AppContent({ resumeMode = false, isMobile }) {
           }
           // Close mobile chat modal so user can see the diagram
           setMobileChatOpen(false);
-          console.log('Generated initial diagram:', result);
         } else {
           throw new Error(result.error || 'Failed to generate diagram');
         }
@@ -402,7 +393,6 @@ function AppContent({ resumeMode = false, isMobile }) {
         currentSessionId = newSession.session_id;
         setSessionId(currentSessionId);
         setDiagram(newSession.diagram);
-        console.log('Auto-created blank session:', currentSessionId);
       } catch (error) {
         console.error('Failed to create session:', error);
         alert('Failed to create session. Please try again.');
@@ -424,23 +414,17 @@ function AppContent({ resumeMode = false, isMobile }) {
         currentModel
       );
 
-      console.log('Chat API Response:', response);
-      console.log('Has diagram update?', !!response.diagram);
-      console.log('Updated diagram:', response.diagram);
-
       // Add assistant response
       const assistantMessage = { role: 'assistant', content: response.response };
       setMessages((prev) => [...prev, assistantMessage]);
 
       // Update diagram if modified
       if (response.diagram) {
-        console.log('Updating diagram with new data');
         setDiagram(response.diagram);
       }
 
       // Update design doc if modified
       if (response.design_doc) {
-        console.log('Updating design doc with new data');
         setDesignDoc(response.design_doc);
       }
 
@@ -452,10 +436,9 @@ function AppContent({ resumeMode = false, isMobile }) {
       // Poll for session name if this was the first message (no session name yet)
       if (!sessionName || sessionName === 'Untitled Design') {
         pollSessionName(currentSessionId, (name) => {
-          console.log('Session name updated after chat:', name);
           setSessionName(name);
-        }).catch(error => {
-          console.error('Failed to poll session name:', error);
+        }).catch(() => {
+          // Session name polling failed - non-critical, ignore
         });
       }
     } catch (error) {
@@ -496,7 +479,6 @@ function AppContent({ resumeMode = false, isMobile }) {
         currentSessionId = newSession.session_id;
         setSessionId(currentSessionId);
         setDiagram(newSession.diagram);
-        console.log('Auto-created blank session:', currentSessionId);
       } catch (error) {
         console.error('Failed to create session:', error);
         alert('Failed to create session. Please try again.');
@@ -518,10 +500,9 @@ function AppContent({ resumeMode = false, isMobile }) {
       // Poll for session name if we just added the 5th node and no name yet
       if (updatedDiagram.nodes.length === 5 && (!sessionName || sessionName === 'Untitled Design')) {
         pollSessionName(currentSessionId, (name) => {
-          console.log('Session name updated after adding 5th node:', name);
           setSessionName(name);
-        }).catch(error => {
-          console.error('Failed to poll session name:', error);
+        }).catch(() => {
+          // Session name polling failed - non-critical, ignore
         });
       }
     } catch (error) {
@@ -616,8 +597,6 @@ function AppContent({ resumeMode = false, isMobile }) {
 
     setMergingNodes(true);
     try {
-      console.log('Merging nodes:', draggedNodeId, 'into', targetNodeId);
-
       // Call with AI generation enabled (default: true)
       const response = await createNodeGroup(sessionId, [draggedNodeId, targetNodeId], true);
       setDiagram(response.diagram);
@@ -644,7 +623,6 @@ function AppContent({ resumeMode = false, isMobile }) {
     if (!sessionId) return;
 
     try {
-      console.log('Ungrouping:', groupId);
       const response = await ungroupNodes(sessionId, groupId);
       setDiagram(response);
 
@@ -664,7 +642,6 @@ function AppContent({ resumeMode = false, isMobile }) {
     if (!sessionId) return;
 
     try {
-      console.log('Regenerating AI description for node:', nodeId);
       const response = await generateNodeDescription(sessionId, nodeId);
 
       // Update diagram with new description
@@ -733,12 +710,9 @@ function AppContent({ resumeMode = false, isMobile }) {
     setDesignDocOpen(false);
     setSessionName('Untitled Design');
     navigate('/');
-    console.log('Reset to new design state');
   };
 
   const handleSessionDeleted = useCallback((deletedSessionId) => {
-    console.log('Current session was deleted:', deletedSessionId);
-
     // Close the session history sidebar
     setSessionHistoryOpen(false);
 
@@ -768,21 +742,12 @@ function AppContent({ resumeMode = false, isMobile }) {
 
     try {
       // Start background generation
-      const startResponse = await generateDesignDoc(sessionId);
-      console.log('Design doc generation started:', startResponse);
+      await generateDesignDoc(sessionId);
 
-      // Poll for completion with progress updates
-      const result = await pollDesignDocStatus(
-        sessionId,
-        (status) => {
-          // Progress callback - could update UI with elapsed time
-          console.log('Generation status:', status.status,
-            `(${status.elapsed_seconds?.toFixed(0) || 0}s elapsed)`);
-        }
-      );
+      // Poll for completion
+      const result = await pollDesignDocStatus(sessionId);
 
       if (result.success) {
-        console.log('Design doc generated successfully in', result.duration?.toFixed(1), 'seconds');
         setDesignDoc(result.design_doc);
       } else {
         throw new Error(result.error || 'Failed to generate design document');
@@ -927,7 +892,6 @@ function AppContent({ resumeMode = false, isMobile }) {
     try {
       // Apply layout before capturing to ensure clean organization
       if (applyLayoutFn) {
-        console.log('Applying layout before screenshot...');
         applyLayoutFn();
         // Wait for layout animation to complete (400ms animation + 100ms buffer)
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -967,8 +931,6 @@ function AppContent({ resumeMode = false, isMobile }) {
       const base64 = dataUrl.split(',')[1];
       const blob = base64ToBlob(base64, 'image/png');
       downloadBlob(blob, 'diagram.png');
-
-      console.log('Diagram PNG exported successfully');
     } catch (error) {
       console.error('Failed to export diagram:', error);
       alert('Failed to export diagram. Please try again.');

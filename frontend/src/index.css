@@ -95,6 +95,7 @@
 
   /* Gradients - Terminal style */
   --gradient-primary: linear-gradient(135deg, #00b830 0%, #00d4ff 100%);
+  --bg-user-message: #343541;
   --gradient-subtle: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
   --gradient-glow: radial-gradient(ellipse at center, rgba(0, 184, 48, 0.1) 0%, transparent 70%);
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { toPng } from 'html-to-image';
 import { exportDesignDoc } from '../api/client';
+import { FileText, Image, FileEdit, Package } from 'lucide-react';
 
 export default function ExportButton({ sessionId, reactFlowInstance }) {
   const [loading, setLoading] = useState(false);
@@ -121,8 +122,6 @@ export default function ExportButton({ sessionId, reactFlowInstance }) {
     setShowMenu(false);
 
     try {
-      console.log(`Exporting design doc in format: ${format}`);
-
       // Capture the diagram screenshot
       const diagramImage = await captureDiagram();
       if (!diagramImage) {
@@ -135,7 +134,6 @@ export default function ExportButton({ sessionId, reactFlowInstance }) {
       if (format === 'png') {
         const pngBlob = base64ToBlob(diagramImage, 'image/png');
         downloadFile(pngBlob, 'diagram.png');
-        console.log('Diagram PNG downloaded successfully');
         setLoading(false);
         return;
       }
@@ -159,8 +157,6 @@ export default function ExportButton({ sessionId, reactFlowInstance }) {
         const pngBlob = base64ToBlob(response.diagram_png.content, 'image/png');
         downloadFile(pngBlob, response.diagram_png.filename);
       }
-
-      console.log('Design document exported successfully');
     } catch (error) {
       console.error('Failed to export design doc:', error);
       alert('Failed to generate design document. Please try again.');
@@ -197,22 +193,22 @@ export default function ExportButton({ sessionId, reactFlowInstance }) {
         onClick={() => setShowMenu(!showMenu)}
         disabled={loading}
       >
-        {loading ? 'Generating...' : '📄 Export Design Doc'}
+        {loading ? 'Generating...' : <><FileText size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />Export Design Doc</>}
       </button>
 
       {showMenu && !loading && (
         <div className="export-menu">
           <button onClick={() => handleExport('png')}>
-            🖼️ Export as PNG
+            <Image size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />Export as PNG
           </button>
           <button onClick={() => handleExport('pdf')}>
-            📕 Export as PDF
+            <FileText size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />Export as PDF
           </button>
           <button onClick={() => handleExport('markdown')}>
-            📝 Export as Markdown
+            <FileEdit size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />Export as Markdown
           </button>
           <button onClick={() => handleExport('both')}>
-            📦 Export PDF + Markdown
+            <Package size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />Export PDF + Markdown
           </button>
         </div>
       )}

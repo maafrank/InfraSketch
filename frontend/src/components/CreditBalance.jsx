@@ -31,7 +31,6 @@ export default function CreditBalance({ onUpgradeClick, onRefresh }) {
       setClerkTokenGetter(getToken);
 
       const data = await getUserCredits();
-      console.log('CreditBalance: Received credits data:', data);
       setCredits(data);
       setError(null);
     } catch (err) {

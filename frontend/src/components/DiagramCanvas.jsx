@@ -236,13 +236,8 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
     // Skip updates while dragging to prevent node position reset
     if (isDraggingRef.current) return;
 
-    console.log('DiagramCanvas received diagram:', diagram);
-    console.log('Number of nodes:', diagram.nodes?.length || 0);
-    console.log('Number of edges:', diagram.edges?.length || 0);
-
     // Guard against missing or invalid diagram structure (can happen with old sessions)
     if (!diagram.nodes || !Array.isArray(diagram.nodes)) {
-      console.warn('DiagramCanvas: diagram.nodes is missing or not an array, showing empty canvas');
       setNodes([]);
       setEdges([]);
       return;
@@ -377,9 +372,6 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
 
     // Apply auto-layout
     const layoutedNodes = getLayoutedElements(visibleNodes, deduplicatedEdges, layoutDirection);
-
-    console.log('Setting layoutedNodes:', layoutedNodes);
-    console.log('Setting deduplicatedEdges:', deduplicatedEdges);
 
     setNodes(layoutedNodes);
     setEdges(deduplicatedEdges);

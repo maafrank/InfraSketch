@@ -33,7 +33,6 @@ export default function SessionHistorySidebar({ isOpen, onClose, onSessionSelect
   // Reload sessions when session name is updated (for current session)
   useEffect(() => {
     if (isOpen && sessionNameUpdated && currentSessionId) {
-      console.log('Session name updated, refreshing sidebar:', sessionNameUpdated);
       loadSessions();
     }
   }, [sessionNameUpdated, currentSessionId, isOpen]);
