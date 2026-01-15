@@ -997,6 +997,24 @@ body {
   text-decoration: none;
 }
 
+.calendly-card {
+  text-align: left;
+}
+
+.calendly-card h2 {
+  text-align: center;
+}
+
+.calendly-card > p {
+  text-align: center;
+}
+
+.calendly-inline-widget {
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
 /* Old Input Panel - Keep for backwards compatibility */
 .input-panel {
   position: absolute;

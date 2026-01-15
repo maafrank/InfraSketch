@@ -1,10 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import '../App.css';
 
 export default function ContactPage() {
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://assets.calendly.com/assets/external/widget.js';
+    script.async = true;
+    document.body.appendChild(script);
+    return () => {
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, []);
   const email = 'contact@infrasketch.net';
 
   const handleCopyEmail = async () => {
@@ -55,6 +67,18 @@ export default function ContactPage() {
             <button onClick={handleCopyEmail} className="contact-email-link">
               {copied ? 'Copied!' : email}
             </button>
+          </div>
+        </section>
+
+        <section className="contact-info">
+          <div className="contact-card calendly-card">
+            <h2>Schedule a Call</h2>
+            <p>Want to discuss your project or have a detailed conversation? Book a time that works for you:</p>
+            <div
+              className="calendly-inline-widget"
+              data-url="https://calendly.com/mattfrank_ai?hide_gdpr_banner=1&background_color=1a1a2e&text_color=e0e0e0&primary_color=00ff88"
+              style={{ minWidth: '320px', height: '700px' }}
+            />
           </div>
         </section>
 
