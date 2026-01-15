@@ -273,9 +273,9 @@ describe('DesignDocPanel', () => {
       const options = select.querySelectorAll('option');
 
       expect(options).toHaveLength(4); // Default + 3 export options
-      expect(screen.getByText('📕 PDF')).toBeInTheDocument();
-      expect(screen.getByText('📝 Markdown')).toBeInTheDocument();
-      expect(screen.getByText('🖼️ PNG')).toBeInTheDocument();
+      expect(screen.getByText('PDF')).toBeInTheDocument();
+      expect(screen.getByText('Markdown')).toBeInTheDocument();
+      expect(screen.getByText('PNG')).toBeInTheDocument();
     });
 
     it('calls handleExport when format selected', async () => {
@@ -455,8 +455,9 @@ describe('DesignDocPanel', () => {
     it('dropdown has correct default option', () => {
       render(<DesignDocPanel {...defaultProps} />);
 
-      const defaultOption = screen.getByText('Export ▼');
-      expect(defaultOption).toHaveValue('');
+      const select = screen.getByRole('combobox');
+      expect(select).toHaveValue('');
+      expect(screen.getByText('Export')).toBeInTheDocument();
     });
   });
 

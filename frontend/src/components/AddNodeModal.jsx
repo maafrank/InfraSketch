@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 import './AddNodeModal.css';
 
 const NODE_TYPES = [
@@ -161,12 +162,12 @@ export default function AddNodeModal({ isOpen, onClose, onAdd, preSelectedType =
           </div>
 
           <div className="modal-buttons">
-            <button type="button" onClick={handleClose} className="button-secondary">
+            <Button type="button" variant="secondary" onClick={handleClose}>
               Cancel
-            </button>
-            <button type="submit" className="button-primary">
+            </Button>
+            <Button type="submit" variant="default">
               Add Node
-            </button>
+            </Button>
           </div>
         </form>
       </div>

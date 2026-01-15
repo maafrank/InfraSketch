@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import LoadingAnimation from './LoadingAnimation';
+import { Button } from '@/components/ui/button';
 
 export default function InputPanel({ onGenerate, loading }) {
   const [prompt, setPrompt] = useState('');
@@ -51,9 +52,9 @@ export default function InputPanel({ onGenerate, loading }) {
           disabled={loading}
           rows={4}
         />
-        <button type="submit" disabled={loading || !prompt.trim()}>
+        <Button type="submit" disabled={loading || !prompt.trim()}>
           {loading ? 'Generating...' : 'Generate System'}
-        </button>
+        </Button>
       </form>
     </div>
   );

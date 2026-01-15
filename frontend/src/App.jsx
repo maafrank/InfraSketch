@@ -712,7 +712,7 @@ function AppContent({ resumeMode = false, isMobile }) {
     navigate('/');
   };
 
-  const handleSessionDeleted = useCallback((deletedSessionId) => {
+  const handleSessionDeleted = useCallback(() => {
     // Close the session history sidebar
     setSessionHistoryOpen(false);
 

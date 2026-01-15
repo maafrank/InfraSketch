@@ -323,7 +323,15 @@ def _convert_markdown_to_pdf_weasyprint(markdown_content: str, diagram_png_bytes
 
     # Convert HTML to PDF
     html_obj = HTML(string=full_html)
-    pdf_bytes = html_obj.write_pdf(font_config=font_config)
+    pdf_bytes = html_obj.write_pdf(
+        font_config=font_config,
+        metadata={
+            'title': 'InfraSketch Design Document',
+            'author': 'InfraSketch',
+            'subject': 'System Architecture Design',
+            'creator': 'InfraSketch'
+        }
+    )
 
     # Optionally save to file
     if output_path:
@@ -349,7 +357,11 @@ def _convert_markdown_to_pdf_reportlab(markdown_content: str, diagram_png_bytes:
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter,
                            topMargin=1*inch, bottomMargin=1*inch,
-                           leftMargin=1*inch, rightMargin=1*inch)
+                           leftMargin=1*inch, rightMargin=1*inch,
+                           title="InfraSketch Design Document",
+                           author="InfraSketch",
+                           subject="System Architecture Design",
+                           creator="InfraSketch")
 
     # Container for PDF elements
     story = []

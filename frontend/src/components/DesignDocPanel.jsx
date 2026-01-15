@@ -407,7 +407,7 @@ export default function DesignDocPanel({
             disabled={exportLoading}
             className="export-dropdown"
           >
-            <option value="">Export</option>
+            <option value="">{exportLoading ? 'Exporting...' : 'Export'}</option>
             <option value="pdf">PDF</option>
             <option value="markdown">Markdown</option>
             <option value="png">PNG</option>
