@@ -64,21 +64,6 @@ export default function BlogListPage() {
       </div>
 
       <div className="blog-content">
-        <div className="blog-posts-list">
-          {posts.map(post => (
-            <article key={post.slug} className="blog-post-card">
-              <Link to={`/blog/${post.slug}`} className="blog-post-link">
-                <h2 className="blog-post-title">{post.title}</h2>
-                <p className="blog-post-description">{post.description}</p>
-                <div className="blog-post-meta">
-                  <span className="blog-post-date">{new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
-                  <span className="blog-post-author">by {post.author}</span>
-                </div>
-              </Link>
-            </article>
-          ))}
-        </div>
-
         {/* Featured External Content */}
         <section className="featured-section">
           <h2 className="featured-title">Featured Articles & Videos</h2>
@@ -157,6 +142,22 @@ export default function BlogListPage() {
             </a>
           </div>
         </section>
+
+        <h2 className="featured-title">All Posts</h2>
+        <div className="blog-posts-list">
+          {posts.map(post => (
+            <article key={post.slug} className="blog-post-card">
+              <Link to={`/blog/${post.slug}`} className="blog-post-link">
+                <h2 className="blog-post-title">{post.title}</h2>
+                <p className="blog-post-description">{post.description}</p>
+                <div className="blog-post-meta">
+                  <span className="blog-post-date">{new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                  <span className="blog-post-author">by {post.author}</span>
+                </div>
+              </Link>
+            </article>
+          ))}
+        </div>
       </div>
 
       <footer className="blog-footer">

@@ -374,4 +374,10 @@ python scripts/send_announcement.py announcements/my-feature.html            # T
 python scripts/send_announcement.py announcements/my-feature.html --production  # All subscribers
 ```
 
+**IMPORTANT: Deploy images BEFORE sending!** Images in emails must be hosted at `https://infrasketch.net/announcements/`. Before sending any announcement:
+1. Copy images to `frontend/public/announcements/`
+2. Run `./deploy-frontend.sh`
+3. Verify images load: `curl -I https://infrasketch.net/announcements/your-image.png` (should return `content-type: image/png`)
+4. Then send the email
+
 **Templates:** `/announcements/`. Subject from `<title>`. Placeholder: `{{UNSUBSCRIBE_URL}}`. Env: `RESEND_API_KEY`.
