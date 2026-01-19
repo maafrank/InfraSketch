@@ -103,9 +103,39 @@ const LAUNCH_BADGES = [
 
 const SCREENSHOTS = [
   {
+    src: "/url-shortener-prompt-input.png",
+    alt: "Entering a prompt to design a URL shortening service",
+    caption: "Describe your system in natural language"
+  },
+  {
+    src: "/url-shortener-diagram-generated.png",
+    alt: "Generated URL shortener architecture diagram",
+    caption: "AI generates a complete architecture diagram"
+  },
+  {
+    src: "/url-shortener-chat-add-loadbalancer.png",
+    alt: "Chat message requesting to add a load balancer",
+    caption: "Refine your design through conversation"
+  },
+  {
+    src: "/url-shortener-diagram-with-loadbalancer.png",
+    alt: "Updated diagram with load balancer added",
+    caption: "Watch your diagram update in real-time"
+  },
+  {
+    src: "/url-shortener-design-doc-panel.png",
+    alt: "Generated system design document",
+    caption: "Generate comprehensive design documentation"
+  },
+  {
+    src: "/url-shortener-full-app-view.png",
+    alt: "Full application view with diagram, chat, and design doc",
+    caption: "Complete workspace with all panels"
+  },
+  {
     src: "/full-app-with-design-doc.png",
     alt: "Full application with session history, design doc, and diagram",
-    caption: "Complete workspace with session history"
+    caption: "Manage multiple designs with session history"
   },
   {
     src: "/tutorial.png",
@@ -116,11 +146,6 @@ const SCREENSHOTS = [
     src: "/followup-questions.png",
     alt: "AI-suggested follow-up questions after diagram generation",
     caption: "Smart suggestions help you iterate on your design"
-  },
-  {
-    src: "/analytics-diagram-generated.png",
-    alt: "Generated analytics architecture diagram",
-    caption: "Agent-generated architecture diagrams"
   },
   {
     src: "/ecommerce-collapsed-groups.png",
