@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useScrollAnimation, useStaggeredAnimation } from '../hooks/useScrollAnimation';
-import { Twitter, ShoppingCart, Link, Tv, Pencil, MessageSquare, Brain, FileText } from 'lucide-react';
+import { Twitter, ShoppingCart, Link, Tv, Pencil, MessageSquare, Brain, FileText, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const EXAMPLE_PROMPTS = [
   {
@@ -168,6 +168,7 @@ export default function LandingPage({ onGenerate, loading }) {
   const [prompt, setPrompt] = useState('');
   const [model, setModel] = useState('claude-haiku-4-5'); // Default to Haiku (always latest)
   const [currentScreenshot, setCurrentScreenshot] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   // Scroll animations for sections
   const problemAnimation = useScrollAnimation();
@@ -180,14 +181,38 @@ export default function LandingPage({ onGenerate, loading }) {
   const featureCards = useStaggeredAnimation(FEATURES.length, { staggerDelay: 100 });
   const stepCards = useStaggeredAnimation(3, { staggerDelay: 150 });
 
-  // Auto-rotate screenshots every 4 seconds
+  // Auto-rotate screenshots every 4 seconds (pauses when lightbox is open)
   useEffect(() => {
+    if (lightboxOpen) return;
+
     const interval = setInterval(() => {
       setCurrentScreenshot((prev) => (prev + 1) % SCREENSHOTS.length);
     }, 4000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [lightboxOpen]);
+
+  // Handle keyboard navigation in lightbox
+  useEffect(() => {
+    if (!lightboxOpen) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setLightboxOpen(false);
+      } else if (e.key === 'ArrowLeft') {
+        setCurrentScreenshot((prev) =>
+          prev === 0 ? SCREENSHOTS.length - 1 : prev - 1
+        );
+      } else if (e.key === 'ArrowRight') {
+        setCurrentScreenshot((prev) =>
+          (prev + 1) % SCREENSHOTS.length
+        );
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxOpen]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -435,6 +460,8 @@ export default function LandingPage({ onGenerate, loading }) {
                     src={screenshot.src}
                     alt={screenshot.alt}
                     className="carousel-image"
+                    onClick={() => setLightboxOpen(true)}
+                    style={{ cursor: 'pointer' }}
                   />
                   <p className="carousel-caption">{screenshot.caption}</p>
                 </div>
@@ -631,6 +658,65 @@ export default function LandingPage({ onGenerate, loading }) {
 
         </div>
       </div>
+
+      {/* Lightbox Modal */}
+      {lightboxOpen && (
+        <div
+          className="lightbox-overlay"
+          onClick={() => setLightboxOpen(false)}
+        >
+          <button
+            className="lightbox-close"
+            onClick={() => setLightboxOpen(false)}
+            aria-label="Close lightbox"
+          >
+            <X size={32} />
+          </button>
+
+          <button
+            className="lightbox-nav lightbox-prev"
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentScreenshot((prev) =>
+                prev === 0 ? SCREENSHOTS.length - 1 : prev - 1
+              );
+            }}
+            aria-label="Previous image"
+          >
+            <ChevronLeft size={48} />
+          </button>
+
+          <div
+            className="lightbox-content"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={SCREENSHOTS[currentScreenshot].src}
+              alt={SCREENSHOTS[currentScreenshot].alt}
+              className="lightbox-image"
+            />
+            <p className="lightbox-caption">
+              {SCREENSHOTS[currentScreenshot].caption}
+            </p>
+            <p className="lightbox-counter">
+              {currentScreenshot + 1} / {SCREENSHOTS.length}
+            </p>
+          </div>
+
+          <button
+            className="lightbox-nav lightbox-next"
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentScreenshot((prev) =>
+                (prev + 1) % SCREENSHOTS.length
+              );
+            }}
+            aria-label="Next image"
+          >
+            <ChevronRight size={48} />
+          </button>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="landing-footer">
