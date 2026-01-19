@@ -43,6 +43,7 @@ export default function InputPanel({ onGenerate, loading }) {
           >
             <option value="claude-haiku-4-5">Claude Haiku 4.5 (Fast & Economical)</option>
             <option value="claude-sonnet-4-5">Claude Sonnet 4.5 (Best Quality, 3x cost)</option>
+            <option value="claude-opus-4-5">Claude Opus 4.5 (Premium, 5x cost)</option>
           </select>
         </div>
         <textarea

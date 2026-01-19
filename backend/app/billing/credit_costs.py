@@ -13,6 +13,8 @@ CREDIT_COSTS = {
             "claude-haiku-4-5-20251001": 1.0,
             "claude-sonnet-4-5": 3.0,
             "claude-sonnet-4-5-20251001": 3.0,
+            "claude-opus-4-5": 5.0,
+            "claude-opus-4-5-20251101": 5.0,
         },
     },
     "chat_message": {
@@ -22,6 +24,8 @@ CREDIT_COSTS = {
             "claude-haiku-4-5-20251001": 1.0,
             "claude-sonnet-4-5": 3.0,
             "claude-sonnet-4-5-20251001": 3.0,
+            "claude-opus-4-5": 5.0,
+            "claude-opus-4-5-20251101": 5.0,
         },
     },
     "design_doc_generation": {

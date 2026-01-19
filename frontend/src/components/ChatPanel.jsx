@@ -211,6 +211,7 @@ export default function ChatPanel({
             >
               <option value="claude-haiku-4-5">Claude Haiku 4.5</option>
               <option value="claude-sonnet-4-5">Claude Sonnet 4.5</option>
+              <option value="claude-opus-4-5">Claude Opus 4.5</option>
             </select>
             {selectedNode && (
               <span className="chat-context">

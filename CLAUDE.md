@@ -190,6 +190,7 @@ All under `/api` prefix. Persists to DynamoDB in Lambda, in-memory locally.
 |-------|-----|---------------------|----------|
 | **Haiku 4.5** (default) | `claude-haiku-4-5` | $1 in / $5 out | Most use cases, fast |
 | **Sonnet 4.5** | `claude-sonnet-4-5` | $3 in / $15 out | Complex systems |
+| **Opus 4.5** | `claude-opus-4-5` | $5 in / $25 out | Premium reasoning, agents |
 
 Model stored in session, used for all operations. Aliases auto-update to latest versions.
 
