@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import Header from './shared/Header';
+import Footer from './shared/Footer';
 import '../App.css';
 
 const CALENDLY_URL = 'https://calendly.com/mattfrank_ai?hide_gdpr_banner=1&background_color=1a1a2e&text_color=e0e0e0&primary_color=00ff88';
@@ -70,12 +71,10 @@ export default function ContactPage() {
         <meta name="twitter:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
       </Helmet>
 
-      <div className="legal-header">
-        <Link to="/" className="legal-back-link">&larr; Back to InfraSketch</Link>
-        <h1>Contact Us</h1>
-      </div>
+      <Header />
 
-      <div className="legal-content">
+      <main className="legal-content">
+        <h1>Contact Us</h1>
         <section className="contact-hero">
           <p>
             Have questions, feedback, or just want to say hello? We'd love to hear from you.
@@ -132,7 +131,9 @@ export default function ContactPage() {
             Thanks for your patience!
           </p>
         </section>
-      </div>
+      </main>
+
+      <Footer />
     </div>
   );
 }

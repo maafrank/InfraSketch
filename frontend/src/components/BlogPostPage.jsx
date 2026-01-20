@@ -3,6 +3,8 @@ import { Link, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import Header from './shared/Header';
+import Footer from './shared/Footer';
 import './BlogListPage.css';
 
 // Get related posts based on category and tags
@@ -88,10 +90,11 @@ export default function BlogPostPage() {
   if (loading) {
     return (
       <div className="blog-post-page">
+        <Header />
         <div className="blog-post-header">
-          <Link to="/blog" className="blog-back-link">&larr; Back to Blog</Link>
           <h1>Loading...</h1>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -99,11 +102,12 @@ export default function BlogPostPage() {
   if (error || !post) {
     return (
       <div className="blog-post-page">
+        <Header />
         <div className="blog-post-header">
-          <Link to="/blog" className="blog-back-link">&larr; Back to Blog</Link>
           <h1>Post Not Found</h1>
           <p>The blog post you're looking for doesn't exist.</p>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -201,8 +205,9 @@ export default function BlogPostPage() {
         </Helmet>
       )}
 
+      <Header />
+
       <div className="blog-post-header">
-        <Link to="/blog" className="blog-back-link">&larr; Back to Blog</Link>
         <h1>{post.title}</h1>
         <div className="blog-post-header-meta">
           {new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} • {post.author}{post.readingTime && ` • ${post.readingTime}`}
@@ -265,24 +270,7 @@ export default function BlogPostPage() {
         </div>
       )}
 
-      <footer className="blog-footer">
-        <div className="footer-content">
-          <div className="footer-brand">
-            <span className="footer-logo">InfraSketch</span>
-            <p className="footer-tagline">Agent-powered system architecture design</p>
-          </div>
-          <div className="footer-links">
-            <Link to="/about">About</Link>
-            <Link to="/blog">Blog</Link>
-            <Link to="/privacy">Privacy Policy</Link>
-            <Link to="/terms">Terms of Service</Link>
-            <Link to="/contact">Contact</Link>
-          </div>
-          <div className="footer-bottom">
-            <p>&copy; 2026 InfraSketch. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

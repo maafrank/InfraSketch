@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import Header from './shared/Header';
+import Footer from './shared/Footer';
 import '../App.css';
 
 export default function AboutPage() {
@@ -22,12 +24,11 @@ export default function AboutPage() {
         <meta name="twitter:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
       </Helmet>
 
-      <div className="legal-header">
-        <Link to="/" className="legal-back-link">&larr; Back to InfraSketch</Link>
-        <h1>About InfraSketch</h1>
-      </div>
+      <Header />
 
-      <div className="legal-content">
+      <main className="legal-content">
+        <h1>About InfraSketch</h1>
+
         <section>
           <h2>What is InfraSketch?</h2>
           <p>
@@ -143,7 +144,9 @@ export default function AboutPage() {
             Try InfraSketch Free
           </Link>
         </section>
-      </div>
+      </main>
+
+      <Footer />
     </div>
   );
 }

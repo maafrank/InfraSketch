@@ -4,6 +4,8 @@ import { useAuth, SignedIn, SignedOut, SignInButton } from '@clerk/clerk-react';
 import { CheckoutButton } from '@clerk/clerk-react/experimental';
 import { Helmet } from 'react-helmet-async';
 import { redeemPromoCode, getUserCredits, setClerkTokenGetter } from '../api/client';
+import Header from './shared/Header';
+import Footer from './shared/Footer';
 import './PricingPage.css';
 
 /**
@@ -199,15 +201,14 @@ export default function PricingPage() {
         </script>
       </Helmet>
 
-      <header className="pricing-header">
-        <button className="back-button" onClick={() => navigate('/')}>
-          ← Back to App
-        </button>
+      <Header />
+
+      <div className="pricing-header-content">
         <h1>Choose Your Plan</h1>
         <p className="pricing-subtitle">
           Get more credits to create diagrams and design documents
         </p>
-      </header>
+      </div>
 
       <main className="pricing-content">
         <div className="pricing-grid">
@@ -350,6 +351,8 @@ export default function PricingPage() {
           </div>
         </section>
       </main>
+
+      <Footer />
     </div>
   );
 }

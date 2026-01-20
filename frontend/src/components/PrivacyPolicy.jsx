@@ -1,5 +1,6 @@
-import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import Header from './shared/Header';
+import Footer from './shared/Footer';
 import '../App.css';
 
 export default function PrivacyPolicy() {
@@ -12,13 +13,11 @@ export default function PrivacyPolicy() {
         <meta name="robots" content="noindex, follow" />
       </Helmet>
 
-      <div className="legal-header">
-        <Link to="/" className="legal-back-link">&larr; Back to InfraSketch</Link>
+      <Header />
+
+      <main className="legal-content">
         <h1>Privacy Policy</h1>
         <p className="legal-updated">Last updated: December 2, 2025</p>
-      </div>
-
-      <div className="legal-content">
         <section>
           <h2>Introduction</h2>
           <p>
@@ -158,7 +157,9 @@ export default function PrivacyPolicy() {
             <a href="mailto:contact@infrasketch.net">contact@infrasketch.net</a>
           </p>
         </section>
-      </div>
+      </main>
+
+      <Footer />
     </div>
   );
 }

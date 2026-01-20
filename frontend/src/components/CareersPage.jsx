@@ -1,5 +1,6 @@
-import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import Header from './shared/Header';
+import Footer from './shared/Footer';
 import '../App.css';
 
 export default function CareersPage() {
@@ -22,12 +23,10 @@ export default function CareersPage() {
         <meta name="twitter:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
       </Helmet>
 
-      <div className="legal-header">
-        <Link to="/" className="legal-back-link">&larr; Back to InfraSketch</Link>
-        <h1>Careers</h1>
-      </div>
+      <Header />
 
-      <div className="legal-content">
+      <main className="legal-content">
+        <h1>Careers</h1>
         <section className="careers-hero">
           <h2>Join Our Team</h2>
           <p>
@@ -65,7 +64,9 @@ export default function CareersPage() {
             and we'll keep you in the loop.
           </p>
         </section>
-      </div>
+      </main>
+
+      <Footer />
     </div>
   );
 }

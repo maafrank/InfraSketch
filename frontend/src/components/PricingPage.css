@@ -2,34 +2,18 @@
   min-height: 100vh;
   background: linear-gradient(145deg, #0f0f1a, #1a1a2e);
   color: #fff;
-  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
 }
 
-.pricing-header {
+.pricing-header-content {
   max-width: 1200px;
-  margin: 0 auto 48px auto;
+  margin: 40px auto 48px auto;
   text-align: center;
+  padding: 0 20px;
 }
 
-.back-button {
-  position: absolute;
-  left: 20px;
-  top: 20px;
-  padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  color: #e0e0e0;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.back-button:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.pricing-header h1 {
+.pricing-header-content h1 {
   font-size: 36px;
   font-weight: 700;
   margin: 0 0 12px 0;
@@ -48,6 +32,8 @@
 .pricing-content {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 0 20px;
+  flex: 1;
 }
 
 .pricing-grid {

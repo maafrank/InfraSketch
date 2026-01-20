@@ -854,6 +854,69 @@ body {
   display: block;
 }
 
+/* Site Header (for static pages) */
+.site-header {
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  padding: 1rem 2rem;
+}
+
+.header-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+}
+
+.header-logo-img {
+  width: 32px;
+  height: 32px;
+}
+
+.header-logo-text {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--terminal-green);
+}
+
+.header-auth {
+  display: flex;
+  align-items: center;
+}
+
+.header-signin-btn {
+  background: transparent;
+  color: var(--terminal-green);
+  border: 1px solid var(--terminal-green);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font-mono);
+}
+
+.header-signin-btn:hover {
+  background: var(--terminal-green);
+  color: var(--bg-primary);
+}
+
+/* Site Footer (shared component) */
+.site-footer {
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border-color);
+  padding: 3rem 2rem 2rem;
+}
+
 /* Landing Page Footer */
 .landing-footer {
   background: var(--bg-tertiary);
@@ -3320,8 +3383,23 @@ body {
     max-width: 140px;
   }
 
+  /* Site Header - Mobile */
+  .site-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .header-logo-text {
+    font-size: 1rem;
+  }
+
+  .header-logo-img {
+    width: 28px;
+    height: 28px;
+  }
+
   /* Footer - Mobile */
-  .landing-footer {
+  .landing-footer,
+  .site-footer {
     padding: 2rem 1rem 1.5rem;
   }
 

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import Header from './shared/Header';
+import Footer from './shared/Footer';
 import './BlogListPage.css';
 
 export default function BlogListPage() {
@@ -23,13 +25,14 @@ export default function BlogListPage() {
   if (loading) {
     return (
       <div className="blog-page">
+        <Header />
         <div className="blog-header">
-          <Link to="/" className="blog-back-link">&larr; Back to InfraSketch</Link>
           <h1>Blog</h1>
         </div>
         <div className="blog-content">
           <p>Loading posts...</p>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -57,8 +60,9 @@ export default function BlogListPage() {
         <meta name="twitter:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
       </Helmet>
 
+      <Header />
+
       <div className="blog-header">
-        <Link to="/" className="blog-back-link">&larr; Back to InfraSketch</Link>
         <h1>Blog</h1>
         <p className="blog-subtitle">Insights on system design, architecture, and AI-powered development tools</p>
       </div>
@@ -160,24 +164,7 @@ export default function BlogListPage() {
         </div>
       </div>
 
-      <footer className="blog-footer">
-        <div className="footer-content">
-          <div className="footer-brand">
-            <span className="footer-logo">InfraSketch</span>
-            <p className="footer-tagline">Agent-powered system architecture design</p>
-          </div>
-          <div className="footer-links">
-            <Link to="/about">About</Link>
-            <Link to="/blog">Blog</Link>
-            <Link to="/privacy">Privacy Policy</Link>
-            <Link to="/terms">Terms of Service</Link>
-            <Link to="/contact">Contact</Link>
-          </div>
-          <div className="footer-bottom">
-            <p>&copy; 2026 InfraSketch. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

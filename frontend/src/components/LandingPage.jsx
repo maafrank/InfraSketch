@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useScrollAnimation, useStaggeredAnimation } from '../hooks/useScrollAnimation';
 import { Twitter, ShoppingCart, Link, Tv, Pencil, MessageSquare, Brain, FileText, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import Footer from './shared/Footer';
 
 const EXAMPLE_PROMPTS = [
   {
@@ -718,27 +719,7 @@ export default function LandingPage({ onGenerate, loading }) {
         </div>
       )}
 
-      {/* Footer */}
-      <footer className="landing-footer">
-        <div className="footer-content">
-          <div className="footer-brand">
-            <span className="footer-logo">InfraSketch</span>
-            <p className="footer-tagline">AI-powered system design</p>
-          </div>
-          <div className="footer-links">
-            <a href="/about">About</a>
-            <a href="/blog">Blog</a>
-            <a href="/pricing">Pricing</a>
-            <a href="/careers">Careers</a>
-            <a href="/privacy">Privacy Policy</a>
-            <a href="/terms">Terms of Service</a>
-            <a href="/contact">Contact</a>
-          </div>
-          <div className="footer-bottom">
-            <p>&copy; 2026 InfraSketch. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

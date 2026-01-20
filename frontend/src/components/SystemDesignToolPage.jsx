@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import Header from './shared/Header';
+import Footer from './shared/Footer';
 import '../App.css';
 
 const FEATURES = [
@@ -160,9 +162,10 @@ export default function SystemDesignToolPage() {
         </script>
       </Helmet>
 
+      <Header />
+
       {/* Hero Section */}
       <div className="tool-hero-section">
-        <Link to="/" className="tool-back-link">&larr; Back to InfraSketch</Link>
         <h1 className="tool-hero-title">
           System Design Tool
         </h1>
@@ -297,29 +300,7 @@ export default function SystemDesignToolPage() {
         </Link>
       </div>
 
-      {/* Footer */}
-      <footer className="landing-footer">
-        <div className="footer-content">
-          <div className="footer-brand">
-            <span className="footer-logo">InfraSketch</span>
-            <p className="footer-tagline">AI-powered system design</p>
-          </div>
-          <div className="footer-links">
-            <Link to="/about">About</Link>
-            <Link to="/blog">Blog</Link>
-            <Link to="/pricing">Pricing</Link>
-            <Link to="/tools/system-design-tool">System Design Tool</Link>
-            <Link to="/tools/ai-diagram-generator">AI Diagram Generator</Link>
-            <Link to="/compare">Compare</Link>
-            <Link to="/privacy">Privacy Policy</Link>
-            <Link to="/terms">Terms of Service</Link>
-            <Link to="/contact">Contact</Link>
-          </div>
-          <div className="footer-bottom">
-            <p>&copy; 2026 InfraSketch. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
