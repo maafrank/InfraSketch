@@ -42,6 +42,20 @@ def handler(event, context):
 
             return {"statusCode": 200, "body": "Diagram generation completed"}
 
+        elif async_task == "analyze_repo":
+            # Async invocation for GitHub repository analysis
+            from app.api.routes import _analyze_repo_background
+
+            session_id = event.get("session_id")
+            repo_url = event.get("repo_url")
+            model = event.get("model")
+            user_ip = event.get("user_ip")
+
+            print(f"Async task invocation: Analyzing repo for session {session_id}")
+            _analyze_repo_background(session_id, repo_url, model, user_ip)
+
+            return {"statusCode": 200, "body": "Repository analysis completed"}
+
         else:
             print(f"Unknown async task: {async_task}")
             return {"statusCode": 400, "body": f"Unknown async task: {async_task}"}

@@ -30,6 +30,24 @@
     <changefreq>monthly</changefreq>
   </url>
   <url>
+    <loc>https://infrasketch.net/tools/design-doc-generator</loc>
+    <lastmod>2026-02-03</lastmod>
+    <priority>1.0</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://infrasketch.net/compare/eraser</loc>
+    <lastmod>2026-02-03</lastmod>
+    <priority>0.9</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://infrasketch.net/compare/lucidchart</loc>
+    <lastmod>2026-02-03</lastmod>
+    <priority>0.9</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
     <loc>https://infrasketch.net/blog</loc>
     <lastmod>2026-01-13</lastmod>
     <priority>0.9</priority>
@@ -92,6 +110,24 @@
   <url>
     <loc>https://infrasketch.net/blog/best-ai-diagram-tools-2026</loc>
     <lastmod>2026-01-06</lastmod>
+    <priority>0.9</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://infrasketch.net/blog/microservices-architecture-diagram-guide</loc>
+    <lastmod>2026-02-03</lastmod>
+    <priority>0.9</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://infrasketch.net/blog/event-driven-architecture-patterns</loc>
+    <lastmod>2026-02-03</lastmod>
+    <priority>0.9</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://infrasketch.net/blog/design-twitter-architecture</loc>
+    <lastmod>2026-02-03</lastmod>
     <priority>0.9</priority>
     <changefreq>monthly</changefreq>
   </url>

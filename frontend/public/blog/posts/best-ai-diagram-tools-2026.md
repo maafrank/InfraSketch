@@ -27,7 +27,7 @@ AI diagram tools solve these problems by:
 **Key Features:**
 - Natural language to diagram generation
 - Conversational refinement (chat to modify)
-- Auto-generated design documents
+- [Auto-generated design documents](/tools/design-doc-generator) (unique to InfraSketch)
 - Support for all major architecture patterns
 - Collapsible component groups
 - Export to PNG, PDF, Markdown

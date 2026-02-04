@@ -297,8 +297,30 @@ export default function ComparePage() {
         </div>
       </div>
 
-      {/* Learn More Section */}
+      {/* Individual Comparisons */}
       <div className="tool-section">
+        <h2>Detailed Comparisons</h2>
+        <div className="learn-more-grid">
+          <Link to="/compare/eraser" className="learn-more-card">
+            <span className="learn-more-icon">🎨</span>
+            <h3>InfraSketch vs Eraser</h3>
+            <p>Compare two AI-powered tools. InfraSketch generates design docs, Eraser focuses on whiteboarding.</p>
+          </Link>
+          <Link to="/compare/lucidchart" className="learn-more-card">
+            <span className="learn-more-icon">📊</span>
+            <h3>InfraSketch vs Lucidchart</h3>
+            <p>AI generation vs drag-and-drop. See which approach is faster for your workflow.</p>
+          </Link>
+          <Link to="/tools/design-doc-generator" className="learn-more-card">
+            <span className="learn-more-icon">📄</span>
+            <h3>Design Doc Generator</h3>
+            <p>Learn about InfraSketch's unique auto-documentation feature that no competitor offers.</p>
+          </Link>
+        </div>
+      </div>
+
+      {/* Learn More Section */}
+      <div className="tool-section tool-section-alt">
         <h2>Learn More</h2>
         <div className="learn-more-grid">
           <Link to="/blog/best-ai-diagram-tools-2026" className="learn-more-card">

@@ -65,6 +65,16 @@ class DiagramGenerationStatus(BaseModel):
     completed_at: Optional[float] = None  # Unix timestamp
 
 
+class RepoAnalysisStatus(BaseModel):
+    """Status of GitHub repository analysis."""
+    status: Literal["not_started", "fetching", "analyzing", "generating", "completed", "failed"] = "not_started"
+    phase: Optional[str] = None  # Current phase: "fetch", "analyze", "generate"
+    progress_message: Optional[str] = None  # Human-readable progress message
+    error: Optional[str] = None
+    started_at: Optional[float] = None  # Unix timestamp
+    completed_at: Optional[float] = None  # Unix timestamp
+
+
 class SessionState(BaseModel):
     session_id: str
     user_id: str  # Clerk user ID - links session to authenticated user
@@ -74,7 +84,10 @@ class SessionState(BaseModel):
     design_doc: Optional[str] = None  # Markdown content for design document
     design_doc_status: DesignDocStatus = Field(default_factory=DesignDocStatus)
     diagram_generation_status: DiagramGenerationStatus = Field(default_factory=DiagramGenerationStatus)  # For async diagram generation
+    repo_analysis_status: RepoAnalysisStatus = Field(default_factory=RepoAnalysisStatus)  # For GitHub repo analysis
     generation_prompt: Optional[str] = None  # Store prompt for background task
+    repo_url: Optional[str] = None  # GitHub repo URL if generated from repo analysis
+    repo_analysis: Optional[Dict[str, Any]] = None  # Cached repo analysis data
     model: str = "claude-haiku-4-5-20251001"  # Model used for this session
     created_at: Optional[datetime] = None  # When session was created (for sorting)
     name: Optional[str] = None  # Concise session name (e.g., "E-commerce Platform")
@@ -112,3 +125,15 @@ class CreateGroupRequest(BaseModel):
 class CreateGroupResponse(BaseModel):
     diagram: Diagram
     group_id: str
+
+
+class AnalyzeRepoRequest(BaseModel):
+    """Request to analyze a GitHub repository."""
+    repo_url: str  # GitHub repository URL
+    model: Optional[str] = None  # Model to use for diagram generation
+
+
+class AnalyzeRepoResponse(BaseModel):
+    """Response from starting repo analysis."""
+    session_id: str
+    status: str

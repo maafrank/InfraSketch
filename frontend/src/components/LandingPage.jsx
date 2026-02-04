@@ -343,7 +343,7 @@ export default function LandingPage({ onGenerate, loading }) {
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Describe your system architecture... (e.g., Build a scalable video streaming platform with CDN, transcoding, and user recommendations)"
+            placeholder="Describe your system architecture or paste a GitHub URL to analyze an existing repo..."
             disabled={loading}
             rows={4}
             className="landing-textarea"

@@ -3,7 +3,7 @@ import os
 import uuid
 import time
 from datetime import datetime, timezone
-from app.models import SessionState, Diagram, Message, DesignDocStatus, DiagramGenerationStatus
+from app.models import SessionState, Diagram, Message, DesignDocStatus, DiagramGenerationStatus, RepoAnalysisStatus
 
 
 class SessionManager:
@@ -305,6 +305,120 @@ class SessionManager:
                 del self.sessions[session_id]
                 return True
             return False
+
+    def create_session_for_repo_analysis(self, user_id: str, model: str, repo_url: str) -> str:
+        """
+        Create a new session for GitHub repository analysis.
+
+        Args:
+            user_id: Clerk user ID (from authenticated request)
+            model: AI model to use for diagram generation
+            repo_url: GitHub repository URL to analyze
+
+        Returns:
+            session_id: UUID for the new session
+        """
+        session_id = str(uuid.uuid4())
+
+        # Create empty diagram placeholder
+        empty_diagram = Diagram(nodes=[], edges=[])
+
+        # Create session with "fetching" status
+        session = SessionState(
+            session_id=session_id,
+            user_id=user_id,
+            diagram=empty_diagram,
+            messages=[],
+            current_node=None,
+            model=model,
+            created_at=datetime.now(timezone.utc),
+            repo_url=repo_url,
+            repo_analysis_status=RepoAnalysisStatus(
+                status="fetching",
+                phase="fetch",
+                progress_message="Fetching repository metadata...",
+                started_at=time.time()
+            )
+        )
+
+        # Save to appropriate storage
+        if self.is_lambda:
+            self.storage.save_session(session)
+        else:
+            self.sessions[session_id] = session
+
+        return session_id
+
+    def set_repo_analysis_status(
+        self,
+        session_id: str,
+        status: str,
+        phase: Optional[str] = None,
+        progress_message: Optional[str] = None,
+        error: Optional[str] = None
+    ) -> bool:
+        """
+        Update repository analysis status.
+
+        Args:
+            session_id: Session UUID
+            status: Status value (fetching, analyzing, generating, completed, failed)
+            phase: Current phase (fetch, analyze, generate)
+            progress_message: Human-readable progress message
+            error: Error message if failed
+
+        Returns:
+            True if update succeeded
+        """
+        session = self.get_session(session_id)
+        if not session:
+            return False
+
+        session.repo_analysis_status.status = status
+        if phase is not None:
+            session.repo_analysis_status.phase = phase
+        if progress_message is not None:
+            session.repo_analysis_status.progress_message = progress_message
+        session.repo_analysis_status.error = error
+
+        if status == "fetching" and not session.repo_analysis_status.started_at:
+            session.repo_analysis_status.started_at = time.time()
+        elif status in ["completed", "failed"]:
+            session.repo_analysis_status.completed_at = time.time()
+
+        # Save updated session
+        if self.is_lambda:
+            return self.storage.save_session(session)
+        return True
+
+    def get_repo_analysis_status(self, session_id: str) -> Optional[RepoAnalysisStatus]:
+        """Get current repository analysis status."""
+        session = self.get_session(session_id)
+        if not session:
+            return None
+        return session.repo_analysis_status
+
+    def store_repo_analysis(self, session_id: str, analysis_data: dict) -> bool:
+        """
+        Store repository analysis results for potential re-generation.
+
+        Args:
+            session_id: Session UUID
+            analysis_data: Serialized RepoAnalysis data
+
+        Returns:
+            True if store succeeded
+        """
+        session = self.get_session(session_id)
+        if not session:
+            return False
+
+        session.repo_analysis = analysis_data
+
+        # Save updated session
+        if self.is_lambda:
+            return self.storage.save_session(session)
+        return True
 
 
 # Global session manager instance

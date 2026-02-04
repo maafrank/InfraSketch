@@ -19,7 +19,10 @@ import PricingPage from './components/PricingPage.jsx'
 import SystemDesignToolPage from './components/SystemDesignToolPage.jsx'
 import AIDiagramGeneratorPage from './components/AIDiagramGeneratorPage.jsx'
 import ArchitectureDiagramToolPage from './components/ArchitectureDiagramToolPage.jsx'
+import DesignDocGeneratorPage from './components/DesignDocGeneratorPage.jsx'
 import ComparePage from './components/ComparePage.jsx'
+import InfraSketchVsEraserPage from './components/InfraSketchVsEraserPage.jsx'
+import InfraSketchVsLucidchartPage from './components/InfraSketchVsLucidchartPage.jsx'
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
@@ -49,7 +52,10 @@ const AppRoot = (
               <Route path="/tools/system-design-tool" element={<SystemDesignToolPage />} />
               <Route path="/tools/ai-diagram-generator" element={<AIDiagramGeneratorPage />} />
               <Route path="/tools/architecture-diagram-tool" element={<ArchitectureDiagramToolPage />} />
+              <Route path="/tools/design-doc-generator" element={<DesignDocGeneratorPage />} />
               <Route path="/compare" element={<ComparePage />} />
+              <Route path="/compare/eraser" element={<InfraSketchVsEraserPage />} />
+              <Route path="/compare/lucidchart" element={<InfraSketchVsLucidchartPage />} />
             </Routes>
           </BrowserRouter>
         </ThemeProvider>

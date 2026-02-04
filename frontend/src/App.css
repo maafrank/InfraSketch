@@ -3992,6 +3992,76 @@ body {
   margin-bottom: 2rem;
 }
 
+/* Design Doc Generator Page Styles */
+.tool-section-highlight {
+  background: linear-gradient(135deg, rgba(0, 184, 48, 0.08) 0%, rgba(0, 153, 38, 0.08) 100%);
+  border-left: 4px solid #00b830;
+}
+
+.tool-highlight-text {
+  font-size: 1.2rem;
+  line-height: 1.8;
+  color: #333;
+}
+
+.tool-highlight-text strong {
+  color: #00b830;
+}
+
+.feature-yes {
+  color: #22c55e;
+  font-weight: bold;
+  font-size: 1.25rem;
+}
+
+.feature-no {
+  color: #ef4444;
+  font-size: 1.25rem;
+}
+
+.document-sections-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.document-section-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  background: white;
+  border-radius: 8px;
+  padding: 1.25rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.document-section-card .section-number {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #00b830 0%, #009926 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.document-section-card h3 {
+  font-size: 1rem;
+  color: #1a1a1a;
+  margin-bottom: 0.25rem;
+}
+
+.document-section-card p {
+  font-size: 0.875rem;
+  color: #666;
+  margin: 0;
+}
+
 /* Component Grid (Architecture page) */
 .component-grid {
   display: grid;
@@ -4322,6 +4392,120 @@ body {
   position: absolute;
   left: 0;
   color: #00b830;
+}
+
+/* Side-by-Side Comparison Grid */
+.side-by-side-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.side-by-side-card {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.side-by-side-card.highlight {
+  border: 2px solid #00b830;
+  background: linear-gradient(135deg, rgba(0, 184, 48, 0.03) 0%, rgba(0, 153, 38, 0.03) 100%);
+}
+
+.side-by-side-card h3 {
+  font-size: 1.5rem;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+}
+
+.side-by-side-card .tool-tagline {
+  color: #666;
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+}
+
+.side-by-side-card .pros-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem 0;
+}
+
+.side-by-side-card .pros-list li {
+  padding: 0.5rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.side-by-side-card .pros-list li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #22c55e;
+  font-weight: bold;
+}
+
+.side-by-side-card .best-for {
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 1.5rem;
+}
+
+/* Speed Comparison */
+.speed-comparison {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin-top: 2rem;
+  max-width: 600px;
+}
+
+.speed-item {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.speed-item .speed-tool {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+}
+
+.speed-item .speed-time {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #00b830;
+  margin-bottom: 0.75rem;
+}
+
+.speed-item .speed-bar {
+  height: 12px;
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+}
+
+.speed-item .speed-bar.fast {
+  width: 10%;
+  background: linear-gradient(90deg, #00b830 0%, #00d639 100%);
+}
+
+.speed-item .speed-bar.slow {
+  width: 100%;
+  background: linear-gradient(90deg, #f97316 0%, #ef4444 100%);
+}
+
+.speed-item p {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 0;
 }
 
 /* Mobile Responsiveness for Tool Pages */
