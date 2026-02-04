@@ -118,3 +118,19 @@ def get_devto_api_key() -> str:
         secret_name='infrasketch/devto-api-key',
         default_env_var='DEVTO_API_KEY'
     )
+
+
+def get_unsplash_api_key() -> str:
+    """
+    Get Unsplash API key from AWS Secrets Manager or environment.
+
+    Returns:
+        The API key
+
+    Raises:
+        ValueError: If API key cannot be found
+    """
+    return get_secret(
+        secret_name='infrasketch/unsplash-api-key',
+        default_env_var='UNSPLASH_ACCESS_KEY'
+    )

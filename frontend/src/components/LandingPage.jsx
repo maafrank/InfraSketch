@@ -657,6 +657,21 @@ export default function LandingPage({ onGenerate, loading }) {
             />
           </a>
 
+          {/* TechTrendin */}
+          <a
+            href="https://www.techtrendin.com/products/infrasketch"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="featured-badge-link"
+          >
+            <img
+              src="https://www.techtrendin.com/badges/featured-dark.png"
+              alt="Featured on TechTrendin"
+              className="featured-badge-img"
+              style={{ height: '52px', width: 'auto' }}
+            />
+          </a>
+
         </div>
       </div>
 

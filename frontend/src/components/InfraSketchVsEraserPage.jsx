@@ -1,8 +1,96 @@
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import { Twitter, ShoppingCart, Link as LinkIcon, Tv, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import Header from './shared/Header';
 import Footer from './shared/Footer';
 import '../App.css';
+
+const EXAMPLE_PROMPTS = [
+  {
+    title: "Twitter Timeline",
+    prompt: "Design Twitter's home timeline with feed generation, caching, and real-time updates",
+    icon: Twitter
+  },
+  {
+    title: "E-Commerce Checkout",
+    prompt: "Design a scalable e-commerce checkout flow with cart, payments, and inventory",
+    icon: ShoppingCart
+  },
+  {
+    title: "URL Shortener",
+    prompt: "Design a URL shortening service like bit.ly with analytics and high availability",
+    icon: LinkIcon
+  },
+  {
+    title: "Video Streaming",
+    prompt: "Design a video streaming platform like YouTube with upload, transcoding, and CDN",
+    icon: Tv
+  }
+];
+
+const SCREENSHOTS = [
+  {
+    src: "/url-shortener-prompt-input.png",
+    alt: "Entering a prompt to design a URL shortening service",
+    caption: "Describe your system in natural language"
+  },
+  {
+    src: "/url-shortener-diagram-generated.png",
+    alt: "Generated URL shortener architecture diagram",
+    caption: "AI generates a complete architecture diagram"
+  },
+  {
+    src: "/url-shortener-chat-add-loadbalancer.png",
+    alt: "Chat message requesting to add a load balancer",
+    caption: "Refine your design through conversation"
+  },
+  {
+    src: "/url-shortener-diagram-with-loadbalancer.png",
+    alt: "Updated diagram with load balancer added",
+    caption: "Watch your diagram update in real-time"
+  },
+  {
+    src: "/url-shortener-design-doc-panel.png",
+    alt: "Generated system design document",
+    caption: "Generate comprehensive design documentation"
+  },
+  {
+    src: "/url-shortener-full-app-view.png",
+    alt: "Full application view with diagram, chat, and design doc",
+    caption: "Complete workspace with all panels"
+  },
+  {
+    src: "/full-app-with-design-doc.png",
+    alt: "Full application with session history, design doc, and diagram",
+    caption: "Manage multiple designs with session history"
+  },
+  {
+    src: "/tutorial.png",
+    alt: "Interactive tutorial showing 3 steps to get started",
+    caption: "Interactive tutorial guides you through the basics"
+  },
+  {
+    src: "/followup-questions.png",
+    alt: "AI-suggested follow-up questions after diagram generation",
+    caption: "Smart suggestions help you iterate on your design"
+  },
+  {
+    src: "/ecommerce-collapsed-groups.png",
+    alt: "E-commerce diagram with collapsed component groups",
+    caption: "Organize components into collapsible groups"
+  },
+  {
+    src: "/ecommerce-expanded.png",
+    alt: "E-commerce diagram with expanded groups",
+    caption: "Expand groups to see all components"
+  },
+  {
+    src: "/email-platform-model-selector.png",
+    alt: "Email platform with model selector",
+    caption: "Choose between Haiku and Sonnet models"
+  }
+];
 
 const COMPARISON_DATA = [
   { feature: "AI Diagram Generation", infrasketch: true, eraser: true },
@@ -42,6 +130,51 @@ const FAQS = [
 ];
 
 export default function InfraSketchVsEraserPage() {
+  const navigate = useNavigate();
+  const [prompt, setPrompt] = useState('');
+  const [currentScreenshot, setCurrentScreenshot] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+
+  // Auto-rotate screenshots every 4 seconds (pauses when lightbox is open)
+  useEffect(() => {
+    if (lightboxOpen) return;
+    const interval = setInterval(() => {
+      setCurrentScreenshot((prev) => (prev + 1) % SCREENSHOTS.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [lightboxOpen]);
+
+  // Handle keyboard navigation in lightbox
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setLightboxOpen(false);
+      } else if (e.key === 'ArrowLeft') {
+        setCurrentScreenshot((prev) => prev === 0 ? SCREENSHOTS.length - 1 : prev - 1);
+      } else if (e.key === 'ArrowRight') {
+        setCurrentScreenshot((prev) => (prev + 1) % SCREENSHOTS.length);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxOpen]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (prompt.trim()) {
+      navigate('/', { state: { initialPrompt: prompt } });
+    }
+  };
+
+  const handleExampleClick = (examplePrompt) => {
+    setPrompt(examplePrompt);
+  };
+
+  const handleDotClick = (index) => {
+    setCurrentScreenshot(index);
+  };
+
   const pageSchema = {
     "@context": "https://schema.org",
     "@graph": [
@@ -123,6 +256,79 @@ export default function InfraSketchVsEraserPage() {
           Both tools offer AI diagram generation. InfraSketch adds auto design documents and chat refinement.
           Eraser focuses on whiteboarding and team collaboration.
         </p>
+
+        {/* Main Input Form */}
+        <form onSubmit={handleSubmit} className="landing-input-form">
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Describe your system architecture..."
+            rows={4}
+            className="landing-textarea"
+          />
+          <button
+            type="submit"
+            disabled={!prompt.trim()}
+            className="landing-generate-button"
+          >
+            Sketch My System
+          </button>
+        </form>
+
+        {/* Example Prompts */}
+        <div className="example-prompts-section">
+          <p className="example-prompts-label">Or try an example:</p>
+          <div className="example-prompts-grid">
+            {EXAMPLE_PROMPTS.map((example, index) => (
+              <button
+                key={index}
+                onClick={() => handleExampleClick(example.prompt)}
+                className="example-prompt-card"
+              >
+                <span className="example-icon"><example.icon size={20} /></span>
+                <span className="example-title">{example.title}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Screenshots Showcase - Carousel */}
+      <div className="showcase-section">
+        <h2 className="showcase-heading">See It In Action</h2>
+        <div className="showcase-carousel">
+          <div className="carousel-container">
+            <div
+              className="carousel-track"
+              style={{ transform: `translateX(-${currentScreenshot * 100}%)` }}
+            >
+              {SCREENSHOTS.map((screenshot, index) => (
+                <div key={index} className="carousel-slide">
+                  <img
+                    src={screenshot.src}
+                    alt={screenshot.alt}
+                    className="carousel-image"
+                    onClick={() => setLightboxOpen(true)}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <p className="carousel-caption">{screenshot.caption}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Navigation Dots */}
+          <div className="carousel-dots">
+            {SCREENSHOTS.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => handleDotClick(index)}
+                className={`carousel-dot ${index === currentScreenshot ? 'active' : ''}`}
+                aria-label={`View screenshot ${index + 1}`}
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Key Difference */}
@@ -283,6 +489,65 @@ export default function InfraSketchVsEraserPage() {
           Try InfraSketch Free
         </Link>
       </div>
+
+      {/* Lightbox Modal */}
+      {lightboxOpen && (
+        <div
+          className="lightbox-overlay"
+          onClick={() => setLightboxOpen(false)}
+        >
+          <button
+            className="lightbox-close"
+            onClick={() => setLightboxOpen(false)}
+            aria-label="Close lightbox"
+          >
+            <X size={32} />
+          </button>
+
+          <button
+            className="lightbox-nav lightbox-prev"
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentScreenshot((prev) =>
+                prev === 0 ? SCREENSHOTS.length - 1 : prev - 1
+              );
+            }}
+            aria-label="Previous image"
+          >
+            <ChevronLeft size={48} />
+          </button>
+
+          <div
+            className="lightbox-content"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={SCREENSHOTS[currentScreenshot].src}
+              alt={SCREENSHOTS[currentScreenshot].alt}
+              className="lightbox-image"
+            />
+            <p className="lightbox-caption">
+              {SCREENSHOTS[currentScreenshot].caption}
+            </p>
+            <p className="lightbox-counter">
+              {currentScreenshot + 1} / {SCREENSHOTS.length}
+            </p>
+          </div>
+
+          <button
+            className="lightbox-nav lightbox-next"
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentScreenshot((prev) =>
+                (prev + 1) % SCREENSHOTS.length
+              );
+            }}
+            aria-label="Next image"
+          >
+            <ChevronRight size={48} />
+          </button>
+        </div>
+      )}
 
       <Footer />
     </div>
