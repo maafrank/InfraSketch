@@ -422,6 +422,8 @@ Creating system architecture diagrams is essential for communicating your design
 
 Modern AI-powered tools like [InfraSketch](https://infrasketch.net) can generate complete architecture diagrams from natural language descriptions. Simply describe your system, and the AI creates a professional diagram with appropriate components, connections, and labels. You can then refine it through conversation.
 
+What sets InfraSketch apart is the ability to also [generate comprehensive design documents](/tools/design-doc-generator) automatically. Click one button and get a 12-section design doc covering system overview, component details, data flow, scalability, and more.
+
 For tips on creating effective diagrams, check out our guide on [Architecture Diagram Best Practices](/blog/architecture-diagram-best-practices).
 
 ## Common System Design Interview Questions

@@ -36,6 +36,17 @@ CREDIT_COSTS = {
         "base": 2,
         "model_multipliers": {},
     },
+    "repo_analysis": {
+        "base": 10,  # Higher cost due to multiple API calls + diagram generation
+        "model_multipliers": {
+            "claude-haiku-4-5": 1.0,
+            "claude-haiku-4-5-20251001": 1.0,
+            "claude-sonnet-4-5": 3.0,
+            "claude-sonnet-4-5-20251001": 3.0,
+            "claude-opus-4-5": 5.0,
+            "claude-opus-4-5-20251101": 5.0,
+        },
+    },
 }
 
 # Plan configurations

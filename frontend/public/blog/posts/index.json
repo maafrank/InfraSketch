@@ -1,6 +1,59 @@
 {
   "posts": [
     {
+      "slug": "microservices-architecture-diagram-guide",
+      "title": "Microservices Architecture Diagram: Complete Guide for 2026",
+      "description": "Learn how to design and document microservices architectures. Covers API gateways, service mesh, message queues, and patterns like CQRS and Saga.",
+      "date": "2026-02-03",
+      "author": "InfraSketch Team",
+      "readingTime": "15 min read",
+      "image": "/full-app-with-design-doc.png",
+      "category": "architecture",
+      "tags": [
+        "microservices architecture diagram",
+        "microservices",
+        "API gateway",
+        "service mesh",
+        "CQRS",
+        "saga pattern"
+      ]
+    },
+    {
+      "slug": "event-driven-architecture-patterns",
+      "title": "Event-Driven Architecture Patterns: A Complete Guide",
+      "description": "Master event-driven architecture patterns including event sourcing, CQRS, and sagas. Learn when to use Kafka, RabbitMQ, and other message brokers.",
+      "date": "2026-02-03",
+      "author": "InfraSketch Team",
+      "readingTime": "18 min read",
+      "image": "/full-app-with-design-doc.png",
+      "category": "architecture",
+      "tags": [
+        "event-driven architecture",
+        "event sourcing",
+        "CQRS",
+        "Kafka",
+        "message queue",
+        "saga pattern"
+      ]
+    },
+    {
+      "slug": "design-twitter-architecture",
+      "title": "How to Design Twitter/X Architecture: System Design Case Study",
+      "description": "Complete system design case study for Twitter. Covers timeline service, fan-out strategies, caching, and scaling to millions of users.",
+      "date": "2026-02-03",
+      "author": "InfraSketch Team",
+      "readingTime": "20 min read",
+      "image": "/full-app-with-design-doc.png",
+      "category": "interviews",
+      "tags": [
+        "design twitter",
+        "system design interview",
+        "timeline service",
+        "fan-out",
+        "social media architecture"
+      ]
+    },
+    {
       "slug": "top-7-architecture-diagram-tools",
       "title": "Top 7 AI-Powered Tools for Software Architecture Diagrams",
       "description": "Compare the best architecture diagram tools for developers in 2026, from diagrams-as-code to AI-powered generation. Includes InfraSketch, Mermaid, Structurizr, D2, and more.",
@@ -9,7 +62,15 @@
       "readingTime": "5 min read",
       "image": "/full-app-with-design-doc.png",
       "category": "tools",
-      "tags": ["architecture diagram tools", "AI diagram generator", "diagrams as code", "Mermaid", "Structurizr", "D2", "PlantUML"]
+      "tags": [
+        "architecture diagram tools",
+        "AI diagram generator",
+        "diagrams as code",
+        "Mermaid",
+        "Structurizr",
+        "D2",
+        "PlantUML"
+      ]
     },
     {
       "slug": "aws-architecture-diagram-generator",
@@ -20,7 +81,13 @@
       "readingTime": "10 min read",
       "image": "/full-app-with-design-doc.png",
       "category": "tools",
-      "tags": ["aws architecture diagram generator", "aws diagram", "cloud architecture", "AI tools", "infrastructure diagram"]
+      "tags": [
+        "aws architecture diagram generator",
+        "aws diagram",
+        "cloud architecture",
+        "AI tools",
+        "infrastructure diagram"
+      ]
     },
     {
       "slug": "system-design-interview-prep-practice",
@@ -31,7 +98,13 @@
       "readingTime": "18 min read",
       "image": "/full-app-with-design-doc.png",
       "category": "interviews",
-      "tags": ["system design interview prep", "interview preparation", "FAANG", "tech interviews", "practice guide"]
+      "tags": [
+        "system design interview prep",
+        "interview preparation",
+        "FAANG",
+        "tech interviews",
+        "practice guide"
+      ]
     },
     {
       "slug": "data-lake-architecture-diagram",
@@ -42,7 +115,13 @@
       "readingTime": "15 min read",
       "image": "/full-app-with-design-doc.png",
       "category": "architecture",
-      "tags": ["data lake architecture diagram", "data lake", "medallion architecture", "data engineering", "analytics"]
+      "tags": [
+        "data lake architecture diagram",
+        "data lake",
+        "medallion architecture",
+        "data engineering",
+        "analytics"
+      ]
     },
     {
       "slug": "complete-guide-system-design",
@@ -53,7 +132,12 @@
       "readingTime": "25 min read",
       "image": "/full-app-with-design-doc.png",
       "category": "system-design",
-      "tags": ["system design", "architecture", "scalability", "distributed systems"]
+      "tags": [
+        "system design",
+        "architecture",
+        "scalability",
+        "distributed systems"
+      ]
     },
     {
       "slug": "system-design-interview-cheat-sheet",
@@ -64,7 +148,12 @@
       "readingTime": "18 min read",
       "image": "/full-app-with-design-doc.png",
       "category": "interviews",
-      "tags": ["system design interview", "FAANG", "interview prep", "cheat sheet"]
+      "tags": [
+        "system design interview",
+        "FAANG",
+        "interview prep",
+        "cheat sheet"
+      ]
     },
     {
       "slug": "architecture-diagram-best-practices",
@@ -75,7 +164,12 @@
       "readingTime": "15 min read",
       "image": "/full-app-with-design-doc.png",
       "category": "architecture",
-      "tags": ["architecture diagram", "C4 model", "documentation", "best practices"]
+      "tags": [
+        "architecture diagram",
+        "C4 model",
+        "documentation",
+        "best practices"
+      ]
     },
     {
       "slug": "best-ai-diagram-tools-2026",
@@ -86,7 +180,13 @@
       "readingTime": "12 min read",
       "image": "/full-app-with-design-doc.png",
       "category": "tools",
-      "tags": ["AI diagram tools", "comparison", "Eraser", "Lucidchart", "Miro"]
+      "tags": [
+        "AI diagram tools",
+        "comparison",
+        "Eraser",
+        "Lucidchart",
+        "Miro"
+      ]
     },
     {
       "slug": "infrasketch-demo-video",
@@ -97,7 +197,11 @@
       "readingTime": "3 min read",
       "image": "/full-app-with-design-doc.png",
       "category": "product",
-      "tags": ["demo", "video", "tutorial"]
+      "tags": [
+        "demo",
+        "video",
+        "tutorial"
+      ]
     },
     {
       "slug": "ai-tools-senior-engineer-promotion",
@@ -108,7 +212,11 @@
       "readingTime": "5 min read",
       "image": "/full-app-with-design-doc.png",
       "category": "career",
-      "tags": ["career growth", "AI tools", "engineering"]
+      "tags": [
+        "career growth",
+        "AI tools",
+        "engineering"
+      ]
     },
     {
       "slug": "what-is-system-design",
@@ -119,7 +227,13 @@
       "readingTime": "8 min read",
       "image": "/full-app-with-design-doc.png",
       "category": "system-design",
-      "tags": ["system design", "beginners", "fundamentals"]
+      "tags": [
+        "system design",
+        "beginners",
+        "fundamentals"
+      ],
+      "devto_id": 3229415,
+      "devto_url": "https://dev.to/matt_frank_usa/what-is-system-design-a-complete-beginners-guide-212f"
     },
     {
       "slug": "ai-system-design-tools-2025",
@@ -130,7 +244,11 @@
       "readingTime": "6 min read",
       "image": "/full-app-with-design-doc.png",
       "category": "tools",
-      "tags": ["AI tools", "comparison", "architecture diagrams"]
+      "tags": [
+        "AI tools",
+        "comparison",
+        "architecture diagrams"
+      ]
     },
     {
       "slug": "system-design-interview-guide",
@@ -141,7 +259,11 @@
       "readingTime": "10 min read",
       "image": "/full-app-with-design-doc.png",
       "category": "interviews",
-      "tags": ["interviews", "system design", "preparation"]
+      "tags": [
+        "interviews",
+        "system design",
+        "preparation"
+      ]
     }
   ]
 }

@@ -477,3 +477,97 @@ export const validatePromoCode = async (code) => {
   const response = await client.post('/promo/validate', { code });
   return response.data;
 };
+
+
+// =============================================================================
+// GITHUB REPOSITORY ANALYSIS
+// =============================================================================
+
+/**
+ * Check if a string is a valid GitHub repository URL.
+ *
+ * @param {string} input - The input string to check
+ * @returns {boolean} - True if the input is a GitHub URL
+ */
+export const isGitHubUrl = (input) => {
+  if (!input || typeof input !== 'string') return false;
+  const trimmed = input.trim();
+  return /^https?:\/\/(www\.)?github\.com\/[\w-]+\/[\w.-]+/.test(trimmed);
+};
+
+/**
+ * Start analyzing a GitHub repository.
+ *
+ * @param {string} repoUrl - GitHub repository URL
+ * @param {string|null} model - Optional model to use for diagram generation
+ * @returns {Promise<{session_id: string, status: string}>}
+ */
+export const analyzeRepo = async (repoUrl, model = null) => {
+  const response = await client.post('/analyze-repo', {
+    repo_url: repoUrl,
+    model,
+  });
+  return response.data;
+};
+
+/**
+ * Get the current status of repository analysis.
+ *
+ * @param {string} sessionId - Session ID to check
+ * @returns {Promise<{status: string, phase?: string, progress_message?: string, ...}>}
+ */
+export const getRepoAnalysisStatus = async (sessionId) => {
+  const response = await client.get(`/session/${sessionId}/repo-analysis/status`);
+  return response.data;
+};
+
+/**
+ * Poll repository analysis status until completed or failed.
+ *
+ * @param {string} sessionId - Session ID to poll
+ * @param {function} onProgress - Optional callback for progress updates (receives status object)
+ * @param {number} maxWaitTime - Max time to wait in milliseconds (default: 5 minutes)
+ * @returns {Promise<{success: boolean, diagram?: object, messages?: array, name?: string, error?: string}>}
+ */
+export const pollRepoAnalysisStatus = async (sessionId, onProgress = null, maxWaitTime = 300000) => {
+  const startTime = Date.now();
+  const pollInterval = 2000; // Poll every 2 seconds
+
+  while (Date.now() - startTime < maxWaitTime) {
+    const status = await getRepoAnalysisStatus(sessionId);
+
+    // Call progress callback if provided
+    if (onProgress) {
+      onProgress(status);
+    }
+
+    // Check if completed
+    if (status.status === 'completed') {
+      return {
+        success: true,
+        diagram: status.diagram,
+        messages: status.messages,
+        name: status.name,
+        duration: status.duration_seconds,
+        suggestions: status.suggestions || [],
+      };
+    }
+
+    // Check if failed
+    if (status.status === 'failed') {
+      return {
+        success: false,
+        error: status.error,
+      };
+    }
+
+    // Still analyzing, wait before next poll
+    await new Promise(resolve => setTimeout(resolve, pollInterval));
+  }
+
+  // Timeout
+  return {
+    success: false,
+    error: 'Repository analysis timed out after 5 minutes',
+  };
+};

@@ -15,6 +15,8 @@ from app.models import (
     Edge,
     CreateGroupRequest,
     CreateGroupResponse,
+    AnalyzeRepoRequest,
+    AnalyzeRepoResponse,
 )
 from app.session.manager import session_manager
 from app.agent.graph import agent_graph, generate_suggestions
@@ -2848,3 +2850,347 @@ async def get_monthly_visitors_badge():
             media_type="image/svg+xml",
             headers={"Cache-Control": "public, max-age=300"}  # Short cache on error
         )
+
+
+# =============================================================================
+# GITHUB REPOSITORY ANALYSIS
+# =============================================================================
+
+
+def _analyze_repo_background(session_id: str, repo_url: str, model: str, user_ip: str):
+    """Background task to analyze GitHub repository and generate diagram."""
+    from app.github.analyzer import GitHubAnalyzer, RepoNotFoundError, RepoAccessDeniedError, GitHubRateLimitError
+    from app.github.prompts import format_repo_analysis_prompt
+    from app.agent.graph import process_diagram_groups
+    from dataclasses import asdict
+    import traceback
+
+    start_time = time.time()
+
+    try:
+        print(f"\n=== BACKGROUND: ANALYZE REPO ===")
+        print(f"Session ID: {session_id}")
+        print(f"Repo URL: {repo_url}")
+        print(f"Model: {model}")
+
+        # Phase 1: Fetch repository data
+        session_manager.set_repo_analysis_status(
+            session_id, "fetching", "fetch", "Fetching repository metadata..."
+        )
+
+        analyzer = GitHubAnalyzer()
+
+        # Phase 2: Analyze repository
+        session_manager.set_repo_analysis_status(
+            session_id, "analyzing", "analyze", "Analyzing dependencies and code structure..."
+        )
+
+        analysis = analyzer.analyze_repo(repo_url)
+
+        # Store analysis results for potential re-generation
+        analysis_dict = asdict(analysis)
+        session_manager.store_repo_analysis(session_id, analysis_dict)
+
+        print(f"Analysis complete: {analysis.name}")
+        print(f"  - Languages: {list(analysis.languages.keys())}")
+        print(f"  - Dependencies: {list(analysis.dependencies.keys())}")
+        print(f"  - Databases: {analysis.database_connections}")
+        print(f"  - Services: {analysis.external_services}")
+
+        # Phase 3: Generate diagram
+        session_manager.set_repo_analysis_status(
+            session_id, "generating", "generate", "Generating architecture diagram..."
+        )
+
+        # Format prompt with analysis data
+        prompt = format_repo_analysis_prompt(analysis)
+
+        # Use LangGraph agent to generate diagram
+        result = agent_graph.invoke({
+            "messages": [HumanMessage(content=prompt)],
+            "diagram": None,
+            "session_id": session_id,
+            "model": model,
+        })
+
+        diagram = result["diagram"]
+
+        # Apply group processing for large diagrams
+        if len(diagram.nodes) > 6:
+            diagram = process_diagram_groups(diagram, max_visible_nodes=6, model=model)
+
+        # Update session with generated diagram
+        session_manager.update_diagram(session_id, diagram)
+
+        # Generate overview message
+        overview = f"""## Repository Analysis Complete
+
+I've analyzed the **{analysis.name}** repository and generated an architecture diagram with {len(diagram.nodes)} components.
+
+**Repository Details**
+- **Language**: {analysis.primary_language or 'Unknown'}
+- **Description**: {analysis.description or 'No description'}
+
+**Detected Components**
+- **Databases**: {', '.join(analysis.database_connections) if analysis.database_connections else 'None detected'}
+- **External Services**: {', '.join(analysis.external_services) if analysis.external_services else 'None detected'}
+- **Infrastructure**: {'Docker' if analysis.has_docker else ''} {'Kubernetes' if analysis.has_kubernetes else ''} {'Terraform' if analysis.has_terraform else ''}
+
+**What's Next?**
+- Click any node to learn more about that component
+- Ask questions about the architecture
+- Request modifications or additions
+
+Feel free to explore the diagram and ask me anything!"""
+
+        session_manager.add_message(
+            session_id,
+            Message(role="user", content=f"Analyze repository: {repo_url}")
+        )
+        session_manager.add_message(
+            session_id,
+            Message(role="assistant", content=overview)
+        )
+
+        # Set session name from repo
+        session_manager.update_session_name(session_id, f"{analysis.name} Architecture")
+
+        # Mark as completed
+        session_manager.set_repo_analysis_status(session_id, "completed")
+
+        # Log event
+        duration_ms = (time.time() - start_time) * 1000
+        log_event(
+            EventType.DIAGRAM_GENERATED,
+            session_id=session_id,
+            user_ip=user_ip,
+            metadata={
+                "source": "github_repo",
+                "repo_url": repo_url,
+                "repo_name": analysis.name,
+                "node_count": len(diagram.nodes),
+                "edge_count": len(diagram.edges),
+                "duration_ms": duration_ms,
+            }
+        )
+
+        print(f"Generated diagram: {len(diagram.nodes)} nodes, {len(diagram.edges)} edges")
+        print(f"Duration: {duration_ms:.0f}ms")
+        print(f"========================================\n")
+
+        analyzer.close()
+
+    except RepoNotFoundError as e:
+        print(f"Repository not found: {e}")
+        session_manager.set_repo_analysis_status(
+            session_id, "failed", error=f"Repository not found: {repo_url}"
+        )
+        log_error(
+            error_type="repo_not_found",
+            error_message=str(e),
+            user_ip=user_ip,
+            metadata={"session_id": session_id, "repo_url": repo_url},
+        )
+
+    except RepoAccessDeniedError as e:
+        print(f"Repository access denied: {e}")
+        session_manager.set_repo_analysis_status(
+            session_id, "failed",
+            error="Private repos coming soon. For now, please use a public repository."
+        )
+        log_error(
+            error_type="repo_access_denied",
+            error_message=str(e),
+            user_ip=user_ip,
+            metadata={"session_id": session_id, "repo_url": repo_url},
+        )
+
+    except GitHubRateLimitError as e:
+        print(f"GitHub rate limit exceeded: {e}")
+        session_manager.set_repo_analysis_status(
+            session_id, "failed",
+            error="GitHub API rate limit exceeded. Please try again later."
+        )
+        log_error(
+            error_type="github_rate_limit",
+            error_message=str(e),
+            user_ip=user_ip,
+            metadata={"session_id": session_id, "repo_url": repo_url, "reset_time": e.reset_time},
+        )
+
+    except Exception as e:
+        print(f"Error analyzing repository: {str(e)}")
+        traceback.print_exc()
+
+        session_manager.set_repo_analysis_status(
+            session_id, "failed", error=f"Analysis failed: {str(e)}"
+        )
+
+        log_error(
+            error_type="repo_analysis_failed",
+            error_message=str(e),
+            user_ip=user_ip,
+            metadata={"session_id": session_id, "repo_url": repo_url},
+        )
+
+
+@router.post("/analyze-repo")
+async def analyze_repo(request: AnalyzeRepoRequest, http_request: Request, background_tasks: BackgroundTasks):
+    """
+    Start GitHub repository analysis asynchronously.
+
+    Returns immediately with session_id and status. Frontend should poll
+    /session/{session_id}/repo-analysis/status until analysis completes.
+
+    The analysis performs:
+    1. Fetches repository metadata and file structure via GitHub API
+    2. Analyzes dependencies, infrastructure, and code patterns
+    3. Generates an architecture diagram using Claude
+
+    Args:
+        request: AnalyzeRepoRequest with repo_url and optional model
+
+    Returns:
+        JSON with session_id and status
+    """
+    import os
+    from app.github.analyzer import GitHubAnalyzer
+
+    user_ip = http_request.client.host if http_request.client else None
+
+    # Extract user_id from request state (set by Clerk middleware)
+    user_id = getattr(http_request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
+
+    try:
+        # Validate GitHub URL format
+        try:
+            analyzer = GitHubAnalyzer()
+            owner, repo = analyzer.parse_github_url(request.repo_url)
+            analyzer.close()
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+        # Use specified model or default to Haiku
+        model = request.model or "claude-haiku-4-5"
+
+        # Check and deduct credits BEFORE creating session
+        await check_and_deduct_credits(
+            user_id=user_id,
+            action="repo_analysis",
+            model=model,
+            metadata={"repo_url": request.repo_url},
+        )
+
+        # Create session with "fetching" status
+        session_id = session_manager.create_session_for_repo_analysis(
+            user_id=user_id,
+            model=model,
+            repo_url=request.repo_url
+        )
+
+        # Check if running in Lambda
+        is_lambda = os.environ.get('AWS_LAMBDA_FUNCTION_NAME') is not None
+
+        if is_lambda:
+            # In Lambda: Use async invocation to avoid API Gateway 30s timeout
+            import boto3
+            import json as json_lib
+
+            print(f"Lambda environment detected - triggering async repo analysis for session {session_id}")
+
+            try:
+                lambda_client = boto3.client('lambda')
+                function_name = os.environ.get('AWS_LAMBDA_FUNCTION_NAME')
+
+                payload = {
+                    "async_task": "analyze_repo",
+                    "session_id": session_id,
+                    "repo_url": request.repo_url,
+                    "model": model,
+                    "user_ip": user_ip
+                }
+
+                lambda_client.invoke(
+                    FunctionName=function_name,
+                    InvocationType='Event',  # Async invocation
+                    Payload=json_lib.dumps(payload)
+                )
+
+                print(f"Async Lambda invocation triggered for repo analysis")
+            except Exception as e:
+                print(f"Failed to trigger async invocation: {e}")
+                # Fall back to background task
+                background_tasks.add_task(_analyze_repo_background, session_id, request.repo_url, model, user_ip)
+        else:
+            # Local development: Use true background tasks
+            print(f"Local environment - starting background repo analysis for session {session_id}")
+            background_tasks.add_task(_analyze_repo_background, session_id, request.repo_url, model, user_ip)
+
+        # Return immediately with session_id and fetching status
+        return JSONResponse(content={
+            "session_id": session_id,
+            "status": "fetching"
+        })
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        log_error(
+            error_type="repo_analysis_start_failed",
+            error_message=str(e),
+            user_ip=user_ip,
+        )
+        raise HTTPException(status_code=500, detail=f"Failed to start repo analysis: {str(e)}")
+
+
+@router.get("/session/{session_id}/repo-analysis/status")
+async def get_repo_analysis_status(session_id: str, http_request: Request):
+    """
+    Get the current status of repository analysis.
+
+    Poll this endpoint every 2 seconds until status is "completed" or "failed".
+
+    Returns:
+        JSON with status, phase, progress_message, elapsed_seconds,
+        and diagram/messages when completed.
+    """
+    user_id = getattr(http_request.state, "user_id", None)
+    session = verify_session_access(session_id, user_id, http_request)
+
+    status = session.repo_analysis_status
+
+    response = {
+        "status": status.status,
+        "phase": status.phase,
+        "progress_message": status.progress_message,
+        "error": status.error,
+    }
+
+    # Include timing information
+    if status.started_at:
+        if status.completed_at:
+            response["duration_seconds"] = status.completed_at - status.started_at
+        else:
+            response["elapsed_seconds"] = time.time() - status.started_at
+
+    # Include diagram and messages if completed
+    if status.status == "completed":
+        response["diagram"] = session.diagram.model_dump()
+        response["messages"] = [{"role": m.role, "content": m.content} for m in session.messages]
+        response["name"] = session.name
+
+        # Generate suggestions
+        try:
+            suggestions = generate_suggestions(
+                diagram=session.diagram,
+                node_id=None,
+                last_message="Repository analyzed"
+            )
+            response["suggestions"] = suggestions
+        except Exception as e:
+            print(f"Error generating suggestions: {e}")
+            response["suggestions"] = []
+
+    return JSONResponse(content=response)

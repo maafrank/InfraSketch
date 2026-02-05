@@ -94,9 +94,10 @@ This is where modern tools can accelerate your prep significantly.
    - "Add real-time notifications"
    - Practice adapting designs to changing requirements
 
-4. **Generate design documents**
+4. **[Generate design documents](/tools/design-doc-generator)**
    - Export comprehensive documentation
    - Review the structure for interview presentation
+   - Practice with our [Twitter architecture case study](/blog/design-twitter-architecture)
 
 **Daily Practice Routine (Week 3):**
 

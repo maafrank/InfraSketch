@@ -36,7 +36,10 @@ import {
   createNodeGroup,
   generateNodeDescription,
   toggleGroupCollapse,
-  ungroupNodes
+  ungroupNodes,
+  isGitHubUrl,
+  analyzeRepo,
+  pollRepoAnalysisStatus
 } from './api/client';
 import './App.css';
 
@@ -287,12 +290,25 @@ function AppContent({ resumeMode = false, isMobile }) {
     if (!hasNodes) {
       setLoading(true);
 
+      // Check if input is a GitHub URL
+      const isRepoAnalysis = isGitHubUrl(message);
+
       // Add user message immediately
       const userMessage = { role: 'user', content: message };
       setMessages([userMessage]);
 
       // Define loading steps that loop continuously (without emojis)
-      const loadingSteps = [
+      // Use different steps for GitHub repo analysis
+      const loadingSteps = isRepoAnalysis ? [
+        'Fetching repository metadata...',
+        'Analyzing project structure...',
+        'Parsing dependencies...',
+        'Detecting infrastructure patterns...',
+        'Analyzing code for routes and services...',
+        'Identifying database connections...',
+        'Generating architecture diagram...',
+        'Finalizing component layout...'
+      ] : [
         'Analyzing your architecture...',
         'Designing system components...',
         'Mapping connections and data flow...',
@@ -320,13 +336,31 @@ function AppContent({ resumeMode = false, isMobile }) {
       updateLoadingSteps();
 
       try {
-        // Start async diagram generation (returns immediately with session_id)
-        const response = await generateDiagram(message, modelToUse);
-        const newSessionId = response.session_id;
-        setSessionId(newSessionId);
+        let newSessionId;
+        let result;
 
-        // Poll for completion (loading steps continue cycling naturally)
-        const result = await pollDiagramStatus(newSessionId);
+        if (isRepoAnalysis) {
+          // GitHub repository analysis flow
+          const response = await analyzeRepo(message, modelToUse);
+          newSessionId = response.session_id;
+          setSessionId(newSessionId);
+
+          // Poll for completion with progress updates
+          result = await pollRepoAnalysisStatus(newSessionId, (status) => {
+            // Update loading text based on current phase
+            if (status.progress_message) {
+              setLoadingStepText(status.progress_message);
+            }
+          });
+        } else {
+          // Standard diagram generation flow
+          const response = await generateDiagram(message, modelToUse);
+          newSessionId = response.session_id;
+          setSessionId(newSessionId);
+
+          // Poll for completion (loading steps continue cycling naturally)
+          result = await pollDiagramStatus(newSessionId);
+        }
 
         // Stop the loading loop
         cancelLoading = true;
@@ -364,14 +398,22 @@ function AppContent({ resumeMode = false, isMobile }) {
         }
 
         // Provide specific error messages based on error type
-        let errorMessage = 'Failed to generate diagram. Please try again.';
+        let errorMessage = isRepoAnalysis
+          ? 'Failed to analyze repository. Please try again.'
+          : 'Failed to generate diagram. Please try again.';
 
         if (error.message?.includes('timed out')) {
-          errorMessage = 'Diagram generation timed out after 5 minutes. Try:\n\n1. Simplify your prompt\n2. Use Haiku 4.5 (faster)\n3. Try again in a moment';
+          errorMessage = isRepoAnalysis
+            ? 'Repository analysis timed out after 5 minutes. Try a smaller repository or try again later.'
+            : 'Diagram generation timed out after 5 minutes. Try:\n\n1. Simplify your prompt\n2. Use Haiku 4.5 (faster)\n3. Try again in a moment';
         } else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
           errorMessage = 'Request timed out. Please try again.';
         } else if (!error.response && error.message) {
           errorMessage = error.message;
+        } else if (error.response?.status === 404) {
+          errorMessage = 'Repository not found. Please check the URL and try again.';
+        } else if (error.response?.status === 403) {
+          errorMessage = 'Private repos coming soon. For now, please use a public repository.';
         } else if (error.response?.status >= 500) {
           errorMessage = `Server error (${error.response.status}). Please try again in a moment.`;
         }
