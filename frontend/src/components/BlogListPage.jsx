@@ -144,6 +144,24 @@ export default function BlogListPage() {
                 <p className="featured-card-description">Watch a quick demo of generating architecture diagrams from natural language.</p>
               </div>
             </a>
+
+            <a
+              href="https://quickref.me/blog/bridging-the-gap-between-concept-and-code-a-review-of-infrasketch/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="featured-card"
+            >
+              <div className="featured-card-icon">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32">
+                  <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zm-2-7H8v-2h8v2zm0 4H8v-2h8v2zm-3-8V3.5L18.5 9H13z"/>
+                </svg>
+              </div>
+              <div className="featured-card-content">
+                <span className="featured-card-platform">QuickRef.me</span>
+                <h3 className="featured-card-title">Bridging the Gap Between Concept and Code: A Review of InfraSketch</h3>
+                <p className="featured-card-description">An independent review exploring how InfraSketch bridges vibe coding and production-ready system design.</p>
+              </div>
+            </a>
           </div>
         </section>
 
