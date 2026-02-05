@@ -37,10 +37,54 @@ try:
     from app.utils.secrets import get_anthropic_api_key, get_devto_api_key
 except ImportError:
     # Fallback for Lambda where backend isn't available
+    _secrets_cache = {}
+
+    def _get_secret(secret_name: str, key_name: str = None) -> str:
+        """Fetch secret from AWS Secrets Manager with caching.
+
+        Secrets can be stored as plain strings or JSON objects.
+        If key_name is provided, extracts that key from JSON.
+        """
+        cache_key = f"{secret_name}:{key_name}" if key_name else secret_name
+        if cache_key in _secrets_cache:
+            return _secrets_cache[cache_key]
+
+        client = boto3.client("secretsmanager", region_name=os.getenv("AWS_REGION", "us-east-1"))
+        try:
+            response = client.get_secret_value(SecretId=secret_name)
+            secret = response["SecretString"]
+
+            # Try to parse as JSON if key_name provided
+            if key_name:
+                try:
+                    secret_dict = json.loads(secret)
+                    secret = secret_dict.get(key_name, secret)
+                except json.JSONDecodeError:
+                    pass  # Use raw string if not valid JSON
+
+            _secrets_cache[cache_key] = secret
+            return secret
+        except ClientError as e:
+            print(f"Error fetching secret {secret_name}: {e}")
+            return None
+
     def get_anthropic_api_key():
-        return os.environ.get("ANTHROPIC_API_KEY")
+        # Try environment variable first (for local testing)
+        key = os.environ.get("ANTHROPIC_API_KEY")
+        if key:
+            return key
+        # Then try Secrets Manager (stored as JSON with ANTHROPIC_API_KEY key)
+        secret_name = os.environ.get("ANTHROPIC_API_KEY_SECRET", "infrasketch/anthropic-api-key")
+        return _get_secret(secret_name, "ANTHROPIC_API_KEY")
+
     def get_devto_api_key():
-        return os.environ.get("DEVTO_API_KEY")
+        # Try environment variable first (for local testing)
+        key = os.environ.get("DEVTO_API_KEY")
+        if key:
+            return key
+        # Then try Secrets Manager (stored as JSON with DEVTO_API_KEY key)
+        secret_name = os.environ.get("DEVTO_API_KEY_SECRET", "infrasketch/devto-api-key")
+        return _get_secret(secret_name, "DEVTO_API_KEY")
 
 # Configuration
 TABLE_NAME = "infrasketch-blog-ideas"
@@ -62,35 +106,45 @@ CATEGORIES = [
 ]
 
 # Article generation prompt
-ARTICLE_PROMPT = """You are a senior software engineer and technical writer creating educational content for developers.
+ARTICLE_PROMPT = """You are a senior software engineer and technical writer creating educational content about system design and architecture.
 
-Write a comprehensive blog article about: {title}
+Write a blog article about: {title}
 
 Context/Outline:
 {outline}
 
 Target audience: Software engineers learning about {category}
 Tone: Professional but approachable, like a senior engineer mentoring a colleague
-Length: 2000-3000 words
+Length: 1500-2500 words
 Difficulty level: {difficulty}
 
 Article Structure:
 1. Introduction (compelling hook explaining why this topic matters)
-2. Core Concepts (explain fundamentals clearly with examples)
-3. Practical Implementation (code snippets, step-by-step guidance)
-4. Common Pitfalls (mistakes to avoid, best practices)
-5. Real-World Applications (how this is used at scale)
-6. Key Takeaways (summary of most important points)
+2. Core Concepts (explain the architecture and components clearly)
+3. How It Works (describe the system flow, data flow, and component interactions)
+4. Design Considerations (trade-offs, scaling strategies, when to use this approach)
+5. Key Takeaways (summary of most important points)
+6. Try It Yourself (InfraSketch call-to-action)
 
 Writing Guidelines:
+- Focus on CONCEPTS and ARCHITECTURE, not code implementation
 - Use markdown headers (## and ###) to organize content
-- Include code examples in appropriate languages (Python, JavaScript, Go, SQL, YAML)
-- Add bullet points for lists and key points
+- Use bullet points and lists to explain components and their relationships
 - Keep paragraphs concise (3-4 sentences max)
-- Use specific technologies and real-world examples
-- Include a natural mention of InfraSketch for visualizing architectures where relevant
+- Describe systems at a high level: what components exist, how they connect, why they're needed
+- MINIMAL CODE: Only include small config snippets or pseudo-code if absolutely necessary (most articles should have zero code)
 - NO em-dashes (—), use commas or separate sentences instead
-- End with a brief call-to-action encouraging readers to try designing their own systems
+
+InfraSketch Promotion (CRITICAL - THIS IS THE MAIN GOAL):
+- InfraSketch (https://infrasketch.net) is an AI-powered tool that generates system architecture diagrams from natural language descriptions
+- The PRIMARY PURPOSE of these articles is to drive traffic to InfraSketch
+- Mention InfraSketch 2-3 times throughout the article when discussing:
+  - Visualizing architecture ("You can visualize this architecture using [InfraSketch](https://infrasketch.net)")
+  - Planning systems ("Before building, sketch out your design with tools like [InfraSketch](https://infrasketch.net)")
+  - Understanding complex systems ("Tools like [InfraSketch](https://infrasketch.net) help you see how components connect")
+- REQUIRED: End with a "## Try It Yourself" section that includes:
+  - Encourage readers to design their own version of the system discussed
+  - Strong call-to-action: "Head over to [InfraSketch](https://infrasketch.net) and describe your system in plain English. In seconds, you'll have a professional architecture diagram, complete with a design document. No drawing skills required."
 
 Keywords to incorporate naturally: {keywords}
 

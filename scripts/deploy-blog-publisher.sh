@@ -22,9 +22,15 @@ mkdir -p /tmp/blog-publisher-deploy
 cp lambda_blog_publisher.py /tmp/blog-publisher-deploy/
 cp blog_ideas_data.py /tmp/blog-publisher-deploy/
 
-# Install dependencies
-echo "Installing dependencies..."
-pip install anthropic requests boto3 -t /tmp/blog-publisher-deploy/ --quiet --upgrade
+# Install dependencies for Lambda (Linux x86_64)
+echo "Installing dependencies for Lambda..."
+pip install anthropic requests boto3 \
+    -t /tmp/blog-publisher-deploy/ \
+    --platform manylinux2014_x86_64 \
+    --implementation cp \
+    --python-version 3.11 \
+    --only-binary=:all: \
+    --quiet --upgrade
 
 # Create zip
 echo "Creating zip file..."
