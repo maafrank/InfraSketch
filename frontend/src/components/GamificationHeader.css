@@ -7,8 +7,13 @@
   border-radius: 20px;
   font-size: 14px;
   color: #e0e0e0;
-  cursor: default;
+  cursor: pointer;
   user-select: none;
+  transition: background 0.2s ease;
+}
+
+.gamification-header:hover {
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .level-badge {
@@ -65,4 +70,8 @@
 [data-theme='light'] .gamification-header {
   background: rgba(0, 0, 0, 0.06);
   color: #333;
+}
+
+[data-theme='light'] .gamification-header:hover {
+  background: rgba(0, 0, 0, 0.1);
 }

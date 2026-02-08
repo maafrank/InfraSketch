@@ -3,6 +3,7 @@
  * Sits next to CreditBalance in the app header.
  */
 
+import { useNavigate } from 'react-router-dom';
 import { useGamification } from '../contexts/useGamification';
 import './GamificationHeader.css';
 
@@ -20,6 +21,7 @@ const LEVEL_COLORS = {
 };
 
 export default function GamificationHeader() {
+  const navigate = useNavigate();
   const { gamification, loading } = useGamification();
 
   if (loading || !gamification) return null;
@@ -30,7 +32,11 @@ export default function GamificationHeader() {
   return (
     <div
       className="gamification-header"
-      title={`${level_name} \u2022 ${xp_total} XP`}
+      title={`${level_name} \u2022 ${xp_total} XP \u2022 Click to view achievements`}
+      onClick={() => navigate('/achievements')}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter') navigate('/achievements'); }}
     >
       <div className="level-badge" style={{ borderColor: color, color }}>
         <span className="level-number">{level}</span>

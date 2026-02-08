@@ -10,7 +10,6 @@ import { SubscriptionDetailsButton } from '@clerk/clerk-react/experimental';
 import { useTheme } from '../contexts/useTheme';
 import { resetTutorial, setClerkTokenGetter, getUserCredits, getCreditHistory, getUserGamification, updateStreakReminderPreference, getSubscriptionStatus, unsubscribeFromMarketing, resubscribeToMarketing } from '../api/client';
 import ThemeToggle from './ThemeToggle';
-import AchievementsSection from './AchievementsSection';
 import './SettingsPage.css';
 
 export default function SettingsPage() {
@@ -301,9 +300,6 @@ export default function SettingsPage() {
               <p className="settings-description">Unable to load billing information.</p>
             )}
           </section>
-
-          {/* Achievements & Progress Section */}
-          <AchievementsSection />
 
           {/* Notifications Section */}
           <section className="settings-section">

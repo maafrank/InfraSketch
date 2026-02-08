@@ -15,6 +15,7 @@ import ContactPage from './components/ContactPage.jsx'
 import BlogListPage from './components/BlogListPage.jsx'
 import BlogPostPage from './components/BlogPostPage.jsx'
 import SettingsPage from './components/SettingsPage.jsx'
+import AchievementsPage from './components/AchievementsPage.jsx'
 import PricingPage from './components/PricingPage.jsx'
 import SystemDesignToolPage from './components/SystemDesignToolPage.jsx'
 import AIDiagramGeneratorPage from './components/AIDiagramGeneratorPage.jsx'
@@ -48,6 +49,7 @@ const AppRoot = (
               <Route path="/blog" element={<BlogListPage />} />
               <Route path="/blog/:slug" element={<BlogPostPage />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/achievements" element={<AchievementsPage />} />
               <Route path="/pricing" element={<PricingPage />} />
               <Route path="/tools/system-design-tool" element={<SystemDesignToolPage />} />
               <Route path="/tools/ai-diagram-generator" element={<AIDiagramGeneratorPage />} />
