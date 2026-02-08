@@ -418,6 +418,87 @@ export const resetTutorial = async () => {
 
 
 // =============================================================================
+// GAMIFICATION API
+// =============================================================================
+
+/**
+ * Get the current user's gamification state (level, XP, streak, notifications).
+ */
+export const getUserGamification = async () => {
+  const response = await client.get('/user/gamification');
+  return response.data;
+};
+
+/**
+ * Get all achievement definitions with unlock status and progress.
+ */
+export const getUserAchievements = async () => {
+  const response = await client.get('/user/gamification/achievements');
+  return response.data;
+};
+
+/**
+ * Dismiss pending gamification notifications after the user has seen them.
+ *
+ * @param {string[]} achievementIds - IDs of achievements to dismiss
+ */
+export const dismissGamificationNotifications = async (achievementIds) => {
+  const response = await client.post('/user/gamification/notifications/dismiss', {
+    achievement_ids: achievementIds,
+  });
+  return response.data;
+};
+
+/**
+ * Update streak reminder email preference.
+ *
+ * @param {boolean} enabled - Whether streak reminders should be enabled
+ * @returns {Promise<{success: boolean, streak_reminders_enabled: boolean}>}
+ */
+export const updateStreakReminderPreference = async (enabled) => {
+  const response = await client.patch('/user/gamification/streak-reminders', {
+    enabled,
+  });
+  return response.data;
+};
+
+
+// =============================================================================
+// EMAIL SUBSCRIPTION API
+// =============================================================================
+
+/**
+ * Get the current user's marketing email subscription status.
+ *
+ * @returns {Promise<{subscribed: boolean, email: string}>}
+ */
+export const getSubscriptionStatus = async () => {
+  const response = await client.get('/subscription/status');
+  return response.data;
+};
+
+/**
+ * Unsubscribe the current user from marketing emails.
+ *
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+export const unsubscribeFromMarketing = async () => {
+  const response = await client.post('/unsubscribe');
+  return response.data;
+};
+
+/**
+ * Re-subscribe the current user to marketing emails.
+ *
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+export const resubscribeToMarketing = async () => {
+  const response = await client.post('/resubscribe');
+  return response.data;
+};
+
+
+// =============================================================================
 // BILLING API
 // =============================================================================
 

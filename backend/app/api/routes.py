@@ -38,6 +38,10 @@ from app.utils.secrets import get_anthropic_api_key
 from app.billing.storage import get_user_credits_storage
 from app.billing.credit_costs import calculate_cost
 from app.billing.promo_codes import redeem_promo_code, validate_promo_code
+from app.gamification.engine import process_action
+from app.gamification.storage import get_gamification_storage
+from app.gamification.achievements import get_achievement_progress, ACHIEVEMENT_DEFINITIONS
+from app.gamification.xp import get_level_progress
 import json
 import base64
 import time
@@ -436,6 +440,15 @@ def _generate_diagram_background(session_id: str, prompt: str, model: str, user_
         print(f"Duration: {duration_ms:.0f}ms")
         print(f"========================================\n")
 
+        # Gamification: track diagram generation and session creation
+        session = session_manager.get_session(session_id)
+        if session:
+            process_action(session.user_id, "session_created", {"model": model})
+            process_action(session.user_id, "diagram_generated", {
+                "node_count": len(diagram.nodes),
+                "model": model,
+            })
+
     except Exception as e:
         import traceback
         print(f"Error generating diagram in background: {str(e)}")
@@ -712,6 +725,12 @@ async def chat(request: ChatRequest, http_request: Request, background_tasks: Ba
             message=request.message,  # Include actual message for analytics
         )
 
+        # Gamification: track chat message
+        gamification_result = process_action(user_id, "chat_message", {
+            "node_id": request.node_id,
+            "model": model_to_use,
+        })
+
         # Generate session name in background if this was the first message
         if needs_name:
             background_tasks.add_task(_generate_session_name_from_content, request.session_id, session.model)
@@ -723,7 +742,8 @@ async def chat(request: ChatRequest, http_request: Request, background_tasks: Ba
             response=response_text,
             diagram=response_diagram,
             design_doc=response_design_doc,
-            suggestions=suggestions
+            suggestions=suggestions,
+            gamification=gamification_result,
         )
 
     except HTTPException:
@@ -841,6 +861,9 @@ async def create_blank_session(http_request: Request):
         metadata={"action": "create_blank_session"},
     )
 
+    # Gamification: track session creation
+    process_action(user_id, "session_created", {"model": "claude-haiku-4-5"})
+
     return {
         "session_id": session_id,
         "diagram": empty_diagram
@@ -888,6 +911,9 @@ async def add_node(session_id: str, node: Node, http_request: Request, backgroun
         user_ip=user_ip,
         metadata={"node_id": node.id, "node_type": node.type},
     )
+
+    # Gamification: track node addition
+    process_action(user_id, "node_added", {"node_type": node.type})
 
     return session.diagram
 
@@ -994,6 +1020,9 @@ async def add_edge(session_id: str, edge: Edge, http_request: Request):
 
     # Persist to storage (critical for DynamoDB in production)
     session_manager.update_diagram(session_id, session.diagram)
+
+    # Gamification: track edge addition
+    process_action(user_id, "edge_added")
 
     return session.diagram
 
@@ -1262,6 +1291,9 @@ async def create_node_group(
         metadata={"node_id": group_id, "node_type": "group", "child_count": len(child_nodes)},
     )
 
+    # Gamification: track group creation
+    process_action(user_id, "group_created")
+
     return CreateGroupResponse(diagram=session.diagram, group_id=group_id)
 
 
@@ -1307,6 +1339,10 @@ async def toggle_group_collapse(
         user_ip=user_ip,
         metadata={"node_id": group_id, "is_collapsed": group_node.is_collapsed},
     )
+
+    # Gamification: track group collapse (only when collapsing, not expanding)
+    if group_node.is_collapsed:
+        process_action(user_id, "group_collapsed")
 
     return session.diagram
 
@@ -1539,6 +1575,10 @@ async def export_design_doc(session_id: str, request: ExportRequest, format: str
             success=True,
         )
 
+        # Gamification: track export
+        if user_id:
+            process_action(user_id, "export_completed", {"format": format})
+
         return JSONResponse(content=result)
 
     except ImportError as e:
@@ -1616,6 +1656,10 @@ def _generate_design_doc_background(session_id: str, user_ip: str):
 
         print(f"Generated and stored design doc ({len(markdown_content)} chars)")
         print(f"========================================\n")
+
+        # Gamification: track design doc generation
+        if session:
+            process_action(session.user_id, "design_doc_generated")
 
     except Exception as e:
         import traceback
@@ -2104,6 +2148,44 @@ async def unsubscribe_authenticated(http_request: Request):
         raise HTTPException(status_code=500, detail=f"Failed to unsubscribe: {str(e)}")
 
 
+@router.post("/resubscribe")
+async def resubscribe_authenticated(http_request: Request):
+    """
+    Re-subscribe the current authenticated user to marketing emails.
+    """
+    user_id = getattr(http_request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
+
+    try:
+        storage = get_subscriber_storage()
+        success = storage.resubscribe(user_id)
+
+        if not success:
+            raise HTTPException(status_code=404, detail="Subscriber not found")
+
+        log_event(
+            EventType.API_REQUEST,
+            user_ip=http_request.client.host if http_request.client else None,
+            metadata={
+                "endpoint": "/resubscribe",
+                "user_id": user_id,
+            }
+        )
+
+        return {"success": True, "message": "You have been re-subscribed to email notifications."}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        log_error(
+            error_type="resubscribe_failed",
+            error_message=str(e),
+            user_ip=http_request.client.host if http_request.client else None,
+        )
+        raise HTTPException(status_code=500, detail=f"Failed to re-subscribe: {str(e)}")
+
+
 @router.get("/unsubscribe/{token}", response_class=HTMLResponse)
 async def unsubscribe_via_token(token: str, http_request: Request):
     """
@@ -2497,6 +2579,133 @@ async def reset_tutorial(http_request: Request):
         raise HTTPException(status_code=500, detail="Failed to reset tutorial status")
 
     return {"success": True, "message": "Tutorial reset successfully"}
+
+
+# =============================================================================
+# GAMIFICATION ENDPOINTS
+# =============================================================================
+
+
+@router.get("/user/gamification")
+async def get_user_gamification(http_request: Request):
+    """Get the user's gamification state (level, XP, streak, pending notifications)."""
+    user_id = getattr(http_request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
+
+    storage = get_gamification_storage()
+    gamification = storage.get_or_create(user_id)
+
+    level_info = get_level_progress(gamification.xp_total)
+
+    # Build pending notification details
+    pending = []
+    for notif in gamification.pending_notifications:
+        from app.gamification.achievements import ACHIEVEMENTS_BY_ID
+        defn = ACHIEVEMENTS_BY_ID.get(notif.id, {})
+        pending.append({
+            "id": notif.id,
+            "unlocked_at": notif.unlocked_at.isoformat(),
+            "name": defn.get("name", notif.id),
+            "description": defn.get("description", ""),
+            "rarity": defn.get("rarity", "common"),
+        })
+
+    return {
+        "xp_total": gamification.xp_total,
+        "xp_to_next_level": level_info["xp_to_next_level"],
+        "xp_current_level_start": level_info["xp_current_level_start"],
+        "xp_next_level_threshold": level_info["xp_next_level_threshold"],
+        "level": gamification.level,
+        "level_name": gamification.level_name,
+        "level_color": level_info["level_color"],
+        "current_streak": gamification.current_streak,
+        "longest_streak": gamification.longest_streak,
+        "achievement_count": len(gamification.achievements),
+        "total_achievements": len(ACHIEVEMENT_DEFINITIONS),
+        "pending_notifications": pending,
+        "streak_reminders_enabled": gamification.streak_reminders_enabled,
+    }
+
+
+@router.get("/user/gamification/achievements")
+async def get_user_achievements(http_request: Request):
+    """Get all achievement definitions with unlock status and progress."""
+    user_id = getattr(http_request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
+
+    storage = get_gamification_storage()
+    gamification = storage.get_or_create(user_id)
+
+    achievements = get_achievement_progress(gamification)
+
+    # Compute stats by category
+    by_category = {}
+    for a in achievements:
+        cat = a["category"]
+        if cat not in by_category:
+            by_category[cat] = {"unlocked": 0, "total": 0}
+        by_category[cat]["total"] += 1
+        if a["unlocked"]:
+            by_category[cat]["unlocked"] += 1
+
+    unlocked_count = sum(1 for a in achievements if a["unlocked"])
+
+    return {
+        "achievements": achievements,
+        "stats": {
+            "unlocked": unlocked_count,
+            "total": len(achievements),
+            "by_category": by_category,
+        },
+    }
+
+
+class DismissNotificationsRequest(BaseModel):
+    achievement_ids: list[str]
+
+
+@router.post("/user/gamification/notifications/dismiss")
+async def dismiss_gamification_notifications(
+    request: DismissNotificationsRequest, http_request: Request
+):
+    """Clear pending notifications after the user has seen them."""
+    user_id = getattr(http_request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
+
+    storage = get_gamification_storage()
+    gamification = storage.get_or_create(user_id)
+
+    ids_to_dismiss = set(request.achievement_ids)
+    gamification.pending_notifications = [
+        n for n in gamification.pending_notifications if n.id not in ids_to_dismiss
+    ]
+    storage.save(gamification)
+
+    return {"success": True}
+
+
+class StreakReminderPreferenceRequest(BaseModel):
+    enabled: bool
+
+
+@router.patch("/user/gamification/streak-reminders")
+async def update_streak_reminder_preference(
+    request: StreakReminderPreferenceRequest, http_request: Request
+):
+    """Update whether the user receives streak reminder emails."""
+    user_id = getattr(http_request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User authentication required")
+
+    storage = get_gamification_storage()
+    gamification = storage.get_or_create(user_id)
+    gamification.streak_reminders_enabled = request.enabled
+    storage.save(gamification)
+
+    return {"success": True, "streak_reminders_enabled": request.enabled}
 
 
 # =============================================================================
@@ -2977,6 +3186,16 @@ Feel free to explore the diagram and ask me anything!"""
         print(f"Generated diagram: {len(diagram.nodes)} nodes, {len(diagram.edges)} edges")
         print(f"Duration: {duration_ms:.0f}ms")
         print(f"========================================\n")
+
+        # Gamification: track repo analysis and session creation
+        session = session_manager.get_session(session_id)
+        if session:
+            process_action(session.user_id, "session_created", {"model": model})
+            process_action(session.user_id, "repo_analyzed")
+            process_action(session.user_id, "diagram_generated", {
+                "node_count": len(diagram.nodes),
+                "model": model,
+            })
 
         analyzer.close()
 

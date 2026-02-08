@@ -5,6 +5,8 @@ import { toPng } from 'html-to-image';
 import { useTheme } from './contexts/useTheme';
 import { TutorialProvider } from './contexts/TutorialContext';
 import { useTutorial } from './contexts/useTutorial';
+import { GamificationProvider } from './contexts/GamificationContext';
+import { useGamification } from './contexts/useGamification';
 import LandingPage from './components/LandingPage';
 import DiagramCanvas from './components/DiagramCanvas';
 import ChatPanel from './components/ChatPanel';
@@ -15,6 +17,8 @@ import NodePalette from './components/NodePalette';
 // ThemeToggle removed - terminal theme is always dark
 import TutorialOverlay from './components/tutorial/TutorialOverlay';
 import CreditBalance from './components/CreditBalance';
+import GamificationHeader from './components/GamificationHeader';
+import AchievementToast from './components/AchievementToast';
 import InsufficientCreditsModal from './components/InsufficientCreditsModal';
 import {
   generateDiagram,
@@ -67,14 +71,17 @@ function App({ resumeMode = false }) {
 
   return (
     <TutorialProvider isSignedIn={isSignedIn} isMobile={isMobile} getToken={getToken}>
-      <AppContent resumeMode={resumeMode} isMobile={isMobile} />
+      <GamificationProvider isSignedIn={isSignedIn} getToken={getToken}>
+        <AppContent resumeMode={resumeMode} isMobile={isMobile} />
+      </GamificationProvider>
     </TutorialProvider>
   );
 }
 
-// AppContent - can use useTutorial since it's inside TutorialProvider
+// AppContent - can use useTutorial and useGamification since it's inside their providers
 function AppContent({ resumeMode = false, isMobile }) {
   useTheme();
+  const { processGamificationResult } = useGamification();
   const [sessionId, setSessionId] = useState(null);
   const [sessionName, setSessionName] = useState(null);
   const [diagram, setDiagram] = useState(null);
@@ -473,6 +480,11 @@ function AppContent({ resumeMode = false, isMobile }) {
       // Update suggestions from chat response
       if (response.suggestions) {
         setSuggestions(response.suggestions);
+      }
+
+      // Process gamification result from chat response
+      if (response.gamification) {
+        processGamificationResult(response.gamification);
       }
 
       // Poll for session name if this was the first message (no session name yet)
@@ -982,6 +994,7 @@ function AppContent({ resumeMode = false, isMobile }) {
   return (
       <div className="app">
         <TutorialOverlay />
+        <AchievementToast />
         <header className="app-header">
         <div
           className="app-title"
@@ -1036,6 +1049,7 @@ function AppContent({ resumeMode = false, isMobile }) {
             )}
           </div>
           <SignedIn>
+            <GamificationHeader />
             <CreditBalance
               onUpgradeClick={() => navigate('/pricing')}
               onRefresh={setRefreshCredits}

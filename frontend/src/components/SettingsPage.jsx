@@ -8,8 +8,9 @@ import { useNavigate } from 'react-router-dom';
 import { SignedIn, SignedOut, SignInButton, UserButton, useAuth } from '@clerk/clerk-react';
 import { SubscriptionDetailsButton } from '@clerk/clerk-react/experimental';
 import { useTheme } from '../contexts/useTheme';
-import { resetTutorial, setClerkTokenGetter, getUserCredits, getCreditHistory } from '../api/client';
+import { resetTutorial, setClerkTokenGetter, getUserCredits, getCreditHistory, getUserGamification, updateStreakReminderPreference, getSubscriptionStatus, unsubscribeFromMarketing, resubscribeToMarketing } from '../api/client';
 import ThemeToggle from './ThemeToggle';
+import AchievementsSection from './AchievementsSection';
 import './SettingsPage.css';
 
 export default function SettingsPage() {
@@ -30,6 +31,12 @@ export default function SettingsPage() {
   const [transactions, setTransactions] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
 
+  // Notification preferences
+  const [streakRemindersEnabled, setStreakRemindersEnabled] = useState(true);
+  const [streakRemindersLoading, setStreakRemindersLoading] = useState(false);
+  const [marketingEmailsEnabled, setMarketingEmailsEnabled] = useState(false);
+  const [marketingEmailsLoading, setMarketingEmailsLoading] = useState(false);
+
   // Fetch credits on mount
   const fetchCredits = useCallback(async () => {
     if (!isSignedIn) return;
@@ -46,6 +53,56 @@ export default function SettingsPage() {
   useEffect(() => {
     fetchCredits();
   }, [fetchCredits]);
+
+  // Fetch notification preferences on mount
+  useEffect(() => {
+    const fetchNotificationPrefs = async () => {
+      if (!isSignedIn) return;
+      try {
+        const [gamificationData, subscriptionData] = await Promise.all([
+          getUserGamification(),
+          getSubscriptionStatus(),
+        ]);
+        if (gamificationData.streak_reminders_enabled !== undefined) {
+          setStreakRemindersEnabled(gamificationData.streak_reminders_enabled);
+        }
+        setMarketingEmailsEnabled(subscriptionData.subscribed);
+      } catch (error) {
+        console.error('Failed to fetch notification preferences:', error);
+      }
+    };
+    fetchNotificationPrefs();
+  }, [isSignedIn]);
+
+  const handleStreakRemindersToggle = async () => {
+    const newValue = !streakRemindersEnabled;
+    setStreakRemindersLoading(true);
+    try {
+      await updateStreakReminderPreference(newValue);
+      setStreakRemindersEnabled(newValue);
+    } catch (error) {
+      console.error('Failed to update streak reminder preference:', error);
+    } finally {
+      setStreakRemindersLoading(false);
+    }
+  };
+
+  const handleMarketingEmailsToggle = async () => {
+    const newValue = !marketingEmailsEnabled;
+    setMarketingEmailsLoading(true);
+    try {
+      if (newValue) {
+        await resubscribeToMarketing();
+      } else {
+        await unsubscribeFromMarketing();
+      }
+      setMarketingEmailsEnabled(newValue);
+    } catch (error) {
+      console.error('Failed to update marketing email preference:', error);
+    } finally {
+      setMarketingEmailsLoading(false);
+    }
+  };
 
   const handleViewHistory = async () => {
     if (showHistory) {
@@ -243,6 +300,56 @@ export default function SettingsPage() {
             ) : (
               <p className="settings-description">Unable to load billing information.</p>
             )}
+          </section>
+
+          {/* Achievements & Progress Section */}
+          <AchievementsSection />
+
+          {/* Notifications Section */}
+          <section className="settings-section">
+            <h2>Notifications</h2>
+            <div className="settings-row">
+              <div>
+                <h3>Marketing Emails</h3>
+                <p className="settings-description">
+                  Receive emails about new features, updates, and announcements from InfraSketch.
+                </p>
+              </div>
+              <div className="settings-row-control">
+                <span className="theme-label">
+                  {marketingEmailsEnabled ? 'On' : 'Off'}
+                </span>
+                <button
+                  className={`settings-toggle ${marketingEmailsEnabled ? 'active' : ''}`}
+                  onClick={handleMarketingEmailsToggle}
+                  disabled={marketingEmailsLoading}
+                  aria-label="Toggle marketing emails"
+                >
+                  <span className="settings-toggle-slider" />
+                </button>
+              </div>
+            </div>
+            <div className="settings-row">
+              <div>
+                <h3>Streak Reminders</h3>
+                <p className="settings-description">
+                  Receive a daily email reminder when your streak is at risk of breaking. Sent once per day at noon EST if you have not been active yet.
+                </p>
+              </div>
+              <div className="settings-row-control">
+                <span className="theme-label">
+                  {streakRemindersEnabled ? 'On' : 'Off'}
+                </span>
+                <button
+                  className={`settings-toggle ${streakRemindersEnabled ? 'active' : ''}`}
+                  onClick={handleStreakRemindersToggle}
+                  disabled={streakRemindersLoading}
+                  aria-label="Toggle streak reminders"
+                >
+                  <span className="settings-toggle-slider" />
+                </button>
+              </div>
+            </div>
           </section>
 
           {/* Tutorial Section */}

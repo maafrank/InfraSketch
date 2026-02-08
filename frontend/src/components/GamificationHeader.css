@@ -1,0 +1,68 @@
+.gamification-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  font-size: 14px;
+  color: #e0e0e0;
+  cursor: default;
+  user-select: none;
+}
+
+.level-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 2px solid;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.streak-indicator {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.streak-fire {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.streak-count {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .gamification-header {
+    padding: 3px 7px;
+    gap: 5px;
+  }
+
+  .level-badge {
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
+  }
+
+  .streak-fire {
+    font-size: 14px;
+  }
+
+  .streak-count {
+    font-size: 12px;
+  }
+}
+
+/* Light theme support */
+[data-theme='light'] .gamification-header {
+  background: rgba(0, 0, 0, 0.06);
+  color: #333;
+}

@@ -116,6 +116,7 @@ class ChatResponse(BaseModel):
     diagram: Optional[Diagram] = None
     design_doc: Optional[str] = None  # Updated design document content
     suggestions: List[str] = Field(default_factory=list)  # AI-generated follow-up suggestions
+    gamification: Optional[dict] = None  # XP, achievements, streak updates
 
 
 class CreateGroupRequest(BaseModel):
