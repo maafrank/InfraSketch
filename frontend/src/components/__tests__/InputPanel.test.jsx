@@ -37,13 +37,14 @@ describe('InputPanel', () => {
       expect(select).toHaveValue('claude-haiku-4-5');
     });
 
-    it('renders both model options', () => {
+    it('renders all model options', () => {
       render(<InputPanel {...defaultProps} />);
 
       const options = screen.getAllByRole('option');
-      expect(options).toHaveLength(2);
+      expect(options).toHaveLength(3);
       expect(options[0]).toHaveTextContent('Claude Haiku 4.5');
       expect(options[1]).toHaveTextContent('Claude Sonnet 4.5');
+      expect(options[2]).toHaveTextContent('Claude Opus 4.5');
     });
 
     it('renders textarea with placeholder', () => {

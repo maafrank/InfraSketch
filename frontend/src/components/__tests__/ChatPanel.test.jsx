@@ -54,13 +54,14 @@ describe('ChatPanel', () => {
       expect(select).toHaveValue('claude-haiku-4-5');
     });
 
-    it('renders both model options', () => {
+    it('renders all model options', () => {
       render(<ChatPanel {...defaultProps} />);
 
       const options = screen.getAllByRole('option');
-      expect(options).toHaveLength(2);
+      expect(options).toHaveLength(3);
       expect(options[0]).toHaveValue('claude-haiku-4-5');
       expect(options[1]).toHaveValue('claude-sonnet-4-5');
+      expect(options[2]).toHaveValue('claude-opus-4-5');
     });
 
     it('renders textarea for input', () => {

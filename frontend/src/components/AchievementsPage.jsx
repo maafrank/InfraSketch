@@ -5,14 +5,12 @@
 
 import { useNavigate } from 'react-router-dom';
 import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react';
-import { useTheme } from '../contexts/useTheme';
 import ThemeToggle from './ThemeToggle';
 import AchievementsSection from './AchievementsSection';
 import './SettingsPage.css';
 
 export default function AchievementsPage() {
   const navigate = useNavigate();
-  const { theme } = useTheme();
 
   return (
     <div className="settings-page">
