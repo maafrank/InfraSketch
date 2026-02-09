@@ -878,9 +878,9 @@ body {
   margin-bottom: 2rem;
 }
 
-.pricing-grid {
+.pricing-section .pricing-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
@@ -895,11 +895,38 @@ body {
   align-items: center;
   gap: 0.5rem;
   transition: all 0.2s;
+  position: relative;
+  cursor: default;
 }
 
 .pricing-card:hover {
   border-color: var(--terminal-green);
   box-shadow: 0 0 15px rgba(0, 184, 48, 0.15);
+  z-index: 1;
+}
+
+.pricing-card[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 0.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0a0a0a;
+  border: 1px solid var(--terminal-green);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--terminal-green);
+  width: 280px;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  z-index: 10;
+}
+
+.pricing-card[data-tooltip]:hover::after {
+  opacity: 1;
 }
 
 .pricing-action {

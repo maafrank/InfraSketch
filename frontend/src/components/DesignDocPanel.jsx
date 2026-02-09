@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { toPng } from 'html-to-image';
+import { addWatermark } from '../utils/watermark';
 import { marked } from 'marked';
 import TurndownService from 'turndown';
 
@@ -231,8 +232,9 @@ export default function DesignDocPanel({
         element.style.opacity = opacity;
       });
 
-      // Convert data URL to base64 (remove "data:image/png;base64," prefix)
-      return dataUrl.split(',')[1];
+      // Add watermark, then convert to base64 (remove prefix)
+      const watermarkedDataUrl = await addWatermark(dataUrl);
+      return watermarkedDataUrl.split(',')[1];
     } catch (error) {
       console.error('Failed to capture diagram:', error);
       return null;

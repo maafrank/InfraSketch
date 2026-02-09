@@ -529,6 +529,41 @@ export default function LandingPage({ onGenerate, loading }) {
         </div>
       </div>
 
+      {/* Transparent Pricing Section */}
+      <div
+        ref={pricingAnimation.ref}
+        className={`pricing-section scroll-animate ${pricingAnimation.isVisible ? 'visible' : ''}`}
+      >
+        <h2 className="pricing-heading">Transparent Pricing</h2>
+        <p className="pricing-subtext">25 free credits every month. Here's what they cost.</p>
+        <div className="pricing-grid">
+          <div className="pricing-card" data-tooltip="Describe any system and Claude designs a complete architecture with 4-8 connected components, auto-organized into semantic groups">
+            <span className="pricing-action">Diagram Generation</span>
+            <span className="pricing-amount">5-15 credits</span>
+            <span className="pricing-note">5 (Haiku) / 15 (Sonnet)</span>
+          </div>
+          <div className="pricing-card" data-tooltip="Refine your diagram through conversation. Claude can add, remove, or update components, create connections, and organize nodes into groups">
+            <span className="pricing-action">Chat Message</span>
+            <span className="pricing-amount">1-3 credits</span>
+            <span className="pricing-note">1 (Haiku) / 3 (Sonnet)</span>
+          </div>
+          <div className="pricing-card" data-tooltip="Claude writes a full technical document covering architecture overview, component details, data flow, scalability, security, and trade-offs">
+            <span className="pricing-action">Design Doc</span>
+            <span className="pricing-amount">10 credits</span>
+            <span className="pricing-note">Per document</span>
+          </div>
+          <div className="pricing-card" data-tooltip="Download a professionally formatted PDF with your diagram embedded, or export as Markdown and PNG for docs and presentations">
+            <span className="pricing-action">Export</span>
+            <span className="pricing-amount">2 credits</span>
+            <span className="pricing-note">PDF or Markdown</span>
+          </div>
+        </div>
+        <p className="pricing-footer">
+          That's 5 diagrams, 25 chat messages, or a mix. Upgrade to Pro for 500 credits/month.
+        </p>
+        <RouterLink to="/pricing" className="pricing-cta-link">See full pricing</RouterLink>
+      </div>
+
       {/* Featured On Section */}
       <div
         ref={featuredOnAnimation.ref}
@@ -675,41 +710,6 @@ export default function LandingPage({ onGenerate, loading }) {
           </a>
 
         </div>
-      </div>
-
-      {/* Transparent Pricing Section */}
-      <div
-        ref={pricingAnimation.ref}
-        className={`pricing-section scroll-animate ${pricingAnimation.isVisible ? 'visible' : ''}`}
-      >
-        <h2 className="pricing-heading">Transparent Pricing</h2>
-        <p className="pricing-subtext">25 free credits every month. Here's what they cost.</p>
-        <div className="pricing-grid">
-          <div className="pricing-card">
-            <span className="pricing-action">Diagram Generation</span>
-            <span className="pricing-amount">5 credits</span>
-            <span className="pricing-note">15 with Sonnet</span>
-          </div>
-          <div className="pricing-card">
-            <span className="pricing-action">Chat Message</span>
-            <span className="pricing-amount">1 credit</span>
-            <span className="pricing-note">3 with Sonnet</span>
-          </div>
-          <div className="pricing-card">
-            <span className="pricing-action">Design Doc</span>
-            <span className="pricing-amount">10 credits</span>
-            <span className="pricing-note">Per document</span>
-          </div>
-          <div className="pricing-card">
-            <span className="pricing-action">Export</span>
-            <span className="pricing-amount">2 credits</span>
-            <span className="pricing-note">PDF or Markdown</span>
-          </div>
-        </div>
-        <p className="pricing-footer">
-          That's 5 diagrams, 25 chat messages, or a mix. Upgrade to Pro for 500 credits/month.
-        </p>
-        <RouterLink to="/pricing" className="pricing-cta-link">See full pricing</RouterLink>
       </div>
 
       {/* Lightbox Modal */}

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { SignedIn, SignedOut, SignInButton, UserButton, useAuth, useClerk } from "@clerk/clerk-react";
 import { toPng } from 'html-to-image';
+import { addWatermark } from './utils/watermark';
 import { useTheme } from './contexts/useTheme';
 import { TutorialProvider } from './contexts/TutorialContext';
 import { useTutorial } from './contexts/useTutorial';
@@ -1005,8 +1006,9 @@ function AppContent({ resumeMode = false, isMobile }) {
         element.style.opacity = opacity;
       });
 
-      // Convert data URL to base64 and download
-      const base64 = dataUrl.split(',')[1];
+      // Add watermark and download
+      const watermarkedDataUrl = await addWatermark(dataUrl);
+      const base64 = watermarkedDataUrl.split(',')[1];
       const blob = base64ToBlob(base64, 'image/png');
       downloadBlob(blob, 'diagram.png');
     } catch (error) {
