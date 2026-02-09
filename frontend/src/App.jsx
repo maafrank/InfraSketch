@@ -81,7 +81,7 @@ function App({ resumeMode = false }) {
 // AppContent - can use useTutorial and useGamification since it's inside their providers
 function AppContent({ resumeMode = false, isMobile }) {
   useTheme();
-  const { processGamificationResult } = useGamification();
+  const { processGamificationResult, refresh: refreshGamification } = useGamification();
   const [sessionId, setSessionId] = useState(null);
   const [sessionName, setSessionName] = useState(null);
   const [diagram, setDiagram] = useState(null);
@@ -384,8 +384,9 @@ function AppContent({ resumeMode = false, isMobile }) {
           }
           // Close mobile chat modal so user can see the diagram
           setMobileChatOpen(false);
-          // Refresh credit balance immediately after successful generation
+          // Refresh credit balance and gamification immediately after successful generation
           if (refreshCredits) refreshCredits();
+          refreshGamification();
         } else {
           throw new Error(result.error || 'Failed to generate diagram');
         }
@@ -808,8 +809,9 @@ function AppContent({ resumeMode = false, isMobile }) {
 
       if (result.success) {
         setDesignDoc(result.design_doc);
-        // Refresh credit balance immediately after successful generation
+        // Refresh credit balance and gamification immediately after successful generation
         if (refreshCredits) refreshCredits();
+        refreshGamification();
       } else {
         throw new Error(result.error || 'Failed to generate design document');
       }
