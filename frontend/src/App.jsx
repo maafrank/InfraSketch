@@ -384,6 +384,8 @@ function AppContent({ resumeMode = false, isMobile }) {
           }
           // Close mobile chat modal so user can see the diagram
           setMobileChatOpen(false);
+          // Refresh credit balance immediately after successful generation
+          if (refreshCredits) refreshCredits();
         } else {
           throw new Error(result.error || 'Failed to generate diagram');
         }
@@ -495,6 +497,9 @@ function AppContent({ resumeMode = false, isMobile }) {
           // Session name polling failed - non-critical, ignore
         });
       }
+
+      // Refresh credit balance immediately after successful chat
+      if (refreshCredits) refreshCredits();
     } catch (error) {
       console.error('Failed to send message:', error);
 
@@ -803,6 +808,8 @@ function AppContent({ resumeMode = false, isMobile }) {
 
       if (result.success) {
         setDesignDoc(result.design_doc);
+        // Refresh credit balance immediately after successful generation
+        if (refreshCredits) refreshCredits();
       } else {
         throw new Error(result.error || 'Failed to generate design document');
       }
