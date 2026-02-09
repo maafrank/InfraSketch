@@ -40,9 +40,9 @@ export default function BlogListPage() {
   return (
     <div className="blog-page">
       <Helmet>
-        <title>System Design Blog | InfraSketch</title>
-        <meta name="description" content="Learn about system design, software architecture patterns, and AI-powered development tools. Tutorials, guides, and best practices for engineers." />
-        <meta name="keywords" content="system design blog, software architecture tutorials, AI diagram generation, system design interview prep, distributed systems, cloud architecture, microservices patterns" />
+        <title>System Design & AI Architecture Blog | InfraSketch</title>
+        <meta name="description" content="Learn about system design, AI/ML architecture patterns, LLM system design, and software engineering best practices. Tutorials, guides, and interview prep for engineers." />
+        <meta name="keywords" content="system design blog, AI architecture blog, machine learning system design, LLM system design, RAG architecture, MLOps, software architecture tutorials, AI diagram generation, system design interview prep, distributed systems, cloud architecture, microservices patterns" />
         <link rel="canonical" href="https://infrasketch.net/blog" />
 
         {/* Open Graph */}
@@ -73,6 +73,96 @@ export default function BlogListPage() {
           <h2 className="featured-title">Featured Articles & Videos</h2>
           <p className="featured-subtitle">More InfraSketch content across the web</p>
           <div className="featured-cards">
+            <a
+              href="https://dev.to/matt_frank_usa/6-machine-learning-system-design-patterns-every-engineer-should-know-1a0e"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="featured-card"
+            >
+              <div className="featured-card-icon">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32">
+                  <path d="M7.42 10.05c-.18-.16-.46-.23-.84-.23H6v4.36h.58c.37 0 .65-.08.84-.23.21-.17.32-.44.32-.84v-2.22c0-.4-.11-.68-.32-.84zm3.75-.23h-.78v4.36h.78c.42 0 .72-.1.91-.3.2-.2.3-.5.3-.88v-2c0-.38-.1-.68-.3-.88-.19-.2-.49-.3-.91-.3zM22 7.25v9.5c0 1-.81 1.75-1.75 1.75H3.75C2.75 18.5 2 17.75 2 16.75v-9.5C2 6.25 2.75 5.5 3.75 5.5h16.5c.94 0 1.75.75 1.75 1.75zM8.8 14.18c0 .57-.14 1-.43 1.3-.28.3-.7.45-1.24.45H5.5V8.07h1.63c.54 0 .96.15 1.24.44.3.3.43.73.43 1.3v4.37zm4.7-1.43c0 .62-.16 1.1-.47 1.45-.31.35-.76.53-1.34.53h-1.7V8.07h1.7c.58 0 1.03.18 1.34.53.31.35.47.83.47 1.45v2.7zm5-4.68h-3.5v6.11h1.3v-2.25h2.2V10.6h-2.2V9.37h2.2V8.07z"/>
+                </svg>
+              </div>
+              <div className="featured-card-content">
+                <span className="featured-card-platform">Dev.to</span>
+                <h3 className="featured-card-title">6 Machine Learning System Design Patterns Every Engineer Should Know</h3>
+                <p className="featured-card-description">Master the essential ML patterns for production: batch prediction, real-time inference, feature stores, and more.</p>
+              </div>
+            </a>
+
+            <a
+              href="https://dev.to/matt_frank_usa/how-to-design-llm-applications-for-production-a-system-design-guide-2i3h"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="featured-card"
+            >
+              <div className="featured-card-icon">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32">
+                  <path d="M7.42 10.05c-.18-.16-.46-.23-.84-.23H6v4.36h.58c.37 0 .65-.08.84-.23.21-.17.32-.44.32-.84v-2.22c0-.4-.11-.68-.32-.84zm3.75-.23h-.78v4.36h.78c.42 0 .72-.1.91-.3.2-.2.3-.5.3-.88v-2c0-.38-.1-.68-.3-.88-.19-.2-.49-.3-.91-.3zM22 7.25v9.5c0 1-.81 1.75-1.75 1.75H3.75C2.75 18.5 2 17.75 2 16.75v-9.5C2 6.25 2.75 5.5 3.75 5.5h16.5c.94 0 1.75.75 1.75 1.75zM8.8 14.18c0 .57-.14 1-.43 1.3-.28.3-.7.45-1.24.45H5.5V8.07h1.63c.54 0 .96.15 1.24.44.3.3.43.73.43 1.3v4.37zm4.7-1.43c0 .62-.16 1.1-.47 1.45-.31.35-.76.53-1.34.53h-1.7V8.07h1.7c.58 0 1.03.18 1.34.53.31.35.47.83.47 1.45v2.7zm5-4.68h-3.5v6.11h1.3v-2.25h2.2V10.6h-2.2V9.37h2.2V8.07z"/>
+                </svg>
+              </div>
+              <div className="featured-card-content">
+                <span className="featured-card-platform">Dev.to</span>
+                <h3 className="featured-card-title">How to Design LLM Applications for Production</h3>
+                <p className="featured-card-description">A system design guide covering RAG pipelines, vector databases, agent architectures, and scaling strategies.</p>
+              </div>
+            </a>
+
+            <a
+              href="https://dev.to/matt_frank_usa/how-netflix-uber-and-google-build-ai-systems-architecture-deep-dive-17g5"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="featured-card"
+            >
+              <div className="featured-card-icon">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32">
+                  <path d="M7.42 10.05c-.18-.16-.46-.23-.84-.23H6v4.36h.58c.37 0 .65-.08.84-.23.21-.17.32-.44.32-.84v-2.22c0-.4-.11-.68-.32-.84zm3.75-.23h-.78v4.36h.78c.42 0 .72-.1.91-.3.2-.2.3-.5.3-.88v-2c0-.38-.1-.68-.3-.88-.19-.2-.49-.3-.91-.3zM22 7.25v9.5c0 1-.81 1.75-1.75 1.75H3.75C2.75 18.5 2 17.75 2 16.75v-9.5C2 6.25 2.75 5.5 3.75 5.5h16.5c.94 0 1.75.75 1.75 1.75zM8.8 14.18c0 .57-.14 1-.43 1.3-.28.3-.7.45-1.24.45H5.5V8.07h1.63c.54 0 .96.15 1.24.44.3.3.43.73.43 1.3v4.37zm4.7-1.43c0 .62-.16 1.1-.47 1.45-.31.35-.76.53-1.34.53h-1.7V8.07h1.7c.58 0 1.03.18 1.34.53.31.35.47.83.47 1.45v2.7zm5-4.68h-3.5v6.11h1.3v-2.25h2.2V10.6h-2.2V9.37h2.2V8.07z"/>
+                </svg>
+              </div>
+              <div className="featured-card-content">
+                <span className="featured-card-platform">Dev.to</span>
+                <h3 className="featured-card-title">How Netflix, Uber, and Google Build AI Systems</h3>
+                <p className="featured-card-description">Architecture deep dive into real-world AI systems at top tech companies.</p>
+              </div>
+            </a>
+
+            <a
+              href="https://dev.to/matt_frank_usa/building-multi-agent-ai-systems-architecture-patterns-and-best-practices-5cf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="featured-card"
+            >
+              <div className="featured-card-icon">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32">
+                  <path d="M7.42 10.05c-.18-.16-.46-.23-.84-.23H6v4.36h.58c.37 0 .65-.08.84-.23.21-.17.32-.44.32-.84v-2.22c0-.4-.11-.68-.32-.84zm3.75-.23h-.78v4.36h.78c.42 0 .72-.1.91-.3.2-.2.3-.5.3-.88v-2c0-.38-.1-.68-.3-.88-.19-.2-.49-.3-.91-.3zM22 7.25v9.5c0 1-.81 1.75-1.75 1.75H3.75C2.75 18.5 2 17.75 2 16.75v-9.5C2 6.25 2.75 5.5 3.75 5.5h16.5c.94 0 1.75.75 1.75 1.75zM8.8 14.18c0 .57-.14 1-.43 1.3-.28.3-.7.45-1.24.45H5.5V8.07h1.63c.54 0 .96.15 1.24.44.3.3.43.73.43 1.3v4.37zm4.7-1.43c0 .62-.16 1.1-.47 1.45-.31.35-.76.53-1.34.53h-1.7V8.07h1.7c.58 0 1.03.18 1.34.53.31.35.47.83.47 1.45v2.7zm5-4.68h-3.5v6.11h1.3v-2.25h2.2V10.6h-2.2V9.37h2.2V8.07z"/>
+                </svg>
+              </div>
+              <div className="featured-card-content">
+                <span className="featured-card-platform">Dev.to</span>
+                <h3 className="featured-card-title">Building Multi-Agent AI Systems: Architecture Patterns</h3>
+                <p className="featured-card-description">Design patterns for agentic AI, including supervisor, hierarchical, and peer-to-peer architectures with LangGraph.</p>
+              </div>
+            </a>
+
+            <a
+              href="https://dev.to/matt_frank_usa/vector-databases-explained-architecture-and-system-design-for-ai-apps-41pg"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="featured-card"
+            >
+              <div className="featured-card-icon">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32">
+                  <path d="M7.42 10.05c-.18-.16-.46-.23-.84-.23H6v4.36h.58c.37 0 .65-.08.84-.23.21-.17.32-.44.32-.84v-2.22c0-.4-.11-.68-.32-.84zm3.75-.23h-.78v4.36h.78c.42 0 .72-.1.91-.3.2-.2.3-.5.3-.88v-2c0-.38-.1-.68-.3-.88-.19-.2-.49-.3-.91-.3zM22 7.25v9.5c0 1-.81 1.75-1.75 1.75H3.75C2.75 18.5 2 17.75 2 16.75v-9.5C2 6.25 2.75 5.5 3.75 5.5h16.5c.94 0 1.75.75 1.75 1.75zM8.8 14.18c0 .57-.14 1-.43 1.3-.28.3-.7.45-1.24.45H5.5V8.07h1.63c.54 0 .96.15 1.24.44.3.3.43.73.43 1.3v4.37zm4.7-1.43c0 .62-.16 1.1-.47 1.45-.31.35-.76.53-1.34.53h-1.7V8.07h1.7c.58 0 1.03.18 1.34.53.31.35.47.83.47 1.45v2.7zm5-4.68h-3.5v6.11h1.3v-2.25h2.2V10.6h-2.2V9.37h2.2V8.07z"/>
+                </svg>
+              </div>
+              <div className="featured-card-content">
+                <span className="featured-card-platform">Dev.to</span>
+                <h3 className="featured-card-title">Vector Databases Explained: System Design for AI Apps</h3>
+                <p className="featured-card-description">Architecture guide covering embeddings, ANN algorithms, and comparison of Pinecone, Weaviate, Milvus, and pgvector.</p>
+              </div>
+            </a>
+
             <a
               href="https://dev.to/matt_frank_usa/design-system-architectures-in-minutes-with-ai-48m8"
               target="_blank"

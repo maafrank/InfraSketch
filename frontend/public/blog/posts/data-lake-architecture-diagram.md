@@ -300,6 +300,28 @@ You can then iterate: "Add a data quality layer between silver and gold" or "Inc
 - Optimize query patterns
 - Use spot instances for batch jobs
 
+## Data Lakes for Machine Learning
+
+Data lakes play a critical role in machine learning systems. They serve as the central data repository from which ML pipelines extract training data, compute features, and store model artifacts. Understanding the connection between data lake architecture and ML infrastructure is essential for designing production AI systems.
+
+### How ML Systems Use Data Lakes
+
+- **Training data management**: ML teams query the data lake to create training datasets. The medallion pattern is especially useful here, as the Gold layer provides clean, curated data ready for feature engineering.
+- **Feature engineering at scale**: Batch feature computation jobs read from the data lake and write results to a feature store. The data lake's schema-on-read flexibility makes it easy to experiment with new features.
+- **Model artifact storage**: Trained models, evaluation metrics, and experiment metadata can be stored in the data lake alongside the data that produced them.
+- **Data versioning for reproducibility**: ML requires the ability to reproduce training runs. Data lakes with versioning (Delta Lake, Apache Iceberg) support point-in-time queries that enable exact reproduction of training datasets.
+
+### Connecting Your Data Lake to ML Infrastructure
+
+A typical architecture connects the data lake to ML infrastructure through:
+
+1. **Orchestration** (Airflow, Dagster) schedules data processing and feature computation jobs
+2. **Feature store** (Feast, Tecton) bridges the data lake (offline features) with the serving layer (online features)
+3. **Training pipeline** reads features from the data lake and trains models on GPU clusters
+4. **Model registry** tracks trained models and their lineage back to specific data lake snapshots
+
+For a deep dive into ML pipeline architecture, see [AI Pipeline System Design](/blog/ai-pipeline-system-design). For feature store architecture patterns, see [Feature Store System Design](/blog/feature-store-system-design). For the complete picture of ML system design, see [Machine Learning System Design Patterns](/blog/ml-system-design-patterns).
+
 ## Conclusion
 
 A well-designed data lake architecture enables organizations to unlock value from their data assets. Whether you're building a simple analytics lake or a full lakehouse implementation, the key is to:

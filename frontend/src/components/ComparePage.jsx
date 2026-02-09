@@ -311,6 +311,21 @@ export default function ComparePage() {
             <h3>InfraSketch vs Lucidchart</h3>
             <p>AI generation vs drag-and-drop. See which approach is faster for your workflow.</p>
           </Link>
+          <Link to="/compare/system-design-primer" className="learn-more-card">
+            <span className="learn-more-icon">📁</span>
+            <h3>InfraSketch vs System Design Primer</h3>
+            <p>Interactive AI tool vs the most popular open-source system design resource.</p>
+          </Link>
+          <Link to="/compare/bytebytego" className="learn-more-card">
+            <span className="learn-more-icon">📚</span>
+            <h3>InfraSketch vs ByteByteGo</h3>
+            <p>Hands-on diagram generation vs Alex Xu's visual learning platform.</p>
+          </Link>
+          <Link to="/compare/mermaid" className="learn-more-card">
+            <span className="learn-more-icon">📝</span>
+            <h3>InfraSketch vs Mermaid/D2</h3>
+            <p>Natural language input vs diagram-as-code syntax. Two approaches to diagramming.</p>
+          </Link>
           <Link to="/tools/design-doc-generator" className="learn-more-card">
             <span className="learn-more-icon">📄</span>
             <h3>Design Doc Generator</h3>

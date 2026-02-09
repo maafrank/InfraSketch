@@ -279,6 +279,28 @@ Try this exercise: Pick a system design question, create your design on paper, t
 - [ ] Reviewed common follow-up questions
 - [ ] Prepared questions for the interviewer
 
+## AI/ML System Design Interview Questions
+
+Machine learning system design is an increasingly common interview topic, especially at companies like Google, Meta, Amazon, Netflix, and AI-focused startups. These questions test your understanding of the full ML lifecycle, not just the model itself.
+
+### Common ML System Design Questions
+
+1. **Design a recommendation system** (e.g., YouTube, Netflix, Amazon). Focus on candidate generation, ranking, feature stores, and A/B testing.
+2. **Design a real-time fraud detection system.** Cover streaming data ingestion, feature computation, model serving with low latency, and alert routing.
+3. **Design a search ranking system with ML.** Include query understanding, multi-stage retrieval, transformer-based re-ranking, and relevance feedback.
+4. **Design an ML model serving platform.** Discuss model registry, deployment strategies, scaling inference, and monitoring.
+5. **Design a RAG (Retrieval-Augmented Generation) system.** Cover document ingestion, embedding generation, vector database selection, retrieval, and generation with an LLM.
+6. **Design a content moderation system using ML.** Include multi-modal classification (text, image, video), human review queues, and feedback loops.
+7. **Design an MLOps pipeline** for continuous training and deployment. Cover data validation, automated training, model validation, and canary deployments.
+
+### How to Approach ML System Design
+
+The key difference from traditional system design is that ML systems have two planes: the **data/training plane** (offline) and the **serving plane** (online). You need to design both and explain how they connect.
+
+Use the same structured approach: clarify requirements, estimate scale, design the architecture, then deep dive into critical components. But also discuss data quality, model evaluation metrics, training-serving skew, and monitoring for drift.
+
+For comprehensive ML system design preparation, see our [Machine Learning System Design Patterns](/blog/ml-system-design-patterns) guide and [Real-World AI System Architecture](/blog/real-world-ai-system-architecture) case studies. For LLM-specific questions, check out [LLM System Design Architecture](/blog/llm-system-design-architecture).
+
 ## Conclusion
 
 System design interview prep requires consistent practice over weeks, not cramming the night before. Use a combination of theory (books, courses), practice (mock interviews), and modern tools (AI diagram generators) to build confidence.

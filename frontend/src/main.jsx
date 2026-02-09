@@ -24,6 +24,11 @@ import DesignDocGeneratorPage from './components/DesignDocGeneratorPage.jsx'
 import ComparePage from './components/ComparePage.jsx'
 import InfraSketchVsEraserPage from './components/InfraSketchVsEraserPage.jsx'
 import InfraSketchVsLucidchartPage from './components/InfraSketchVsLucidchartPage.jsx'
+import InfraSketchVsSystemDesignPrimerPage from './components/InfraSketchVsSystemDesignPrimerPage.jsx'
+import InfraSketchVsByteByteGoPage from './components/InfraSketchVsByteByteGoPage.jsx'
+import InfraSketchVsMermaidPage from './components/InfraSketchVsMermaidPage.jsx'
+import MLSystemDesignToolPage from './components/MLSystemDesignToolPage.jsx'
+import LLMArchitectureToolPage from './components/LLMArchitectureToolPage.jsx'
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
@@ -58,6 +63,11 @@ const AppRoot = (
               <Route path="/compare" element={<ComparePage />} />
               <Route path="/compare/eraser" element={<InfraSketchVsEraserPage />} />
               <Route path="/compare/lucidchart" element={<InfraSketchVsLucidchartPage />} />
+              <Route path="/compare/system-design-primer" element={<InfraSketchVsSystemDesignPrimerPage />} />
+              <Route path="/compare/bytebytego" element={<InfraSketchVsByteByteGoPage />} />
+              <Route path="/compare/mermaid" element={<InfraSketchVsMermaidPage />} />
+              <Route path="/tools/ml-system-design-tool" element={<MLSystemDesignToolPage />} />
+              <Route path="/tools/llm-architecture-tool" element={<LLMArchitectureToolPage />} />
             </Routes>
           </BrowserRouter>
         </ThemeProvider>

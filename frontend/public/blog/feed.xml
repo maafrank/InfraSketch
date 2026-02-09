@@ -5,13 +5,130 @@
     <link>https://infrasketch.net/blog</link>
     <description>System design tutorials, architecture patterns, and AI-powered diagram generation tips from InfraSketch</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 13 Jan 2026 00:00:00 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 08 Feb 2026 00:00:00 GMT</lastBuildDate>
     <atom:link href="https://infrasketch.net/blog/feed.xml" rel="self" type="application/rss+xml"/>
     <image>
       <url>https://infrasketch.net/InfraSketchLogoTransparent_02.png</url>
       <title>InfraSketch Blog</title>
       <link>https://infrasketch.net/blog</link>
     </image>
+
+    <item>
+      <title>Machine Learning System Design Patterns: The Complete Guide</title>
+      <link>https://infrasketch.net/blog/ml-system-design-patterns</link>
+      <guid isPermaLink="true">https://infrasketch.net/blog/ml-system-design-patterns</guid>
+      <pubDate>Sat, 08 Feb 2026 00:00:00 GMT</pubDate>
+      <description>Complete guide to ML system design patterns covering end-to-end pipelines, feature stores, model serving, training infrastructure, and production monitoring. Includes interview prep and real-world examples.</description>
+      <category>ai-ml</category>
+    </item>
+
+    <item>
+      <title>LLM System Design Architecture: Building Production AI Applications</title>
+      <link>https://infrasketch.net/blog/llm-system-design-architecture</link>
+      <guid isPermaLink="true">https://infrasketch.net/blog/llm-system-design-architecture</guid>
+      <pubDate>Sat, 08 Feb 2026 00:00:00 GMT</pubDate>
+      <description>How to design production LLM applications including RAG systems, chatbot architectures, agent frameworks with LangGraph, vector databases, and scaling strategies.</description>
+      <category>ai-ml</category>
+    </item>
+
+    <item>
+      <title>Real-World AI System Architecture: Case Studies from Netflix, Uber, and More</title>
+      <link>https://infrasketch.net/blog/real-world-ai-system-architecture</link>
+      <guid isPermaLink="true">https://infrasketch.net/blog/real-world-ai-system-architecture</guid>
+      <pubDate>Sat, 08 Feb 2026 00:00:00 GMT</pubDate>
+      <description>Deep-dive case studies of AI architectures at Netflix, Uber, Google, Spotify, and more. Learn how top companies design recommendation engines, search ranking, and ML platforms.</description>
+      <category>ai-ml</category>
+    </item>
+
+    <item>
+      <title>Agentic AI System Architecture: Designing Multi-Agent Systems</title>
+      <link>https://infrasketch.net/blog/agentic-ai-system-architecture</link>
+      <guid isPermaLink="true">https://infrasketch.net/blog/agentic-ai-system-architecture</guid>
+      <pubDate>Sat, 08 Feb 2026 00:00:00 GMT</pubDate>
+      <description>Design patterns for agentic AI systems including single-agent, multi-agent, supervisor, and hierarchical architectures. Covers LangGraph, tool integration, and production deployment.</description>
+      <category>ai-ml</category>
+    </item>
+
+    <item>
+      <title>ML Model Serving System Design: From Prototype to Production</title>
+      <link>https://infrasketch.net/blog/ml-model-serving-system-design</link>
+      <guid isPermaLink="true">https://infrasketch.net/blog/ml-model-serving-system-design</guid>
+      <pubDate>Sat, 08 Feb 2026 00:00:00 GMT</pubDate>
+      <description>Complete guide to ML model serving architecture covering real-time inference, batch prediction, scaling strategies, A/B testing, and latency optimization patterns.</description>
+      <category>ai-ml</category>
+    </item>
+
+    <item>
+      <title>Vector Database System Design: Architecture for AI Applications</title>
+      <link>https://infrasketch.net/blog/vector-database-system-design</link>
+      <guid isPermaLink="true">https://infrasketch.net/blog/vector-database-system-design</guid>
+      <pubDate>Sat, 08 Feb 2026 00:00:00 GMT</pubDate>
+      <description>Architecture guide for vector databases covering embeddings, ANN algorithms, indexing strategies, and integration with RAG systems. Compares Pinecone, Weaviate, Milvus, pgvector, and Qdrant.</description>
+      <category>ai-ml</category>
+    </item>
+
+    <item>
+      <title>AI Pipeline System Design: Data Ingestion, Training, and Serving</title>
+      <link>https://infrasketch.net/blog/ai-pipeline-system-design</link>
+      <guid isPermaLink="true">https://infrasketch.net/blog/ai-pipeline-system-design</guid>
+      <pubDate>Sat, 08 Feb 2026 00:00:00 GMT</pubDate>
+      <description>End-to-end AI pipeline architecture covering data ingestion, feature engineering, model training, validation, deployment, and monitoring with orchestration patterns.</description>
+      <category>ai-ml</category>
+    </item>
+
+    <item>
+      <title>MLOps System Design: Reference Architecture for 2026</title>
+      <link>https://infrasketch.net/blog/mlops-system-design</link>
+      <guid isPermaLink="true">https://infrasketch.net/blog/mlops-system-design</guid>
+      <pubDate>Sat, 08 Feb 2026 00:00:00 GMT</pubDate>
+      <description>Reference architecture for MLOps covering CI/CD for ML, experiment tracking, model registry, automated retraining, monitoring, and drift detection at scale.</description>
+      <category>ai-ml</category>
+    </item>
+
+    <item>
+      <title>Feature Store System Design: Architecture and Patterns</title>
+      <link>https://infrasketch.net/blog/feature-store-system-design</link>
+      <guid isPermaLink="true">https://infrasketch.net/blog/feature-store-system-design</guid>
+      <pubDate>Sat, 08 Feb 2026 00:00:00 GMT</pubDate>
+      <description>Design patterns for feature stores covering offline and online serving, feature computation, consistency, and integration with ML training and serving pipelines.</description>
+      <category>ai-ml</category>
+    </item>
+
+    <item>
+      <title>Streaming ML System Design: Real-Time Machine Learning Architecture</title>
+      <link>https://infrasketch.net/blog/streaming-ml-system-design</link>
+      <guid isPermaLink="true">https://infrasketch.net/blog/streaming-ml-system-design</guid>
+      <pubDate>Sat, 08 Feb 2026 00:00:00 GMT</pubDate>
+      <description>Architecture patterns for real-time ML systems covering stream processing, online feature computation, low-latency inference, and fraud detection case studies.</description>
+      <category>ai-ml</category>
+    </item>
+
+    <item>
+      <title>AI System Design for Startups: Practical Architecture Patterns</title>
+      <link>https://infrasketch.net/blog/ai-system-design-startups</link>
+      <guid isPermaLink="true">https://infrasketch.net/blog/ai-system-design-startups</guid>
+      <pubDate>Sat, 08 Feb 2026 00:00:00 GMT</pubDate>
+      <description>Practical AI architecture patterns for startups covering build vs buy decisions, MVP architectures, scaling strategies, cost optimization, and common pitfalls to avoid.</description>
+      <category>ai-ml</category>
+    </item>
+
+    <item>
+      <title>AI System Design Whitepaper: Comprehensive Reference Architecture</title>
+      <link>https://infrasketch.net/blog/ai-system-design-whitepaper</link>
+      <guid isPermaLink="true">https://infrasketch.net/blog/ai-system-design-whitepaper</guid>
+      <pubDate>Sat, 08 Feb 2026 00:00:00 GMT</pubDate>
+      <description>Comprehensive reference architecture for AI systems covering the full ML lifecycle, infrastructure patterns, governance, and enterprise deployment strategies.</description>
+      <category>ai-ml</category>
+    </item>
+
+    <item>
+      <title>Awesome Machine Learning System Design: Curated Resource Guide</title>
+      <link>https://infrasketch.net/blog/awesome-ml-system-design</link>
+      <guid isPermaLink="true">https://infrasketch.net/blog/awesome-ml-system-design</guid>
+      <pubDate>Sat, 08 Feb 2026 00:00:00 GMT</pubDate>
+      <description>Curated collection of the best resources for learning ML system design including papers, courses, books, tools, open-source projects, and interview prep materials.</description>
+      <category>ai-ml</category>
+    </item>
 
     <item>
       <title>AWS Architecture Diagram Generator: Create Cloud Diagrams with AI</title>

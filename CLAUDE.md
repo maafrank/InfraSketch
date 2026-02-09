@@ -246,13 +246,21 @@ Both servers auto-reload (`--reload` backend, Vite HMR frontend).
 
 **Infrastructure:**
 - Backend: Lambda + API Gateway (300s timeout, 512MB, Python 3.11)
-- IAM: DynamoDB (CRUD + CreateTable + TagResource), Lambda (InvokeFunction), Secrets Manager
+- IAM Role: `infrasketch-lambda-role` (shared by all Lambdas). Policies: `DynamoDBSessionStorage` (inline, lists all table ARNs), `LambdaSelfInvoke` (inline), `SecretsManagerReadWrite` (managed), `AWSLambdaBasicExecutionRole` (managed). When adding new DynamoDB tables, update the `DynamoDBSessionStorage` inline policy.
 - Storage: DynamoDB `infrasketch-sessions` (pay-per-request, 1yr TTL)
 - Frontend: S3 + CloudFront
 - Secrets: AWS Secrets Manager (ANTHROPIC_API_KEY)
-- Monitoring: CloudWatch Logs/Metrics/Dashboard, Weekly reports (Monday 9AM PST)
+- Monitoring: CloudWatch Logs/Metrics/Dashboard, Weekly reports (Monday 9AM PST), Lambda error alarms via SNS to mattafrank2439@gmail.com. Setup script: `scripts/setup-streak-monitoring.sh`
 
 **Deploy scripts:** Backend packages deps for Linux → Lambda zip → S3 → update function. Frontend builds → S3 sync → CloudFront invalidate.
+
+**Lambda Deployment Checklist:**
+When deploying or modifying any Lambda function, always verify:
+1. **IAM permissions** - Check the Lambda's execution role has access to all AWS services it uses (DynamoDB tables, Secrets Manager, S3, SES, etc.). Run: `aws iam get-role-policy --role-name infrasketch-lambda-role --policy-name DynamoDBSessionStorage` to see current DynamoDB table access. If adding a new DynamoDB table, add its ARN to the policy.
+2. **New DynamoDB tables** - If the Lambda accesses a new table, add `arn:aws:dynamodb:us-east-1:059409992371:table/<TABLE_NAME>` and its `/index/*` variant to the `DynamoDBSessionStorage` inline policy.
+3. **Test after deploy** - Always invoke the Lambda manually after deploying and check the output for errors: `aws lambda invoke --function-name <FUNCTION_NAME> /tmp/output.json && cat /tmp/output.json`
+4. **Check CloudWatch logs** - After test invocation, check logs for errors: `aws logs tail /aws/lambda/<FUNCTION_NAME> --since 5m`
+5. **Third-party API keys** - If the Lambda uses external APIs (Resend, etc.), verify the API key is in Secrets Manager and the key has correct permissions on the provider's side.
 
 **Updating CSP Headers:** Edit `infrastructure/response-headers-policy.json`, then:
 ```bash

@@ -325,6 +325,28 @@ Assuming events arrive in order when they might not.
 
 **Solution:** Design for out-of-order events or use ordering guarantees (Kafka partitions).
 
+## Event-Driven Patterns in ML Systems
+
+Event-driven architecture is increasingly important in machine learning systems, where real-time data processing and model updates are critical. Many production ML systems use event-driven patterns for several key functions:
+
+### Real-Time Feature Computation
+
+Streaming events (user clicks, transactions, sensor readings) feed into real-time feature computation pipelines. Frameworks like Kafka Streams or Apache Flink consume events and compute features (e.g., "number of transactions in the last 5 minutes") that are served to ML models for real-time inference. This is the foundation of systems like fraud detection and real-time recommendations.
+
+### Model Retraining Triggers
+
+Events can trigger automated model retraining. For example, a monitoring system detects data drift or model performance degradation and publishes an event. A retraining pipeline subscribes to these events and automatically kicks off a new training run with fresh data. This closes the feedback loop in production ML systems.
+
+### Online Learning
+
+Some ML systems update model parameters in response to individual events rather than retraining in batches. Online learning systems consume event streams and update models incrementally, enabling the system to adapt to changing patterns in near-real-time.
+
+### Event Sourcing for ML Reproducibility
+
+Event sourcing patterns are valuable for ML systems that need to reproduce historical states. By replaying events, teams can reconstruct the exact data that was available at any point in time, enabling reproducible feature computation and model training.
+
+For more on these patterns, see [Streaming ML System Design](/blog/streaming-ml-system-design), [Machine Learning System Design Patterns](/blog/ml-system-design-patterns), and [Feature Store System Design](/blog/feature-store-system-design).
+
 ## Conclusion
 
 Event-driven architecture enables scalable, loosely coupled systems. The key patterns (event notification, event sourcing, CQRS, sagas) each solve specific problems. Choosing the right pattern depends on your requirements for consistency, scalability, and operational complexity.

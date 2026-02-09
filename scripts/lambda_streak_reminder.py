@@ -72,6 +72,42 @@ SENDER_NAME = "InfraSketch"
 RESEND_API_URL = "https://api.resend.com/emails"
 API_BASE_URL = "https://b31htlojb0.execute-api.us-east-1.amazonaws.com/prod/api"
 
+# --- XP Level definitions (inlined from backend/app/gamification/xp.py) ---
+
+LEVELS = [
+    (0, "Intern"),
+    (50, "Junior Designer"),
+    (150, "Designer"),
+    (350, "Senior Designer"),
+    (600, "Architect"),
+    (1000, "Senior Architect"),
+    (1600, "Lead Architect"),
+    (2500, "Principal Architect"),
+    (4000, "Distinguished Architect"),
+    (6000, "Chief Architect"),
+]
+TOTAL_ACHIEVEMENTS = 32
+
+
+def _compute_xp_progress(xp_total, level_num):
+    """Compute XP progress to next level. Returns (xp_in_level, xp_needed, pct, xp_to_next)."""
+    level_idx = max(0, min(level_num - 1, len(LEVELS) - 1))
+    current_threshold = LEVELS[level_idx][0]
+
+    if level_idx < len(LEVELS) - 1:
+        next_threshold = LEVELS[level_idx + 1][0]
+        xp_in_level = xp_total - current_threshold
+        xp_needed = next_threshold - current_threshold
+        pct = int((xp_in_level / xp_needed) * 100) if xp_needed > 0 else 100
+        xp_to_next = next_threshold - xp_total
+    else:
+        xp_in_level = 0
+        xp_needed = 0
+        pct = 100
+        xp_to_next = 0
+
+    return xp_in_level, xp_needed, pct, max(xp_to_next, 0)
+
 
 # --- DynamoDB helpers ---
 
@@ -133,15 +169,29 @@ def get_subscriber_email(dynamodb, user_id):
 # --- Email generation ---
 
 
-def build_email_html(streak_count, grace_used, unsubscribe_token):
-    """Build the streak reminder email HTML."""
+def build_email_html(
+    streak_count,
+    grace_used,
+    unsubscribe_token,
+    level=1,
+    level_name="Intern",
+    xp_total=0,
+    longest_streak=0,
+    achievements_count=0,
+):
+    """Build the streak reminder email HTML with gamification stats."""
+    # Compute XP progress
+    _xp_in, _xp_needed, xp_pct, xp_to_next = _compute_xp_progress(xp_total, level)
+    is_max_level = level >= len(LEVELS)
+
+    # Variant-specific colors and text
     if grace_used:
         urgency_text = "This is your last chance. Your grace day has already been used."
-        urgency_color = "#dc2626"
+        accent_color = "#00b830"
         headline = "Your streak is about to end"
     else:
         urgency_text = "You still have a grace day available, but why risk it?"
-        urgency_color = "#f59e0b"
+        accent_color = "#00b830"
         headline = "Keep your streak alive"
 
     unsubscribe_url = (
@@ -149,6 +199,12 @@ def build_email_html(streak_count, grace_used, unsubscribe_token):
         if unsubscribe_token
         else "#"
     )
+
+    # XP progress subtitle
+    xp_subtitle = "Max level reached" if is_max_level else f"{xp_to_next} XP to next level"
+
+    # XP progress bar width (clamp to 100)
+    bar_pct = min(xp_pct, 100)
 
     html = f"""<!DOCTYPE html>
 <html>
@@ -161,11 +217,11 @@ def build_email_html(streak_count, grace_used, unsubscribe_token):
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #0a0a0a;">
         <tr>
             <td style="padding: 40px 20px;">
-                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="margin: 0 auto; background-color: #161b22; border-radius: 8px; overflow: hidden; border: 1px solid #2d333b;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="margin: 0 auto; background-color: #161b22; border-radius: 8px; overflow: hidden; border: 1px solid #1a3a1a;">
 
                     <!-- Header -->
                     <tr>
-                        <td style="background-color: #0d1117; padding: 30px 40px; text-align: center; border-bottom: 1px solid #2d333b;">
+                        <td style="background-color: #0d1117; padding: 30px 40px; text-align: center; border-bottom: 1px solid #1a3a1a;">
                             <img src="https://infrasketch.net/InfraSketchLogoTransparent_03_256.png"
                                  alt="InfraSketch"
                                  width="48"
@@ -191,11 +247,11 @@ def build_email_html(streak_count, grace_used, unsubscribe_token):
                             <!-- Streak counter -->
                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                                 <tr>
-                                    <td align="center" style="padding: 30px 0;">
-                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="background-color: #0d1117; border-radius: 12px; border: 2px solid {urgency_color};">
+                                    <td align="center" style="padding: 20px 0 30px 0;">
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="background-color: #0d1117; border-radius: 12px; border: 2px solid {accent_color};">
                                             <tr>
                                                 <td style="padding: 20px 40px; text-align: center;">
-                                                    <div style="font-size: 48px; font-weight: 700; color: {urgency_color};">
+                                                    <div style="font-size: 48px; font-weight: 700; color: {accent_color};">
                                                         {streak_count}
                                                     </div>
                                                     <div style="font-size: 14px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px;">
@@ -208,11 +264,103 @@ def build_email_html(streak_count, grace_used, unsubscribe_token):
                                 </tr>
                             </table>
 
+                            <!-- Gamification Stats Grid -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 24px;">
+                                <!-- Row 1: Level + XP -->
+                                <tr>
+                                    <td width="50%" style="padding: 0 6px 12px 0; vertical-align: top;">
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #0d1117; border: 1px solid #1a3a1a; border-radius: 8px;">
+                                            <tr>
+                                                <td style="padding: 14px 16px;">
+                                                    <div style="font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">
+                                                        Level
+                                                    </div>
+                                                    <div style="font-size: 22px; font-weight: 700; color: #00b830;">
+                                                        Level {level}
+                                                    </div>
+                                                    <div style="font-size: 13px; color: #c9d1d9; margin-top: 2px;">
+                                                        {level_name}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                    <td width="50%" style="padding: 0 0 12px 6px; vertical-align: top;">
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #0d1117; border: 1px solid #1a3a1a; border-radius: 8px;">
+                                            <tr>
+                                                <td style="padding: 14px 16px;">
+                                                    <div style="font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">
+                                                        Experience
+                                                    </div>
+                                                    <div style="font-size: 22px; font-weight: 700; color: #00b830;">
+                                                        {xp_total} XP
+                                                    </div>
+                                                    <div style="font-size: 13px; color: #c9d1d9; margin-top: 2px;">
+                                                        {xp_subtitle}
+                                                    </div>
+                                                    <!-- XP Progress Bar -->
+                                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top: 8px;">
+                                                        <tr>
+                                                            <td style="background-color: #2d333b; border-radius: 3px; height: 6px; font-size: 0; line-height: 0;">
+                                                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="{bar_pct}%">
+                                                                    <tr>
+                                                                        <td style="background-color: #00b830; border-radius: 3px; height: 6px; font-size: 0; line-height: 0;">
+                                                                            &nbsp;
+                                                                        </td>
+                                                                    </tr>
+                                                                </table>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                                <!-- Row 2: Best Streak + Achievements -->
+                                <tr>
+                                    <td width="50%" style="padding: 0 6px 0 0; vertical-align: top;">
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #0d1117; border: 1px solid #1a3a1a; border-radius: 8px;">
+                                            <tr>
+                                                <td style="padding: 14px 16px;">
+                                                    <div style="font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">
+                                                        Best Streak
+                                                    </div>
+                                                    <div style="font-size: 22px; font-weight: 700; color: #00b830;">
+                                                        {longest_streak}
+                                                    </div>
+                                                    <div style="font-size: 13px; color: #c9d1d9; margin-top: 2px;">
+                                                        days
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                    <td width="50%" style="padding: 0 0 0 6px; vertical-align: top;">
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #0d1117; border: 1px solid #1a3a1a; border-radius: 8px;">
+                                            <tr>
+                                                <td style="padding: 14px 16px;">
+                                                    <div style="font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">
+                                                        Achievements
+                                                    </div>
+                                                    <div style="font-size: 22px; font-weight: 700; color: #00b830;">
+                                                        {achievements_count} / {TOTAL_ACHIEVEMENTS}
+                                                    </div>
+                                                    <div style="font-size: 13px; color: #c9d1d9; margin-top: 2px;">
+                                                        unlocked
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
                             <p style="color: #c9d1d9; font-size: 16px; line-height: 1.6; margin: 0 0 10px 0;">
                                 You have not used InfraSketch today, and your <strong style="color: #e6edf3;">{streak_count}-day streak</strong> is at risk.
                             </p>
 
-                            <p style="color: {urgency_color}; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0; font-weight: 500;">
+                            <p style="color: {accent_color}; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0; font-weight: 500;">
                                 {urgency_text}
                             </p>
 
@@ -223,7 +371,7 @@ def build_email_html(streak_count, grace_used, unsubscribe_token):
                             <!-- CTA Button -->
                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                                 <tr>
-                                    <td align="center" style="padding: 30px 0;">
+                                    <td align="center" style="padding: 20px 0 10px 0;">
                                         <a href="https://infrasketch.net"
                                            style="display: inline-block; background: linear-gradient(135deg, #00b830 0%, #009926 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-size: 16px; font-weight: 600;">
                                             Open InfraSketch
@@ -236,7 +384,7 @@ def build_email_html(streak_count, grace_used, unsubscribe_token):
 
                     <!-- Footer -->
                     <tr>
-                        <td style="background-color: #0d1117; padding: 30px 40px; border-top: 1px solid #2d333b;">
+                        <td style="background-color: #0d1117; padding: 30px 40px; border-top: 1px solid #1a3a1a;">
                             <p style="color: #8b949e; font-size: 12px; margin: 0; text-align: center; line-height: 1.6;">
                                 You are receiving this because you have an active streak on InfraSketch.<br>
                                 <a href="{unsubscribe_url}" style="color: #00b830; text-decoration: underline;">Unsubscribe from all emails</a>
@@ -300,8 +448,7 @@ def lambda_handler(event, context):
     # Get Resend API key
     resend_key = get_resend_api_key()
     if not resend_key:
-        print("ERROR: Could not retrieve Resend API key")
-        return {"statusCode": 500, "body": "Missing Resend API key"}
+        raise RuntimeError("STREAK_REMINDER_ERROR: Could not retrieve Resend API key from Secrets Manager")
 
     # Connect to DynamoDB
     dynamodb = boto3.resource("dynamodb", region_name=REGION)
@@ -326,6 +473,14 @@ def lambda_handler(event, context):
         streak = int(user_data.get("current_streak", 0))
         grace_used = user_data.get("streak_grace_used", False)
 
+        # Extract gamification data
+        level = int(user_data.get("level", 1))
+        level_name = user_data.get("level_name", "Intern")
+        xp_total = int(user_data.get("xp_total", 0))
+        longest_streak = int(user_data.get("longest_streak", 0))
+        achievements = user_data.get("achievements", [])
+        achievements_count = len(achievements) if isinstance(achievements, list) else 0
+
         # Look up email
         email, unsub_token = get_subscriber_email(dynamodb, user_id)
         if not email:
@@ -338,7 +493,16 @@ def lambda_handler(event, context):
         else:
             subject = f"Keep your {streak}-day streak alive"
 
-        html = build_email_html(streak, grace_used, unsub_token)
+        html = build_email_html(
+            streak,
+            grace_used,
+            unsub_token,
+            level=level,
+            level_name=level_name,
+            xp_total=xp_total,
+            longest_streak=longest_streak,
+            achievements_count=achievements_count,
+        )
         success = send_email(resend_key, email, subject, html)
 
         if success:
@@ -358,6 +522,29 @@ def lambda_handler(event, context):
         "date": today_str,
     }
     print(f"Summary: {json.dumps(summary)}")
+
+    # Fail loudly if ANY email sends failed
+    if failed > 0:
+        error_msg = (
+            f"STREAK_REMINDER_ERROR: {failed} of {sent + failed} email(s) failed to send. "
+            f"Sent: {sent}, Failed: {failed}, Skipped: {skipped}"
+        )
+        print(error_msg)
+
+        # If ALL sends failed, raise so CloudWatch Lambda Errors metric fires
+        # and the alarm triggers immediately
+        if sent == 0:
+            raise RuntimeError(error_msg)
+
+        # Partial failure: return 500 so it's visible, but don't raise
+        # (raising would retry and potentially duplicate the successful sends)
+        return {
+            "statusCode": 500,
+            "body": json.dumps({
+                "message": "Streak reminders partially failed",
+                **summary,
+            }),
+        }
 
     return {
         "statusCode": 200,

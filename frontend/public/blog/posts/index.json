@@ -1,6 +1,247 @@
 {
   "posts": [
     {
+      "slug": "ai-pipeline-system-design",
+      "title": "AI Pipeline System Design: Data Ingestion, Training, and Serving",
+      "description": "End-to-end guide to AI pipeline system design covering data ingestion (batch and streaming), feature engineering, distributed training, model evaluation, serving infrastructure, and orchestration with Airflow, Kubeflow, and Dagster.",
+      "date": "2026-02-08",
+      "author": "InfraSketch Team",
+      "readingTime": "20 min read",
+      "image": "/full-app-with-design-doc.png",
+      "category": "ai-ml",
+      "tags": [
+        "AI pipeline system design",
+        "end to end ML system design architecture",
+        "data ingestion",
+        "model training",
+        "model serving",
+        "feature store",
+        "MLOps",
+        "distributed training",
+        "Kubeflow",
+        "Airflow"
+      ]
+    },
+    {
+      "slug": "llm-system-design-architecture",
+      "title": "LLM System Design Architecture: Building Production AI Applications",
+      "description": "End-to-end guide to LLM system design architecture covering RAG pipelines, vector databases, chatbot design, agent patterns, LangGraph workflows, scaling strategies, and observability. Includes practical diagrams and a real-world case study.",
+      "date": "2026-02-08",
+      "author": "InfraSketch Team",
+      "readingTime": "24 min read",
+      "image": "/full-app-with-design-doc.png",
+      "category": "ai-ml",
+      "tags": [
+        "LLM system design architecture",
+        "RAG system design architecture",
+        "chatbot system design architecture",
+        "LangGraph system design examples",
+        "vector database system design",
+        "AI agents",
+        "LangGraph",
+        "Claude",
+        "production AI"
+      ]
+    },
+    {
+      "slug": "ml-system-design-patterns",
+      "title": "Machine Learning System Design Patterns: The Complete Guide",
+      "description": "Master the six essential ML system design patterns for production: batch prediction, real-time inference, online learning, A/B testing, feature stores, and model registries. Includes scaling strategies, monitoring, and interview tips.",
+      "date": "2026-02-08",
+      "author": "InfraSketch Team",
+      "readingTime": "22 min read",
+      "image": "/full-app-with-design-doc.png",
+      "category": "ai-ml",
+      "tags": [
+        "machine learning system design patterns",
+        "ML system design",
+        "production machine learning",
+        "feature store",
+        "model registry",
+        "distributed training",
+        "AI system design interview"
+      ]
+    },
+    {
+      "slug": "agentic-ai-system-architecture",
+      "title": "Agentic AI System Architecture: Designing Multi-Agent Systems",
+      "description": "Learn how to design agentic AI systems with tool-calling agents, multi-agent patterns, LangGraph state machines, and production best practices. Includes a real-world case study.",
+      "date": "2026-02-08",
+      "author": "InfraSketch Team",
+      "readingTime": "18 min read",
+      "image": "/full-app-with-design-doc.png",
+      "category": "ai-ml",
+      "tags": [
+        "agentic AI system architecture",
+        "multi agent system design AI",
+        "LangGraph system design examples",
+        "AI agents",
+        "tool calling",
+        "LangGraph",
+        "Claude"
+      ]
+    },
+    {
+      "slug": "real-world-ai-system-architecture",
+      "title": "Real-World AI System Architecture: Case Studies from Netflix, Uber, and More",
+      "description": "Deep dive into production AI systems at Netflix, Google, Uber, Spotify, and Pinterest. Learn recommendation engines, search ranking, ML platforms, and common patterns across real-world AI architectures.",
+      "date": "2026-02-08",
+      "author": "InfraSketch Team",
+      "readingTime": "24 min read",
+      "image": "/full-app-with-design-doc.png",
+      "category": "ai-ml",
+      "tags": [
+        "real world AI system architecture",
+        "recommendation system architecture",
+        "search engine system design AI",
+        "Netflix ML",
+        "Uber Michelangelo",
+        "production AI"
+      ]
+    },
+    {
+      "slug": "ml-model-serving-system-design",
+      "title": "ML Model Serving System Design: From Prototype to Production",
+      "description": "Complete guide to ML model serving architectures including REST, gRPC, serverless, and streaming inference. Covers scaling, GPU optimization, A/B testing, latency optimization, and monitoring.",
+      "date": "2026-02-08",
+      "author": "InfraSketch Team",
+      "readingTime": "18 min read",
+      "image": "/full-app-with-design-doc.png",
+      "category": "ai-ml",
+      "tags": [
+        "ML model serving system design",
+        "AI inference system design",
+        "real time ML system design",
+        "model serving",
+        "GPU optimization",
+        "latency"
+      ]
+    },
+    {
+      "slug": "vector-database-system-design",
+      "title": "Vector Database System Design: Architecture for AI Applications",
+      "description": "Understand vector database architecture including indexing (HNSW, IVF), storage layers, and query processing. Compare Pinecone, Weaviate, Milvus, pgvector, Qdrant, and Chroma for RAG and AI applications.",
+      "date": "2026-02-08",
+      "author": "InfraSketch Team",
+      "readingTime": "16 min read",
+      "image": "/full-app-with-design-doc.png",
+      "category": "ai-ml",
+      "tags": [
+        "vector database system design",
+        "RAG system design",
+        "Pinecone",
+        "Weaviate",
+        "Milvus",
+        "pgvector",
+        "embeddings"
+      ]
+    },
+    {
+      "slug": "mlops-system-design",
+      "title": "MLOps System Design: Reference Architecture for 2026",
+      "description": "Complete MLOps reference architecture covering maturity levels, ML monitoring, CI/CD for models, infrastructure platforms (Kubernetes, SageMaker, Vertex AI), and cost management.",
+      "date": "2026-02-08",
+      "author": "InfraSketch Team",
+      "readingTime": "20 min read",
+      "image": "/full-app-with-design-doc.png",
+      "category": "ai-ml",
+      "tags": [
+        "MLOps system design",
+        "ML monitoring system design",
+        "AI observability",
+        "CI/CD for ML",
+        "model deployment",
+        "Kubeflow"
+      ]
+    },
+    {
+      "slug": "feature-store-system-design",
+      "title": "Feature Store System Design: Architecture and Patterns",
+      "description": "Design feature store architectures with online/offline stores, real-time feature computation, and integration patterns. Compare Feast, Tecton, Hopsworks, and cloud-native feature stores.",
+      "date": "2026-02-08",
+      "author": "InfraSketch Team",
+      "readingTime": "16 min read",
+      "image": "/full-app-with-design-doc.png",
+      "category": "ai-ml",
+      "tags": [
+        "feature store system design",
+        "feature engineering",
+        "Feast",
+        "Tecton",
+        "ML infrastructure"
+      ]
+    },
+    {
+      "slug": "streaming-ml-system-design",
+      "title": "Streaming ML System Design: Real-Time Machine Learning Architecture",
+      "description": "Design real-time ML systems with streaming feature computation, online inference, and online learning. Covers Kafka, Flink, Spark Streaming with fraud detection and recommendation case studies.",
+      "date": "2026-02-08",
+      "author": "InfraSketch Team",
+      "readingTime": "16 min read",
+      "image": "/full-app-with-design-doc.png",
+      "category": "ai-ml",
+      "tags": [
+        "streaming ML system design",
+        "real time ML system design",
+        "Kafka",
+        "Flink",
+        "fraud detection",
+        "online learning"
+      ]
+    },
+    {
+      "slug": "ai-system-design-startups",
+      "title": "AI System Design for Startups: Practical Architecture Patterns",
+      "description": "Practical AI architecture patterns for startups at every stage. Covers MVP ML architecture, scaling phases, build vs buy decisions, cost optimization, and technology stack recommendations.",
+      "date": "2026-02-08",
+      "author": "InfraSketch Team",
+      "readingTime": "15 min read",
+      "image": "/full-app-with-design-doc.png",
+      "category": "ai-ml",
+      "tags": [
+        "system design for AI startups",
+        "AI architecture",
+        "startup ML",
+        "cost optimization",
+        "managed services"
+      ]
+    },
+    {
+      "slug": "ai-system-design-whitepaper",
+      "title": "AI System Design: A Comprehensive Reference Architecture",
+      "description": "Comprehensive reference architecture for AI systems covering all five platform layers: data, feature, training, serving, and monitoring. Includes LLM architectures, security, governance, and implementation roadmap.",
+      "date": "2026-02-08",
+      "author": "InfraSketch Team",
+      "readingTime": "28 min read",
+      "image": "/full-app-with-design-doc.png",
+      "category": "ai-ml",
+      "tags": [
+        "AI system design whitepaper",
+        "reference architecture",
+        "AI platform",
+        "MLOps",
+        "data platform",
+        "model serving"
+      ]
+    },
+    {
+      "slug": "awesome-ml-system-design",
+      "title": "Awesome Machine Learning System Design: Curated Resource Guide",
+      "description": "Curated collection of the best resources for learning ML system design: books, GitHub repositories, courses, blogs, papers, tools, and interview prep materials.",
+      "date": "2026-02-08",
+      "author": "InfraSketch Team",
+      "readingTime": "12 min read",
+      "image": "/full-app-with-design-doc.png",
+      "category": "ai-ml",
+      "tags": [
+        "awesome machine learning system design",
+        "AI system design github",
+        "ML resources",
+        "system design books",
+        "ML courses"
+      ]
+    },
+    {
       "slug": "microservices-architecture-diagram-guide",
       "title": "Microservices Architecture Diagram: Complete Guide for 2026",
       "description": "Learn how to design and document microservices architectures. Covers API gateways, service mesh, message queues, and patterns like CQRS and Saga.",

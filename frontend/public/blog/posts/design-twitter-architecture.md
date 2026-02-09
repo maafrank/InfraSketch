@@ -351,3 +351,5 @@ Practice with InfraSketch: describe the system, generate the diagram, refine thr
 - [System Design Interview Prep Guide](/blog/system-design-interview-prep-practice)
 - [Microservices Architecture Diagram Guide](/blog/microservices-architecture-diagram-guide)
 - [The Complete Guide to System Design](/blog/complete-guide-system-design)
+- [Real-World AI System Architecture: Netflix, Uber, and More](/blog/real-world-ai-system-architecture)
+- [Machine Learning System Design Patterns](/blog/ml-system-design-patterns)

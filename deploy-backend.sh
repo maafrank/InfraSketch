@@ -52,5 +52,8 @@ aws lambda wait function-updated --function-name $LAMBDA_FUNCTION
 echo "✅ Backend deployment complete!"
 echo "🔗 API URL: https://b31htlojb0.execute-api.us-east-1.amazonaws.com/prod"
 
+echo "Deploying streak reminder Lambda..."
+bash scripts/deploy-streak-reminder.sh
+
 # Navigate back to root
 cd ..

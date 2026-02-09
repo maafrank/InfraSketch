@@ -448,6 +448,25 @@ For each problem:
 - Deep dive into critical components
 - Discuss trade-offs
 
+## AI and Machine Learning System Design
+
+Traditional system design focuses on databases, caching, load balancing, and service architecture. But a growing number of systems today incorporate machine learning and AI components, and this is changing how engineers approach system design.
+
+ML system design introduces new architectural concerns that do not exist in traditional systems:
+
+- **Data pipelines** for ingesting, cleaning, and transforming training data
+- **Feature stores** for computing and serving features consistently across training and inference
+- **Training infrastructure** for distributed model training with GPU clusters
+- **Model serving** with specialized inference servers, batching, and GPU scheduling
+- **Monitoring for model drift**, where model performance degrades as real-world data distributions change
+- **A/B testing frameworks** for comparing model versions in production
+
+Companies like Netflix, Uber, and Spotify have built sophisticated ML platforms that handle all of these concerns. Their architectures combine traditional distributed systems (message queues, databases, caches) with ML-specific components (feature stores, model registries, experiment tracking).
+
+If you are preparing for system design interviews at ML-focused companies, you should be comfortable discussing both traditional and ML system design patterns. Common ML system design questions include designing a recommendation engine, a fraud detection system, a search ranking pipeline, or an LLM-powered chatbot.
+
+For a deep dive into ML system design patterns, see our [Machine Learning System Design Patterns](/blog/ml-system-design-patterns) guide. For LLM and AI-specific architectures, check out [LLM System Design Architecture](/blog/llm-system-design-architecture). And for real-world examples of production AI systems, see [Real-World AI System Architecture](/blog/real-world-ai-system-architecture).
+
 ## Conclusion
 
 System design is a fundamental skill for software engineers at all levels. It's not about memorizing solutions but understanding principles:

@@ -41,6 +41,12 @@ InfraSketch is a free AI-powered system design tool that transforms plain Englis
 - Microservices design
 - Educational learning about distributed systems
 - Rapid prototyping of new systems
+- ML system design (training pipelines, feature stores, model serving)
+- LLM application architecture (RAG systems, chatbots, agents)
+- MLOps platform design (CI/CD for ML, monitoring, drift detection)
+- AI pipeline visualization (data ingestion, training, serving)
+- Vector database architecture for AI applications
+- Agentic AI system design (multi-agent, tool-calling, LangGraph)
 
 ## Example Prompts
 
@@ -81,6 +87,8 @@ InfraSketch is a free AI-powered system design tool that transforms plain Englis
 - System Design Tool: https://infrasketch.net/tools/system-design-tool
 - AI Diagram Generator: https://infrasketch.net/tools/ai-diagram-generator
 - Architecture Diagram Tool: https://infrasketch.net/tools/architecture-diagram-tool
+- ML System Design Tool: https://infrasketch.net/tools/ml-system-design-tool
+- LLM Architecture Tool: https://infrasketch.net/tools/llm-architecture-tool
 - RSS Feed: https://infrasketch.net/blog/feed.xml
 
 ## Contact
