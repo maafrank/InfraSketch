@@ -154,14 +154,12 @@ function AppContent({ resumeMode = false, isMobile }) {
 
       if (draftPrompt) {
         // Restore the draft to the chat panel via examplePrompt
+        // Don't clear localStorage yet - keep draft until actually submitted,
+        // so it survives if the tutorial tour resets app state
         setExamplePrompt(draftPrompt);
         if (draftModel) {
           setCurrentModel(draftModel);
         }
-
-        // Clear the saved draft from localStorage
-        localStorage.removeItem('infrasketch_draft_prompt');
-        localStorage.removeItem('infrasketch_draft_model');
       }
     }
   }, [isSignedIn]);
@@ -204,7 +202,20 @@ function AppContent({ resumeMode = false, isMobile }) {
         setDesignDocOpen(false);
         setSessionHistoryOpen(false);
         setSessionName('Untitled Design');
+        setExamplePrompt(null);
         navigate('/');
+
+        // Restore draft prompt if user had one before the tutorial started
+        const draftPrompt = localStorage.getItem('infrasketch_draft_prompt');
+        const draftModel = localStorage.getItem('infrasketch_draft_model');
+        if (draftPrompt) {
+          setTimeout(() => {
+            setExamplePrompt(draftPrompt);
+            if (draftModel) {
+              setCurrentModel(draftModel);
+            }
+          }, 100);
+        }
       },
     });
   }, [registerCallbacks, handleOpenAddNodeModalWithPrefill, navigate]);
@@ -291,6 +302,10 @@ function AppContent({ resumeMode = false, isMobile }) {
       openSignIn();
       return;
     }
+
+    // Clear any saved draft prompt since it's now being submitted
+    localStorage.removeItem('infrasketch_draft_prompt');
+    localStorage.removeItem('infrasketch_draft_model');
 
     // If diagram has no nodes, this is initial generation - use generate endpoint
     const hasNodes = diagram?.nodes?.length > 0;

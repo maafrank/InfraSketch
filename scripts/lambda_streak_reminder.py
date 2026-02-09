@@ -511,8 +511,8 @@ def lambda_handler(event, context):
         else:
             failed += 1
 
-        # Rate limit: Resend allows 2 requests/second
-        time.sleep(0.6)
+        # Rate limit: 1 second between requests to stay within Resend limits
+        time.sleep(1.0)
 
     summary = {
         "at_risk_users": len(at_risk_users),

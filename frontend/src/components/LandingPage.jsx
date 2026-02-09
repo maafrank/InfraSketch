@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useScrollAnimation, useStaggeredAnimation } from '../hooks/useScrollAnimation';
 import { Twitter, ShoppingCart, Link, Tv, Pencil, MessageSquare, Brain, FileText, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Link as RouterLink } from 'react-router-dom';
 import Footer from './shared/Footer';
 
 const EXAMPLE_PROMPTS = [
@@ -31,22 +32,22 @@ const FEATURES = [
   {
     icon: Pencil,
     title: "Describe, Don't Draw",
-    description: "Tell our AI agent what you want to build. Watch your architecture appear in seconds."
+    description: "Skip the drag-and-drop. Describe what you're building and get a complete architecture diagram, with all the components and connections, in seconds."
   },
   {
     icon: MessageSquare,
     title: "Chat to Iterate",
-    description: "Ask 'what if we need 10x scale?' or 'add a cache layer' and watch your design evolve."
+    description: "Say 'add a cache layer' or 'what if we need 10x scale?' and the diagram updates live. Iterate as fast as you can think."
   },
   {
     icon: Brain,
     title: "Understand Every Component",
-    description: "Click any component to ask why it exists, explore tradeoffs, or consider alternatives."
+    description: "Click any node to ask why it's there, what the tradeoffs are, or what alternatives exist. Learn while you design."
   },
   {
     icon: FileText,
     title: "Export & Build",
-    description: "Generate a design doc with architecture diagrams, component details, and implementation notes."
+    description: "Generate a design doc with component details, data flows, and implementation notes. Share it with your team or use it to start building."
   }
 ];
 
@@ -177,6 +178,7 @@ export default function LandingPage({ onGenerate, loading }) {
   const showcaseAnimation = useScrollAnimation();
   const howItWorksAnimation = useScrollAnimation();
   const featuredOnAnimation = useScrollAnimation();
+  const pricingAnimation = useScrollAnimation();
 
   // Staggered animations for cards
   const featureCards = useStaggeredAnimation(FEATURES.length, { staggerDelay: 100 });
@@ -332,10 +334,10 @@ export default function LandingPage({ onGenerate, loading }) {
             Watch It Come to Life.
           </h1>
           <p className="hero-subtitle">
-            InfraSketch's AI agent turns your ideas into architecture diagrams. Chat to iterate, ask questions, and refine. Then export a design doc and start building.
+            Describe your system in plain English. Get an architecture diagram in seconds. Refine it through conversation, then export a design doc your team can actually use.
           </p>
-          <p className="hero-cta">No drag-and-drop. No blank canvas paralysis. Just describe what you need.</p>
-          <p className="hero-secondary">Perfect for prototyping, learning, or prepping for system design interviews.</p>
+          <p className="hero-cta">No drag-and-drop. No blank canvas. Just describe what you need.</p>
+          <p className="hero-secondary">Used by engineers for prototyping, by students for learning, and by candidates prepping for system design interviews.</p>
         </div>
 
         {/* Main Input Form - Front and Center */}
@@ -406,13 +408,13 @@ export default function LandingPage({ onGenerate, loading }) {
       >
         <h2 className="problem-heading">The Problem</h2>
         <p className="problem-lead">
-          Designing systems is hard. Turning ideas into clear architecture takes too long.
+          You have a system in your head, but getting it on paper takes longer than it should.
         </p>
         <ul className="problem-list">
-          <li>Diagramming tools are slow and tedious</li>
-          <li>AI chatbots explain but cannot build</li>
-          <li>Blank canvases lead to decision paralysis</li>
-          <li>Docs get outdated before you finish writing them</li>
+          <li>Drag-and-drop tools make you think about boxes and arrows, not architecture</li>
+          <li>AI chatbots explain concepts but leave you with nothing to share</li>
+          <li>Starting from a blank canvas means making every decision at once</li>
+          <li>Design docs take hours to write and are outdated by the time you finish</li>
         </ul>
         <p className="problem-conclusion">
           You need a tool that builds with you, not just talks at you.
@@ -424,7 +426,7 @@ export default function LandingPage({ onGenerate, loading }) {
         ref={featuresAnimation.ref}
         className={`features-section scroll-animate ${featuresAnimation.isVisible ? 'visible' : ''}`}
       >
-        <h2 className="features-heading">The Solution</h2>
+        <h2 className="features-heading">What You Get</h2>
         <div className="features-grid">
           {FEATURES.map((feature, index) => (
             <div
@@ -499,7 +501,7 @@ export default function LandingPage({ onGenerate, loading }) {
             <div className="step-number">1</div>
             <h3 className="step-title">Describe Your System</h3>
             <p className="step-description">
-              Tell the AI what you want to build in plain English. No templates, no drag-and-drop, just describe it.
+              Type a description of your system, like "Design a URL shortener with analytics and high availability." That's it.
             </p>
           </div>
           <div
@@ -510,7 +512,7 @@ export default function LandingPage({ onGenerate, loading }) {
             <div className="step-number">2</div>
             <h3 className="step-title">Generate & Iterate</h3>
             <p className="step-description">
-              Watch your architecture appear in seconds. Ask questions, request changes, and refine your design through conversation.
+              Your diagram appears in seconds with all components connected. Then chat to tweak it, one message at a time.
             </p>
           </div>
           <div
@@ -521,7 +523,7 @@ export default function LandingPage({ onGenerate, loading }) {
             <div className="step-number">3</div>
             <h3 className="step-title">Export & Build</h3>
             <p className="step-description">
-              Generate a comprehensive design doc with architecture diagrams, component details, and implementation notes. Then start building.
+              Export a full design doc, ready to share with your team, attach to a ticket, or use as a blueprint. From idea to document in minutes.
             </p>
           </div>
         </div>
@@ -673,6 +675,41 @@ export default function LandingPage({ onGenerate, loading }) {
           </a>
 
         </div>
+      </div>
+
+      {/* Transparent Pricing Section */}
+      <div
+        ref={pricingAnimation.ref}
+        className={`pricing-section scroll-animate ${pricingAnimation.isVisible ? 'visible' : ''}`}
+      >
+        <h2 className="pricing-heading">Transparent Pricing</h2>
+        <p className="pricing-subtext">25 free credits every month. Here's what they cost.</p>
+        <div className="pricing-grid">
+          <div className="pricing-card">
+            <span className="pricing-action">Diagram Generation</span>
+            <span className="pricing-amount">5 credits</span>
+            <span className="pricing-note">15 with Sonnet</span>
+          </div>
+          <div className="pricing-card">
+            <span className="pricing-action">Chat Message</span>
+            <span className="pricing-amount">1 credit</span>
+            <span className="pricing-note">3 with Sonnet</span>
+          </div>
+          <div className="pricing-card">
+            <span className="pricing-action">Design Doc</span>
+            <span className="pricing-amount">10 credits</span>
+            <span className="pricing-note">Per document</span>
+          </div>
+          <div className="pricing-card">
+            <span className="pricing-action">Export</span>
+            <span className="pricing-amount">2 credits</span>
+            <span className="pricing-note">PDF or Markdown</span>
+          </div>
+        </div>
+        <p className="pricing-footer">
+          That's 5 diagrams, 25 chat messages, or a mix. Upgrade to Pro for 500 credits/month.
+        </p>
+        <RouterLink to="/pricing" className="pricing-cta-link">See full pricing</RouterLink>
       </div>
 
       {/* Lightbox Modal */}
