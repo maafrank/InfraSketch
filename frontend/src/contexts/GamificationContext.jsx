@@ -78,7 +78,7 @@ export const GamificationProvider = ({ children, isSignedIn, getToken }) => {
 
     const newToasts = [];
 
-    // Queue achievement toasts
+    // Queue achievement toasts and dismiss server-side so they don't re-appear on refresh
     if (result.new_achievements?.length > 0) {
       for (const achievement of result.new_achievements) {
         newToasts.push({
@@ -89,6 +89,9 @@ export const GamificationProvider = ({ children, isSignedIn, getToken }) => {
           rarity: achievement.rarity,
         });
       }
+      dismissGamificationNotifications(
+        result.new_achievements.map((a) => a.id)
+      ).catch(() => {});
     }
 
     // Queue level-up toast
