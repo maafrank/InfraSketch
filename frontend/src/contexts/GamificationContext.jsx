@@ -115,6 +115,23 @@ export const GamificationProvider = ({ children, isSignedIn, getToken }) => {
     try {
       const data = await getUserGamification();
       setGamification(data);
+
+      // Process any pending notifications into toasts
+      if (data.pending_notifications?.length > 0) {
+        const toasts = data.pending_notifications.map((notif) => ({
+          type: 'achievement',
+          id: notif.id,
+          name: notif.name,
+          description: notif.description,
+          rarity: notif.rarity,
+        }));
+        setPendingToasts((prev) => [...prev, ...toasts]);
+
+        // Dismiss server-side so they don't re-appear
+        dismissGamificationNotifications(
+          data.pending_notifications.map((n) => n.id)
+        ).catch(() => {});
+      }
     } catch (error) {
       console.error('Failed to refresh gamification:', error);
     }

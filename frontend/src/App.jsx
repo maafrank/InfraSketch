@@ -563,6 +563,7 @@ function AppContent({ resumeMode = false, isMobile }) {
     try {
       const updatedDiagram = await addNode(currentSessionId, node);
       setDiagram(updatedDiagram);
+      if (refreshGamification) refreshGamification();
 
       // Add system message to chat
       const systemMessage = {
@@ -634,6 +635,7 @@ function AppContent({ resumeMode = false, isMobile }) {
     try {
       const updatedDiagram = await addEdge(sessionId, edge);
       setDiagram(updatedDiagram);
+      if (refreshGamification) refreshGamification();
 
       // Add system message to chat
       const systemMessage = {
@@ -645,7 +647,7 @@ function AppContent({ resumeMode = false, isMobile }) {
       console.error('Failed to add edge:', error);
       alert('Failed to add connection. Please try again.');
     }
-  }, [sessionId]);
+  }, [sessionId, refreshGamification]);
 
   const handleDeleteEdge = useCallback(async (edgeId) => {
     if (!sessionId) return;
@@ -674,6 +676,7 @@ function AppContent({ resumeMode = false, isMobile }) {
       // Call with AI generation enabled (default: true)
       const response = await createNodeGroup(sessionId, [draggedNodeId, targetNodeId], true);
       setDiagram(response.diagram);
+      if (refreshGamification) refreshGamification();
 
       // Find the created group node to get its AI-generated label
       const groupNode = response.diagram.nodes.find(n => n.id === response.group_id);
@@ -691,7 +694,7 @@ function AppContent({ resumeMode = false, isMobile }) {
     } finally {
       setMergingNodes(false);
     }
-  }, [sessionId]);
+  }, [sessionId, refreshGamification]);
 
   const handleUngroupNodes = useCallback(async (groupId) => {
     if (!sessionId) return;
@@ -741,11 +744,12 @@ function AppContent({ resumeMode = false, isMobile }) {
     try {
       const updatedDiagram = await toggleGroupCollapse(sessionId, groupId);
       setDiagram(updatedDiagram);
+      if (refreshGamification) refreshGamification();
     } catch (error) {
       console.error('Failed to toggle group collapse:', error);
       alert('Failed to toggle group. Please try again.');
     }
-  }, [sessionId]);
+  }, [sessionId, refreshGamification]);
 
   // Check if any groups are currently expanded
   const hasExpandedGroups = useMemo(() => {
@@ -882,6 +886,8 @@ function AppContent({ resumeMode = false, isMobile }) {
         const pngBlob = base64ToBlob(response.diagram_png.content, 'image/png');
         downloadBlob(pngBlob, response.diagram_png.filename);
       }
+
+      if (refreshGamification) refreshGamification();
     } catch (error) {
       console.error('Failed to export design doc:', error);
       throw error; // Re-throw so DesignDocPanel can handle it
