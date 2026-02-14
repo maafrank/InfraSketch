@@ -274,7 +274,14 @@ class TestExportDesignDoc:
         """Should trigger process_action for gamification tracking."""
         client, session_id = client_with_session
 
-        mock_process_action = mocker.patch("app.api.routes.process_action")
+        mock_process_action = mocker.patch("app.api.routes.process_action", return_value={
+            "xp_gained": 0,
+            "level_up": False,
+            "new_level": None,
+            "new_level_name": None,
+            "new_achievements": [],
+            "current_streak": 0,
+        })
         mocker.patch(
             "app.api.routes.convert_markdown_to_pdf",
             return_value=b"%PDF-1.4 test"
