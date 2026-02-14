@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import Response, JSONResponse
 from pydantic import BaseModel
 from typing import Optional
@@ -913,9 +914,11 @@ async def add_node(session_id: str, node: Node, http_request: Request, backgroun
     )
 
     # Gamification: track node addition
-    process_action(user_id, "node_added", {"node_type": node.type})
+    gamification_result = process_action(user_id, "node_added", {"node_type": node.type})
 
-    return session.diagram
+    content = jsonable_encoder(session.diagram)
+    content["gamification"] = gamification_result
+    return JSONResponse(content=content)
 
 
 @router.delete("/session/{session_id}/nodes/{node_id}", response_model=Diagram)
@@ -1022,9 +1025,11 @@ async def add_edge(session_id: str, edge: Edge, http_request: Request):
     session_manager.update_diagram(session_id, session.diagram)
 
     # Gamification: track edge addition
-    process_action(user_id, "edge_added")
+    gamification_result = process_action(user_id, "edge_added")
 
-    return session.diagram
+    content = jsonable_encoder(session.diagram)
+    content["gamification"] = gamification_result
+    return JSONResponse(content=content)
 
 
 @router.delete("/session/{session_id}/edges/{edge_id}", response_model=Diagram)
@@ -1292,9 +1297,9 @@ async def create_node_group(
     )
 
     # Gamification: track group creation
-    process_action(user_id, "group_created")
+    gamification_result = process_action(user_id, "group_created")
 
-    return CreateGroupResponse(diagram=session.diagram, group_id=group_id)
+    return CreateGroupResponse(diagram=session.diagram, group_id=group_id, gamification=gamification_result)
 
 
 @router.patch("/session/{session_id}/groups/{group_id}/collapse", response_model=Diagram)
@@ -1341,10 +1346,14 @@ async def toggle_group_collapse(
     )
 
     # Gamification: track group collapse (only when collapsing, not expanding)
+    gamification_result = None
     if group_node.is_collapsed:
-        process_action(user_id, "group_collapsed")
+        gamification_result = process_action(user_id, "group_collapsed")
 
-    return session.diagram
+    content = jsonable_encoder(session.diagram)
+    if gamification_result:
+        content["gamification"] = gamification_result
+    return JSONResponse(content=content)
 
 
 @router.delete("/session/{session_id}/groups/{group_id}", response_model=Diagram)
@@ -1577,7 +1586,8 @@ async def export_design_doc(session_id: str, request: ExportRequest, format: str
 
         # Gamification: track export
         if user_id:
-            process_action(user_id, "export_completed", {"format": format})
+            gamification_result = process_action(user_id, "export_completed", {"format": format})
+            result["gamification"] = gamification_result
 
         return JSONResponse(content=result)
 
@@ -1956,7 +1966,8 @@ async def export_design_doc_from_session(session_id: str, request: ExportRequest
 
         # Gamification: track export
         if user_id:
-            process_action(user_id, "export_completed", {"format": format})
+            gamification_result = process_action(user_id, "export_completed", {"format": format})
+            result["gamification"] = gamification_result
 
         return JSONResponse(content=result)
 

@@ -82,7 +82,7 @@ class GamificationStorage:
     def get(self, user_id: str) -> Optional[UserGamification]:
         """Retrieve gamification data for a user."""
         try:
-            response = self.table.get_item(Key={"user_id": user_id})
+            response = self.table.get_item(Key={"user_id": user_id}, ConsistentRead=True)
             if "Item" not in response:
                 return None
             return self._deserialize(response["Item"])

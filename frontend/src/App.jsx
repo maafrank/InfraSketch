@@ -561,9 +561,10 @@ function AppContent({ resumeMode = false, isMobile }) {
     }
 
     try {
-      const updatedDiagram = await addNode(currentSessionId, node);
+      const result = await addNode(currentSessionId, node);
+      const { gamification, ...updatedDiagram } = result;
       setDiagram(updatedDiagram);
-      if (refreshGamification) refreshGamification();
+      if (gamification) processGamificationResult(gamification);
 
       // Add system message to chat
       const systemMessage = {
@@ -633,9 +634,10 @@ function AppContent({ resumeMode = false, isMobile }) {
     if (!sessionId) return;
 
     try {
-      const updatedDiagram = await addEdge(sessionId, edge);
+      const result = await addEdge(sessionId, edge);
+      const { gamification, ...updatedDiagram } = result;
       setDiagram(updatedDiagram);
-      if (refreshGamification) refreshGamification();
+      if (gamification) processGamificationResult(gamification);
 
       // Add system message to chat
       const systemMessage = {
@@ -647,7 +649,7 @@ function AppContent({ resumeMode = false, isMobile }) {
       console.error('Failed to add edge:', error);
       alert('Failed to add connection. Please try again.');
     }
-  }, [sessionId, refreshGamification]);
+  }, [sessionId, processGamificationResult]);
 
   const handleDeleteEdge = useCallback(async (edgeId) => {
     if (!sessionId) return;
@@ -676,7 +678,7 @@ function AppContent({ resumeMode = false, isMobile }) {
       // Call with AI generation enabled (default: true)
       const response = await createNodeGroup(sessionId, [draggedNodeId, targetNodeId], true);
       setDiagram(response.diagram);
-      if (refreshGamification) refreshGamification();
+      if (response.gamification) processGamificationResult(response.gamification);
 
       // Find the created group node to get its AI-generated label
       const groupNode = response.diagram.nodes.find(n => n.id === response.group_id);
@@ -694,7 +696,7 @@ function AppContent({ resumeMode = false, isMobile }) {
     } finally {
       setMergingNodes(false);
     }
-  }, [sessionId, refreshGamification]);
+  }, [sessionId, processGamificationResult]);
 
   const handleUngroupNodes = useCallback(async (groupId) => {
     if (!sessionId) return;
@@ -742,14 +744,15 @@ function AppContent({ resumeMode = false, isMobile }) {
     if (!sessionId) return;
 
     try {
-      const updatedDiagram = await toggleGroupCollapse(sessionId, groupId);
+      const result = await toggleGroupCollapse(sessionId, groupId);
+      const { gamification, ...updatedDiagram } = result;
       setDiagram(updatedDiagram);
-      if (refreshGamification) refreshGamification();
+      if (gamification) processGamificationResult(gamification);
     } catch (error) {
       console.error('Failed to toggle group collapse:', error);
       alert('Failed to toggle group. Please try again.');
     }
-  }, [sessionId, refreshGamification]);
+  }, [sessionId, processGamificationResult]);
 
   // Check if any groups are currently expanded
   const hasExpandedGroups = useMemo(() => {
@@ -887,7 +890,7 @@ function AppContent({ resumeMode = false, isMobile }) {
         downloadBlob(pngBlob, response.diagram_png.filename);
       }
 
-      if (refreshGamification) refreshGamification();
+      if (response.gamification) processGamificationResult(response.gamification);
     } catch (error) {
       console.error('Failed to export design doc:', error);
       throw error; // Re-throw so DesignDocPanel can handle it

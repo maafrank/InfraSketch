@@ -126,6 +126,7 @@ class CreateGroupRequest(BaseModel):
 class CreateGroupResponse(BaseModel):
     diagram: Diagram
     group_id: str
+    gamification: Optional[dict] = None
 
 
 class AnalyzeRepoRequest(BaseModel):
