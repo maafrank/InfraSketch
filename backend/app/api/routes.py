@@ -1954,6 +1954,10 @@ async def export_design_doc_from_session(session_id: str, request: ExportRequest
             success=True,
         )
 
+        # Gamification: track export
+        if user_id:
+            process_action(user_id, "export_completed", {"format": format})
+
         return JSONResponse(content=result)
 
     except HTTPException:

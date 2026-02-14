@@ -402,7 +402,7 @@ function AppContent({ resumeMode = false, isMobile }) {
           setMobileChatOpen(false);
           // Refresh credit balance and gamification immediately after successful generation
           if (refreshCredits) refreshCredits();
-          refreshGamification();
+          if (refreshGamification) refreshGamification();
         } else {
           throw new Error(result.error || 'Failed to generate diagram');
         }
@@ -434,8 +434,6 @@ function AppContent({ resumeMode = false, isMobile }) {
             : 'Diagram generation timed out after 5 minutes. Try:\n\n1. Simplify your prompt\n2. Use Haiku 4.5 (faster)\n3. Try again in a moment';
         } else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
           errorMessage = 'Request timed out. Please try again.';
-        } else if (!error.response && error.message) {
-          errorMessage = error.message;
         } else if (error.response?.status === 404) {
           errorMessage = 'Repository not found. Please check the URL and try again.';
         } else if (error.response?.status === 403) {
@@ -827,7 +825,7 @@ function AppContent({ resumeMode = false, isMobile }) {
         setDesignDoc(result.design_doc);
         // Refresh credit balance and gamification immediately after successful generation
         if (refreshCredits) refreshCredits();
-        refreshGamification();
+        if (refreshGamification) refreshGamification();
       } else {
         throw new Error(result.error || 'Failed to generate design document');
       }
@@ -1078,7 +1076,7 @@ function AppContent({ resumeMode = false, isMobile }) {
             <GamificationHeader />
             <CreditBalance
               onUpgradeClick={() => navigate('/pricing')}
-              onRefresh={setRefreshCredits}
+              onRefresh={(fn) => setRefreshCredits(() => fn)}
             />
           </SignedIn>
           <div className="auth-buttons">

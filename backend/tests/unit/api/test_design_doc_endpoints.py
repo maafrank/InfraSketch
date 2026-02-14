@@ -269,3 +269,28 @@ class TestExportDesignDoc:
         assert "pdf" in data
         assert "markdown" in data
         assert "diagram_png" in data
+
+    def test_export_design_doc_triggers_gamification(self, client_with_session, mocker, mock_user_credits_storage):
+        """Should trigger process_action for gamification tracking."""
+        client, session_id = client_with_session
+
+        mock_process_action = mocker.patch("app.api.routes.process_action")
+        mocker.patch(
+            "app.api.routes.convert_markdown_to_pdf",
+            return_value=b"%PDF-1.4 test"
+        )
+
+        from app.session.manager import session_manager
+        session_manager.update_design_doc(session_id, "# Test Document")
+        session_manager.set_design_doc_status(session_id, "completed")
+
+        response = client.post(
+            f"/api/session/{session_id}/design-doc/export?format=pdf",
+            json={}
+        )
+
+        assert response.status_code == 200
+        mock_process_action.assert_called_once()
+        args = mock_process_action.call_args[0]
+        assert args[1] == "export_completed"
+        assert args[2] == {"format": "pdf"}
