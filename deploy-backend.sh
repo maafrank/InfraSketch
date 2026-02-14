@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e  # Exit on error
+export AWS_PAGER=""
 
 echo "🚀 Deploying InfraSketch Backend to AWS Lambda..."
 

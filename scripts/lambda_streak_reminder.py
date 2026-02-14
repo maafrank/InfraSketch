@@ -422,6 +422,7 @@ def send_email(api_key, to_email, subject, html_content):
         headers={
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
+            "User-Agent": "InfraSketch/1.0",
         },
     )
 
@@ -429,7 +430,8 @@ def send_email(api_key, to_email, subject, html_content):
         with urllib.request.urlopen(req, timeout=10) as resp:
             return resp.status == 200
     except urllib.error.HTTPError as e:
-        print(f"Resend API error for {to_email}: {e.code} {e.read().decode()}")
+        body = e.read().decode()[:500]
+        print(f"Resend API error for {to_email}: {e.code} {body}")
         return False
     except Exception as e:
         print(f"Error sending to {to_email}: {e}")
