@@ -17,7 +17,7 @@ import json
 import time
 import urllib.request
 import urllib.error
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 import boto3
@@ -120,19 +120,37 @@ class DecimalEncoder(json.JSONEncoder):
 
 
 def scan_at_risk_users(dynamodb, today_str):
-    """Scan gamification table for users at risk of losing their streak."""
+    """Scan gamification table for users genuinely at risk of losing their streak.
+
+    Only matches users who can still save their streak by acting today:
+    - Last active yesterday (gap 1): standard at-risk
+    - Last active 2 days ago with grace day unused (gap 2): grace day saves them
+    Users inactive 3+ days already lost their streak (just not reset in DB yet).
+    """
     table = dynamodb.Table(GAMIFICATION_TABLE)
+
+    today_date = datetime.strptime(today_str, "%Y-%m-%d").date()
+    yesterday_str = (today_date - timedelta(days=1)).isoformat()
+    day_before_str = (today_date - timedelta(days=2)).isoformat()
 
     filter_expr = (
         "current_streak > :zero "
-        "AND last_active_date < :today "
         "AND (attribute_not_exists(streak_reminders_enabled) "
-        "OR streak_reminders_enabled = :enabled)"
+        "OR streak_reminders_enabled = :enabled) "
+        "AND ("
+        "  last_active_date = :yesterday"
+        "  OR ("
+        "    last_active_date = :day_before"
+        "    AND (attribute_not_exists(streak_grace_used) OR streak_grace_used = :false_val)"
+        "  )"
+        ")"
     )
     expr_values = {
         ":zero": 0,
-        ":today": today_str,
         ":enabled": True,
+        ":yesterday": yesterday_str,
+        ":day_before": day_before_str,
+        ":false_val": False,
     }
 
     results = []
