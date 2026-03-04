@@ -51,3 +51,29 @@ def update_streak(gamification: UserGamification) -> dict:
 
     gamification.last_active_date = today
     return result
+
+
+def check_streak_expired(gamification: UserGamification) -> bool:
+    """Check if streak has expired due to inactivity. Resets to 0 if so.
+
+    Does NOT update last_active_date (this is a passive check, not an action).
+    Returns True if streak was reset.
+    """
+    last = gamification.last_active_date
+    if not last or gamification.current_streak == 0:
+        return False
+
+    last_date = datetime.strptime(last, "%Y-%m-%d").date()
+    today_date = datetime.utcnow().date()
+    gap = (today_date - last_date).days
+
+    # Streak survives: same day (0), next day (1), or grace day available (2)
+    if gap <= 1:
+        return False
+    if gap == 2 and not gamification.streak_grace_used:
+        return False
+
+    # Streak expired
+    gamification.current_streak = 0
+    gamification.streak_grace_used = False
+    return True

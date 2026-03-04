@@ -2627,6 +2627,11 @@ async def get_user_gamification(http_request: Request):
     storage = get_gamification_storage()
     gamification = storage.get_or_create(user_id)
 
+    # Reset streak if user has been inactive too long
+    from app.gamification.streaks import check_streak_expired
+    if check_streak_expired(gamification):
+        storage.save(gamification)
+
     level_info = get_level_progress(gamification.xp_total)
 
     # Build pending notification details
