@@ -18,6 +18,6 @@ export const DEFAULT_MODEL = MODELS.HAIKU;
  */
 export const MODEL_OPTIONS = [
   { id: MODELS.HAIKU, label: 'Speed', description: 'Fast & Economical' },
-  { id: MODELS.SONNET, label: 'Power', description: 'Best Quality, 3x cost' },
-  { id: MODELS.OPUS, label: 'Ultra', description: 'Premium, 5x cost' },
+  { id: MODELS.SONNET, label: 'Power', description: 'Best Quality' },
+  { id: MODELS.OPUS, label: 'Ultra', description: 'Premium' },
 ];

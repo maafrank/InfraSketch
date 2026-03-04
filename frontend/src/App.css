@@ -2417,6 +2417,13 @@ body {
   flex: 1;
 }
 
+.model-select-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
 .model-select {
   padding: 6px 32px 6px 12px;
   font-size: 0.9rem;

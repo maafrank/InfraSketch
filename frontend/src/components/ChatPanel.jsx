@@ -203,6 +203,7 @@ export default function ChatPanel({
       <div className="chat-header">
         <div className="chat-header-content">
           <div className="chat-header-row">
+            <label htmlFor="chat-model-select" className="model-select-label">Model:</label>
             <select
               id="chat-model-select"
               value={currentModel}
@@ -211,7 +212,7 @@ export default function ChatPanel({
               className="model-select"
             >
               {MODEL_OPTIONS.map(opt => (
-                <option key={opt.id} value={opt.id}>{opt.label}</option>
+                <option key={opt.id} value={opt.id}>{opt.label} ({opt.description})</option>
               ))}
             </select>
             {selectedNode && (
