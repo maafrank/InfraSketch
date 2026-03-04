@@ -11,13 +11,13 @@ class UserCredits(BaseModel):
     """User credit balance and subscription state."""
 
     user_id: str
-    plan: Literal["free", "pro", "enterprise"] = "free"
+    plan: Literal["free", "starter", "pro", "enterprise"] = "free"
     plan_started_at: Optional[datetime] = None
     plan_expires_at: Optional[datetime] = None
 
     # Credit balances
-    credits_balance: int = 25  # Current available credits (from subscription)
-    credits_monthly_allowance: int = 25  # Credits granted each billing cycle
+    credits_balance: int = 10  # Current available credits (from subscription)
+    credits_monthly_allowance: int = 10  # Credits granted each billing cycle
     credits_used_this_period: int = 0  # Usage tracking for analytics
 
     # Subscription tracking (synced from Clerk)

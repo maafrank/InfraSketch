@@ -205,8 +205,9 @@
 
 | Plan | Price | Monthly Credits | What You Get |
 |------|-------|-----------------|--------------|
-| **Free** | $0 | 25 credits | ~5 diagrams or 25 chat messages |
-| **Pro** | $9.99/mo | 500 credits | ~100 diagrams, Claude Sonnet access, priority support |
+| **Free** | $0 | 10 credits | ~2 diagrams and a few chat messages |
+| **Starter** | $1/mo | 50 credits | Design doc generation, ~10 diagrams |
+| **Pro** | $4.99/mo | 300 credits | ~60 diagrams, Claude Sonnet access, priority support |
 | **Enterprise** | Custom | Unlimited | Team collaboration, API access, dedicated support |
 
 **Credit Costs (per action):**
@@ -224,10 +225,11 @@
 - Model choice = user controls cost vs. quality tradeoff
 
 **Unit Economics:**
-- Free tier: ~5 diagrams/month (enough to experience value)
-- Pro tier: ~100 diagrams/month (20x the value)
-- $9.99 accessible for individual engineers
-- Path to ARR: 1,000 Pro users = $120K ARR
+- Free tier: ~2 diagrams/month (enough to experience value)
+- Starter tier: ~10 diagrams/month + design docs ($1/mo, low barrier)
+- Pro tier: ~60 diagrams/month (30x free value)
+- $1 Starter accessible for everyone, $4.99 Pro for power users
+- Path to ARR: 1,000 Starter + 500 Pro users = $42K ARR
 
 **Revenue Projections:**
 | Users | 5% Conversion | 10% Conversion |

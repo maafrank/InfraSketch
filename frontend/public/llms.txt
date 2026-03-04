@@ -67,8 +67,9 @@ InfraSketch is a free AI-powered system design tool that transforms plain Englis
 
 ## Pricing
 
-- **Free**: 25 credits/month, all core features
-- **Pro** ($9.99/month): 500 credits/month, priority queue, Sonnet 4.5 access
+- **Free**: 10 credits/month, all core features
+- **Starter** ($1/month): 50 credits/month, design document generation
+- **Pro** ($4.99/month): 300 credits/month, priority queue, Sonnet 4.5 access
 - **Enterprise**: Custom pricing, unlimited credits, team features
 
 ## Technology Stack

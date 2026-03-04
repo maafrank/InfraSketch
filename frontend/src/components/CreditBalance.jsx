@@ -69,8 +69,8 @@ export default function CreditBalance({ onUpgradeClick, onRefresh }) {
   if (error) return null;
 
   const balance = credits?.credits_balance || 0;
-  const isLow = balance < 10;
-  const isCritical = balance < 3;
+  const isLow = balance < 5;
+  const isCritical = balance < 2;
 
   return (
     <div

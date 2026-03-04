@@ -51,10 +51,14 @@ CREDIT_COSTS = {
 
 # Plan configurations
 PLAN_CREDITS = {
-    "free": 25,
-    "pro": 500,
+    "free": 10,
+    "starter": 50,
+    "pro": 300,
     "enterprise": 2000,
 }
+
+# Plans that include design doc generation
+DESIGN_DOC_PLANS = {"starter", "pro", "enterprise"}
 
 
 def calculate_cost(action: str, model: Optional[str] = None) -> int:

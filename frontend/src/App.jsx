@@ -839,8 +839,17 @@ function AppContent({ resumeMode = false, isMobile }) {
     } catch (error) {
       console.error('Failed to generate design doc:', error);
 
+      // Handle feature locked (403) - design docs require paid plan
+      if (error.response?.status === 403 && error.response.data?.error === 'feature_locked') {
+        setDesignDocOpen(false);
+        setInsufficientCreditsError({
+          required: 0,
+          available: 0,
+          featureLocked: true,
+          message: error.response.data.message || 'This feature requires a paid plan.',
+        });
       // Handle insufficient credits (402)
-      if (error.response?.status === 402) {
+      } else if (error.response?.status === 402) {
         const detail = error.response.data?.detail || {};
         setInsufficientCreditsError({
           required: detail.required || 10,
@@ -1256,6 +1265,8 @@ function AppContent({ resumeMode = false, isMobile }) {
         onClose={() => setInsufficientCreditsError(null)}
         required={insufficientCreditsError?.required}
         available={insufficientCreditsError?.available}
+        featureLocked={insufficientCreditsError?.featureLocked}
+        message={insufficientCreditsError?.message}
         onUpgrade={() => {
           setInsufficientCreditsError(null);
           navigate('/pricing');

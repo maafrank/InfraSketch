@@ -37,7 +37,7 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import SystemMessage
 from app.utils.secrets import get_anthropic_api_key
 from app.billing.storage import get_user_credits_storage
-from app.billing.credit_costs import calculate_cost
+from app.billing.credit_costs import calculate_cost, DESIGN_DOC_PLANS
 from app.billing.promo_codes import redeem_promo_code, validate_promo_code
 from app.gamification.engine import process_action
 from app.gamification.storage import get_gamification_storage
@@ -1713,19 +1713,35 @@ async def generate_design_doc(session_id: str, request: ExportRequest, backgroun
         # Verify access
         session = verify_session_access(session_id, user_id, http_request)
 
+        # Check plan-level feature gate for design doc generation
+        if user_id:
+            from app.billing.storage import get_user_credits_storage
+            credits_storage = get_user_credits_storage()
+            user_credits = credits_storage.get_or_create_credits(user_id)
+            if user_credits.plan not in DESIGN_DOC_PLANS:
+                return JSONResponse(
+                    status_code=403,
+                    content={
+                        "error": "feature_locked",
+                        "feature": "design_doc_generation",
+                        "required_plan": "starter",
+                        "message": "Design document generation requires a paid plan. Upgrade to Starter ($1/mo) or Pro ($4.99/mo).",
+                    },
+                )
+
+        # Check if already generating (before deducting credits to avoid double-charge)
+        if session.design_doc_status.status == "generating":
+            return JSONResponse(content={
+                "status": "already_generating",
+                "message": "Design document generation already in progress"
+            })
+
         # Check and deduct credits for design doc generation
         await check_and_deduct_credits(
             user_id=user_id,
             action="design_doc_generation",
             session_id=session_id,
         )
-
-        # Check if already generating
-        if session.design_doc_status.status == "generating":
-            return JSONResponse(content={
-                "status": "already_generating",
-                "message": "Design document generation already in progress"
-            })
 
         # Set status to generating
         session_manager.set_design_doc_status(session_id, "generating")
@@ -2867,6 +2883,7 @@ async def validate_promo(request: RedeemPromoRequest, http_request: Request):
 
 # Clerk plan ID to our plan name mapping
 CLERK_PLAN_ID_MAP = {
+    "cplan_3ASdFvizPo0JbVeethbsS7UfLjp": "starter",
     "cplan_37cOR2Mjs1jWOjaJfUGTX0U1Jf4": "pro",
     "cplan_37cOpDf5Cm7GGUl2K8lUarQf7Bp": "enterprise",
 }
@@ -2879,7 +2896,9 @@ def _get_plan_from_clerk_id(plan_id: str) -> str:
         return CLERK_PLAN_ID_MAP[plan_id]
     # Fall back to fuzzy match on plan key
     plan_id_lower = plan_id.lower()
-    if "pro" in plan_id_lower:
+    if "starter" in plan_id_lower:
+        return "starter"
+    elif "pro" in plan_id_lower:
         return "pro"
     elif "enterprise" in plan_id_lower:
         return "enterprise"

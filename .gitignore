@@ -234,3 +234,7 @@ __marimo__/
 *.mp4
 *.avi
 *.mkv
+
+
+
+*settings.json*

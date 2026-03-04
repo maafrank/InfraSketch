@@ -26,7 +26,7 @@ Let's compare the 7 best tools across all categories.
 
 [InfraSketch](https://infrasketch.net) is an AI agent that generates architecture diagrams from natural language descriptions and refines them through conversation.
 
-**Free tier available with Pro at $9.99/month.**
+**Free tier available with Starter at $1/month and Pro at $4.99/month.**
 
 Best for architects and engineers who want to rapidly prototype systems, prepare for design interviews, or create architecture proposals without learning any syntax.
 
@@ -173,7 +173,7 @@ It includes features such as:
 
 | Tool | AI-Powered | Auto-Layout | Version Control | Design Docs | Pricing |
 |------|------------|-------------|-----------------|-------------|---------|
-| **InfraSketch** | Full Agent | Yes | Session History | Auto-Generated | Free / $9.99/mo |
+| **InfraSketch** | Full Agent | Yes | Session History | Auto-Generated | Free / $1/mo |
 | **Mermaid** | No | Yes | Git-native | No | Free (OSS) |
 | **Structurizr** | No | Yes | Git-native | ADRs | Free / Paid |
 | **D2** | No | TALA | Git-native | No | Free / Paid |

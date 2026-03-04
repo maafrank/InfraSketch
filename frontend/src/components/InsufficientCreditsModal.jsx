@@ -11,6 +11,8 @@ export default function InsufficientCreditsModal({
   onClose,
   required,
   available,
+  featureLocked,
+  message,
   onUpgrade,
   onCreditsUpdated,
 }) {
@@ -58,41 +60,45 @@ export default function InsufficientCreditsModal({
 
         <div className="modal-icon">⚡</div>
 
-        <h2>Out of Credits</h2>
+        <h2>{featureLocked ? 'Paid Feature' : 'Out of Credits'}</h2>
 
         <p className="modal-description">
-          This action requires <strong>{required} credits</strong>,
-          but you only have <strong>{available} credits</strong> available.
+          {featureLocked
+            ? message || 'This feature requires a paid plan.'
+            : <>This action requires <strong>{required} credits</strong>, but you only have <strong>{available} credits</strong> available.</>
+          }
         </p>
 
         <div className="modal-actions">
           <button className="action-button primary" onClick={onUpgrade}>
-            Upgrade Plan
+            {featureLocked ? 'View Plans' : 'Upgrade Plan'}
           </button>
         </div>
 
-        <div className="promo-section">
-          <p className="promo-label">Have a promo code?</p>
-          <form onSubmit={handlePromoSubmit} className="promo-form">
-            <input
-              type="text"
-              value={promoCode}
-              onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-              placeholder="Enter code"
-              className="promo-input"
-              disabled={promoLoading}
-            />
-            <button
-              type="submit"
-              className="promo-submit"
-              disabled={promoLoading || !promoCode.trim()}
-            >
-              {promoLoading ? '...' : 'Apply'}
-            </button>
-          </form>
-          {promoError && <p className="promo-error">{promoError}</p>}
-          {promoSuccess && <p className="promo-success">{promoSuccess}</p>}
-        </div>
+        {!featureLocked && (
+          <div className="promo-section">
+            <p className="promo-label">Have a promo code?</p>
+            <form onSubmit={handlePromoSubmit} className="promo-form">
+              <input
+                type="text"
+                value={promoCode}
+                onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                placeholder="Enter code"
+                className="promo-input"
+                disabled={promoLoading}
+              />
+              <button
+                type="submit"
+                className="promo-submit"
+                disabled={promoLoading || !promoCode.trim()}
+              >
+                {promoLoading ? '...' : 'Apply'}
+              </button>
+            </form>
+            {promoError && <p className="promo-error">{promoError}</p>}
+            {promoSuccess && <p className="promo-success">{promoSuccess}</p>}
+          </div>
+        )}
       </div>
     </div>
   );

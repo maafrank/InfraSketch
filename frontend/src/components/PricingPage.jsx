@@ -15,6 +15,7 @@ import './PricingPage.css';
 
 // Clerk plan IDs from dashboard
 const CLERK_PLAN_IDS = {
+  starter: 'cplan_3ASdFvizPo0JbVeethbsS7UfLjp',
   pro: 'cplan_37cOR2Mjs1jWOjaJfUGTX0U1Jf4',
   enterprise: 'cplan_37cOpDf5Cm7GGUl2K8lUarQf7Bp',
 };
@@ -25,28 +26,42 @@ const PLANS = [
     name: 'Free',
     price: '$0',
     period: 'forever',
-    credits: 25,
+    credits: 10,
     features: [
-      '25 credits per month',
+      '10 credits per month',
       'AI-powered diagram generation',
       'Chat-based modifications',
-      'Design document export',
       'All node types',
     ],
     cta: 'Current Plan',
   },
   {
+    id: 'starter',
+    clerkPlanId: CLERK_PLAN_IDS.starter,
+    name: 'Starter',
+    price: '$1',
+    period: '/month',
+    credits: 50,
+    features: [
+      '50 credits per month',
+      'Everything in Free',
+      'Design document generation',
+      'Design document export',
+    ],
+    cta: 'Get Starter',
+  },
+  {
     id: 'pro',
     clerkPlanId: CLERK_PLAN_IDS.pro,
     name: 'Pro',
-    price: '$9.99',
+    price: '$4.99',
     period: '/month',
-    credits: 500,
+    credits: 300,
     features: [
-      '500 credits per month',
-      'Everything in Free',
-      'Priority generation queue',
+      '300 credits per month',
+      'Everything in Starter',
       'Claude Sonnet 4.5 access',
+      'Priority generation queue',
       'Email support',
     ],
     cta: 'Upgrade to Pro',
@@ -140,7 +155,7 @@ export default function PricingPage() {
   };
 
   const canUpgrade = (planId) => {
-    const planOrder = { free: 0, pro: 1, enterprise: 2 };
+    const planOrder = { free: 0, starter: 1, pro: 2, enterprise: 3 };
     return planOrder[planId] > planOrder[currentPlan];
   };
 
@@ -161,16 +176,25 @@ export default function PricingPage() {
         "price": "0",
         "priceCurrency": "USD",
         "availability": "https://schema.org/InStock",
-        "description": "25 credits per month, AI-powered diagram generation, chat-based modifications"
+        "description": "10 credits per month, AI-powered diagram generation, chat-based modifications"
+      },
+      {
+        "@type": "Offer",
+        "name": "Starter Plan",
+        "price": "1.00",
+        "priceCurrency": "USD",
+        "availability": "https://schema.org/InStock",
+        "priceValidUntil": "2026-12-31",
+        "description": "50 credits per month, design document generation and export"
       },
       {
         "@type": "Offer",
         "name": "Pro Plan",
-        "price": "9.99",
+        "price": "4.99",
         "priceCurrency": "USD",
         "availability": "https://schema.org/InStock",
         "priceValidUntil": "2026-12-31",
-        "description": "500 credits per month, priority queue, Claude Sonnet 4.5 access"
+        "description": "300 credits per month, Claude Sonnet 4.5 access, priority queue"
       }
     ]
   };
@@ -179,7 +203,7 @@ export default function PricingPage() {
     <div className="pricing-page">
       <Helmet>
         <title>Pricing | Free AI System Design Tool | InfraSketch</title>
-        <meta name="description" content="InfraSketch pricing plans. Start free with 25 credits/month. Upgrade to Pro for 500 credits at $9.99/month. Create AI-powered architecture diagrams and design documents." />
+        <meta name="description" content="InfraSketch pricing plans. Start free with 10 credits/month. Starter plan at $1/month with 50 credits. Pro plan at $4.99/month with 300 credits. Create AI-powered architecture diagrams and design documents." />
         <meta name="keywords" content="free system design tool, AI diagram generator pricing, architecture diagram tool free, system design tool cost, InfraSketch pricing" />
         <link rel="canonical" href="https://infrasketch.net/pricing" />
 
@@ -187,13 +211,13 @@ export default function PricingPage() {
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://infrasketch.net/pricing" />
         <meta property="og:title" content="InfraSketch Pricing - Free AI System Design Tool" />
-        <meta property="og:description" content="Start free with 25 credits/month. Create AI-powered architecture diagrams and design documents." />
+        <meta property="og:description" content="Start free with 10 credits/month. Upgrade from just $1/month. Create AI-powered architecture diagrams and design documents." />
         <meta property="og:image" content="https://infrasketch.net/full-app-with-design-doc.png" />
 
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="InfraSketch Pricing - Free AI System Design Tool" />
-        <meta name="twitter:description" content="Start free with 25 credits/month. Create AI-powered architecture diagrams." />
+        <meta name="twitter:description" content="Start free with 10 credits/month. Upgrade from just $1/month. Create AI-powered architecture diagrams." />
 
         {/* Structured Data for Price Rich Snippets */}
         <script type="application/ld+json">

@@ -249,7 +249,7 @@ export default function LandingPage({ onGenerate, loading }) {
           "@type": "Offer",
           "price": "0",
           "priceCurrency": "USD",
-          "description": "Free tier with 25 credits per month"
+          "description": "Free tier with 10 credits per month"
         },
         "featureList": [
           "Natural language to architecture diagram generation",
@@ -535,7 +535,7 @@ export default function LandingPage({ onGenerate, loading }) {
         className={`pricing-section scroll-animate ${pricingAnimation.isVisible ? 'visible' : ''}`}
       >
         <h2 className="pricing-heading">Transparent Pricing</h2>
-        <p className="pricing-subtext">25 free credits every month. Here's what they cost.</p>
+        <p className="pricing-subtext">10 free credits every month. Here's what they cost.</p>
         <div className="pricing-grid">
           <div className="pricing-card" data-tooltip="Describe any system and Claude designs a complete architecture with 4-8 connected components, auto-organized into semantic groups">
             <span className="pricing-action">Diagram Generation</span>
@@ -559,7 +559,7 @@ export default function LandingPage({ onGenerate, loading }) {
           </div>
         </div>
         <p className="pricing-footer">
-          That's 5 diagrams, 25 chat messages, or a mix. Upgrade to Pro for 500 credits/month.
+          That's 2 diagrams and a few chat messages. Upgrade to Starter for just $1/month.
         </p>
         <RouterLink to="/pricing" className="pricing-cta-link">See full pricing</RouterLink>
       </div>
