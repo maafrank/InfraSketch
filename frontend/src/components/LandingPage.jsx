@@ -101,6 +101,12 @@ const LAUNCH_BADGES = [
     width: 20,
     height: 20,
     customStyle: true
+  },
+  {
+    name: "The Aroma Nest",
+    href: "https://thearomanest.com/tool/infrasketch",
+    alt: "Featured on The Aroma Nest",
+    customStyle: true
   }
 ];
 
@@ -709,6 +715,16 @@ export default function LandingPage({ onGenerate, loading }) {
               className="featured-badge-img"
               style={{ height: '52px', width: 'auto' }}
             />
+          </a>
+
+          {/* The Aroma Nest */}
+          <a
+            href="https://thearomanest.com/tool/infrasketch"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="featured-badge-link featured-badge-styled"
+          >
+            <span>Featured on The Aroma Nest</span>
           </a>
 
         </div>
