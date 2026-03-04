@@ -5,7 +5,7 @@ POST /user/gamification/notifications/dismiss
 """
 
 from unittest.mock import patch, MagicMock
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.gamification.models import (
     UserGamification,
@@ -24,7 +24,7 @@ def _make_test_gamification(user_id="local-dev-user"):
         level_name="Designer",
         current_streak=5,
         longest_streak=12,
-        last_active_date="2026-02-05",
+        last_active_date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         counters=GamificationCounters(
             diagrams_generated=8,
             chat_messages_sent=20,

@@ -1715,7 +1715,6 @@ async def generate_design_doc(session_id: str, request: ExportRequest, backgroun
 
         # Check plan-level feature gate for design doc generation
         if user_id:
-            from app.billing.storage import get_user_credits_storage
             credits_storage = get_user_credits_storage()
             user_credits = credits_storage.get_or_create_credits(user_id)
             if user_credits.plan not in DESIGN_DOC_PLANS:
