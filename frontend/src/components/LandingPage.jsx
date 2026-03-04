@@ -4,6 +4,7 @@ import { useScrollAnimation, useStaggeredAnimation } from '../hooks/useScrollAni
 import { Twitter, ShoppingCart, Link, Tv, Pencil, MessageSquare, Brain, FileText, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link as RouterLink } from 'react-router-dom';
 import Footer from './shared/Footer';
+import { DEFAULT_MODEL, MODEL_OPTIONS } from '../constants/models';
 
 const EXAMPLE_PROMPTS = [
   {
@@ -162,13 +163,13 @@ const SCREENSHOTS = [
   {
     src: "/email-platform-model-selector.png",
     alt: "Email platform with model selector",
-    caption: "Choose between Haiku and Sonnet models"
+    caption: "Choose between Speed and Power models"
   }
 ];
 
 export default function LandingPage({ onGenerate, loading }) {
   const [prompt, setPrompt] = useState('');
-  const [model, setModel] = useState('claude-haiku-4-5'); // Default to Haiku (always latest)
+  const [model, setModel] = useState(DEFAULT_MODEL);
   const [currentScreenshot, setCurrentScreenshot] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
@@ -376,8 +377,9 @@ export default function LandingPage({ onGenerate, loading }) {
                 color: '#666'
               }}
             >
-              <option value="claude-haiku-4-5">Haiku 4.5</option>
-              <option value="claude-sonnet-4-5">Sonnet 4.5</option>
+              {MODEL_OPTIONS.map(opt => (
+                <option key={opt.id} value={opt.id}>{opt.label}</option>
+              ))}
             </select>
           </div>
         </form>

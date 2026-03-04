@@ -5,6 +5,7 @@ Creates concise, descriptive names for sessions based on the initial prompt.
 """
 
 from anthropic import Anthropic
+from app.config.models import DEFAULT_MODEL
 
 NAME_GENERATION_PROMPT = """You are a technical writer creating concise session names for system design diagrams.
 
@@ -25,7 +26,7 @@ Rules:
 Return ONLY the name, nothing else."""
 
 
-def generate_session_name(prompt: str, anthropic_api_key: str, model: str = "claude-haiku-4-5") -> str:
+def generate_session_name(prompt: str, anthropic_api_key: str, model: str = DEFAULT_MODEL) -> str:
     """
     Generate a concise session name based on the initial prompt.
 

@@ -7,6 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/mocks/server';
 import { mockDiagram, mockSession, mockUserSessions } from '../../../tests/mocks/handlers';
+import { MODELS } from '../../constants/models';
 import {
   generateDiagram,
   getDiagramStatus,
@@ -60,11 +61,11 @@ describe('API Client', () => {
         })
       );
 
-      await generateDiagram('Test prompt', 'claude-sonnet-4-5');
+      await generateDiagram('Test prompt', MODELS.SONNET);
 
       expect(capturedBody).toEqual({
         prompt: 'Test prompt',
-        model: 'claude-sonnet-4-5',
+        model: MODELS.SONNET,
       });
     });
   });
@@ -181,13 +182,13 @@ describe('API Client', () => {
         })
       );
 
-      await sendChatMessage('session-123', 'Update this node', 'node-1', 'claude-haiku-4-5');
+      await sendChatMessage('session-123', 'Update this node', 'node-1', MODELS.HAIKU);
 
       expect(capturedBody).toEqual({
         session_id: 'session-123',
         message: 'Update this node',
         node_id: 'node-1',
-        model: 'claude-haiku-4-5',
+        model: MODELS.HAIKU,
       });
     });
   });

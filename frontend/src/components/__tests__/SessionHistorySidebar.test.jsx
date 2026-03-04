@@ -7,6 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SessionHistorySidebar from '../SessionHistorySidebar';
+import { MODELS } from '../../constants/models';
 
 // Mock the CSS import
 vi.mock('../SessionHistorySidebar.css', () => ({}));
@@ -23,7 +24,7 @@ vi.mock('../../api/client', () => ({
           updated_at: new Date().toISOString(),
           node_count: 5,
           edge_count: 4,
-          model: 'claude-haiku-4-5',
+          model: MODELS.HAIKU,
           has_design_doc: true,
         },
         {
@@ -33,7 +34,7 @@ vi.mock('../../api/client', () => ({
           updated_at: new Date(Date.now() - 86400000).toISOString(),
           node_count: 8,
           edge_count: 7,
-          model: 'claude-sonnet-4-5',
+          model: MODELS.SONNET,
           has_design_doc: false,
         },
         {
@@ -43,7 +44,7 @@ vi.mock('../../api/client', () => ({
           updated_at: new Date(Date.now() - 7 * 86400000).toISOString(),
           node_count: 3,
           edge_count: 2,
-          model: 'claude-haiku-4-5',
+          model: MODELS.HAIKU,
           has_design_doc: false,
         },
       ],
@@ -177,14 +178,14 @@ describe('SessionHistorySidebar', () => {
       });
     });
 
-    it('displays model name (Haiku/Sonnet)', async () => {
+    it('displays model name (Speed/Power)', async () => {
       render(<SessionHistorySidebar {...defaultProps} />);
 
       await waitFor(() => {
-        // Multiple sessions can have Haiku model, so use getAllByText
-        const haikuElements = screen.getAllByText('Haiku');
-        expect(haikuElements.length).toBeGreaterThan(0);
-        expect(screen.getByText('Sonnet')).toBeInTheDocument();
+        // Multiple sessions can have Speed model, so use getAllByText
+        const speedElements = screen.getAllByText('Speed');
+        expect(speedElements.length).toBeGreaterThan(0);
+        expect(screen.getByText('Power')).toBeInTheDocument();
       });
     });
 
@@ -730,7 +731,7 @@ describe('SessionHistorySidebar', () => {
             updated_at: new Date().toISOString(),
             node_count: 5,
             edge_count: 4,
-            model: 'claude-haiku-4-5',
+            model: MODELS.HAIKU,
             has_design_doc: false,
           },
         ],
@@ -775,7 +776,7 @@ describe('SessionHistorySidebar', () => {
             updated_at: new Date().toISOString(),
             node_count: 5,
             edge_count: 4,
-            model: 'claude-haiku-4-5',
+            model: MODELS.HAIKU,
             has_design_doc: false,
           },
           {
@@ -785,7 +786,7 @@ describe('SessionHistorySidebar', () => {
             updated_at: new Date(Date.now() - 86400000).toISOString(),
             node_count: 3,
             edge_count: 2,
-            model: 'claude-haiku-4-5',
+            model: MODELS.HAIKU,
             has_design_doc: false,
           },
           {
@@ -795,7 +796,7 @@ describe('SessionHistorySidebar', () => {
             updated_at: new Date(Date.now() - 5 * 86400000).toISOString(),
             node_count: 2,
             edge_count: 1,
-            model: 'claude-haiku-4-5',
+            model: MODELS.HAIKU,
             has_design_doc: false,
           },
         ],

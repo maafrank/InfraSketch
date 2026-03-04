@@ -8,6 +8,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import App from '../App';
+import { DEFAULT_MODEL, MODELS } from '../constants/models';
 
 // Mock API client
 vi.mock('../api/client', () => ({
@@ -47,7 +48,7 @@ vi.mock('../api/client', () => ({
     diagram: { nodes: [], edges: [] },
     messages: [],
     design_doc: null,
-    model: 'claude-haiku-4-5',
+    model: DEFAULT_MODEL,
   })),
   createBlankSession: vi.fn(() => Promise.resolve({
     session_id: 'new-session-123',
@@ -83,13 +84,13 @@ vi.mock('../components/LandingPage', () => ({
         placeholder="Enter prompt"
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
-            onSubmit(e.target.value, 'claude-haiku-4-5');
+            onSubmit(e.target.value, DEFAULT_MODEL);
           }
         }}
       />
       <button
         data-testid="submit-button"
-        onClick={() => onSubmit('Test prompt', 'claude-haiku-4-5')}
+        onClick={() => onSubmit('Test prompt', DEFAULT_MODEL)}
       >
         Generate
       </button>
@@ -178,8 +179,8 @@ vi.mock('../components/ChatPanel', () => ({
         value={currentModel}
         onChange={(e) => onModelChange?.(e.target.value)}
       >
-        <option value="claude-haiku-4-5">Haiku</option>
-        <option value="claude-sonnet-4-5">Sonnet</option>
+        <option value={MODELS.HAIKU}>Speed</option>
+        <option value={MODELS.SONNET}>Power</option>
       </select>
     </div>
   ),
@@ -355,9 +356,9 @@ describe('App', () => {
 
       renderApp('/');
 
-      await user.selectOptions(screen.getByTestId('model-select'), 'claude-sonnet-4-5');
+      await user.selectOptions(screen.getByTestId('model-select'), MODELS.SONNET);
 
-      expect(screen.getByTestId('current-model')).toHaveTextContent('claude-sonnet-4-5');
+      expect(screen.getByTestId('current-model')).toHaveTextContent(MODELS.SONNET);
     });
   });
 

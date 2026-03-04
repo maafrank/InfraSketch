@@ -7,6 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import InputPanel from '../InputPanel';
+import { DEFAULT_MODEL, MODELS } from '../../constants/models';
 
 // Mock LoadingAnimation component
 vi.mock('../LoadingAnimation', () => ({
@@ -30,11 +31,11 @@ describe('InputPanel', () => {
       expect(screen.getByText('System Design Generator')).toBeInTheDocument();
     });
 
-    it('renders model selector with default Haiku', () => {
+    it('renders model selector with default Speed', () => {
       render(<InputPanel {...defaultProps} />);
 
       const select = screen.getByLabelText('AI Model:');
-      expect(select).toHaveValue('claude-haiku-4-5');
+      expect(select).toHaveValue(DEFAULT_MODEL);
     });
 
     it('renders all model options', () => {
@@ -42,9 +43,9 @@ describe('InputPanel', () => {
 
       const options = screen.getAllByRole('option');
       expect(options).toHaveLength(3);
-      expect(options[0]).toHaveTextContent('Claude Haiku 4.5');
-      expect(options[1]).toHaveTextContent('Claude Sonnet 4.5');
-      expect(options[2]).toHaveTextContent('Claude Opus 4.5');
+      expect(options[0]).toHaveTextContent('Speed');
+      expect(options[1]).toHaveTextContent('Power');
+      expect(options[2]).toHaveTextContent('Ultra');
     });
 
     it('renders textarea with placeholder', () => {
@@ -80,9 +81,9 @@ describe('InputPanel', () => {
       render(<InputPanel {...defaultProps} />);
 
       const select = screen.getByLabelText('AI Model:');
-      await user.selectOptions(select, 'claude-sonnet-4-5');
+      await user.selectOptions(select, MODELS.SONNET);
 
-      expect(select).toHaveValue('claude-sonnet-4-5');
+      expect(select).toHaveValue(MODELS.SONNET);
     });
 
     it('submit button disabled when prompt empty', () => {
@@ -118,7 +119,7 @@ describe('InputPanel', () => {
 
       expect(onGenerate).toHaveBeenCalledWith(
         'Build a chat application',
-        'claude-haiku-4-5'
+        DEFAULT_MODEL
       );
     });
 
@@ -128,7 +129,7 @@ describe('InputPanel', () => {
       render(<InputPanel {...defaultProps} onGenerate={onGenerate} />);
 
       const select = screen.getByLabelText('AI Model:');
-      await user.selectOptions(select, 'claude-sonnet-4-5');
+      await user.selectOptions(select, MODELS.SONNET);
 
       const textarea = screen.getByRole('textbox');
       await user.type(textarea, 'Test prompt');
@@ -136,7 +137,7 @@ describe('InputPanel', () => {
       const button = screen.getByRole('button', { name: /Generate System/i });
       await user.click(button);
 
-      expect(onGenerate).toHaveBeenCalledWith('Test prompt', 'claude-sonnet-4-5');
+      expect(onGenerate).toHaveBeenCalledWith('Test prompt', MODELS.SONNET);
     });
 
     it('trims whitespace from prompt', async () => {
@@ -153,7 +154,7 @@ describe('InputPanel', () => {
       // The component passes the trimmed value due to the trim() check
       expect(onGenerate).toHaveBeenCalledWith(
         '  Build a platform  ',
-        'claude-haiku-4-5'
+        DEFAULT_MODEL
       );
     });
 

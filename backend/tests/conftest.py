@@ -30,6 +30,7 @@ from app.models import (
     NodePosition, NodeMetadata, DesignDocStatus, DiagramGenerationStatus
 )
 from app.session.manager import SessionManager
+from app.config.models import DEFAULT_MODEL
 
 
 # ============================================================================
@@ -210,7 +211,7 @@ def sample_session(simple_diagram, test_user_id):
         diagram=simple_diagram,
         messages=[],
         current_node=None,
-        model="claude-haiku-4-5-20251001"
+        model=DEFAULT_MODEL
     )
 
 

@@ -11,6 +11,7 @@ from langchain_core.messages import AnyMessage
 from langgraph.graph import add_messages
 
 from app.models import Diagram
+from app.config.models import DEFAULT_MODEL
 
 
 @dataclass(kw_only=True)
@@ -33,7 +34,7 @@ class InfraSketchState:
 
     # Metadata
     session_id: str = ""
-    model: str = "claude-haiku-4-5"
+    model: str = DEFAULT_MODEL
 
     # Optional context
     node_id: Optional[str] = None  # For node-focused conversations

@@ -11,6 +11,7 @@ from app.models import (
     NodePosition, NodeMetadata, DesignDocStatus, DiagramGenerationStatus,
     GenerateRequest, ChatRequest, CreateGroupRequest
 )
+from app.config.models import DEFAULT_MODEL, SONNET
 
 
 class TestNodePosition:
@@ -240,7 +241,7 @@ class TestSessionState:
             user_id=test_user_id,
             diagram=empty_diagram
         )
-        assert session.model == "claude-haiku-4-5-20251001"
+        assert session.model == DEFAULT_MODEL
 
 
 class TestRequestModels:
@@ -256,9 +257,9 @@ class TestRequestModels:
         """Test GenerateRequest with custom model."""
         req = GenerateRequest(
             prompt="Design a web app",
-            model="claude-sonnet-4-5-20251001"
+            model=SONNET
         )
-        assert req.model == "claude-sonnet-4-5-20251001"
+        assert req.model == SONNET
 
     def test_chat_request(self):
         """Test ChatRequest model."""

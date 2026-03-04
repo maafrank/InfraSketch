@@ -7,6 +7,7 @@ Tests session CRUD operations using in-memory storage.
 import pytest
 from app.models import Diagram, Node, Edge, Message, NodePosition
 from app.session.manager import SessionManager
+from app.config.models import DEFAULT_MODEL, SONNET
 
 
 class TestSessionCreation:
@@ -30,11 +31,11 @@ class TestSessionCreation:
         session_id = fresh_session_manager.create_session(
             simple_diagram,
             test_user_id,
-            model="claude-sonnet-4-5-20251001"
+            model=SONNET
         )
 
         session = fresh_session_manager.get_session(session_id)
-        assert session.model == "claude-sonnet-4-5-20251001"
+        assert session.model == SONNET
 
     def test_create_session_has_timestamp(self, fresh_session_manager, simple_diagram, test_user_id):
         """Test that created session has a timestamp."""
@@ -47,7 +48,7 @@ class TestSessionCreation:
         """Test creating session for async generation."""
         session_id = fresh_session_manager.create_session_for_generation(
             user_id=test_user_id,
-            model="claude-haiku-4-5-20251001",
+            model=DEFAULT_MODEL,
             prompt="Design a web app"
         )
 
@@ -259,7 +260,7 @@ class TestDiagramGenerationStatus:
         """Test diagram generation status timestamps."""
         session_id = fresh_session_manager.create_session_for_generation(
             user_id=test_user_id,
-            model="claude-haiku-4-5-20251001",
+            model=DEFAULT_MODEL,
             prompt="Test prompt"
         )
 
@@ -318,15 +319,15 @@ class TestModelOperations:
         """Test updating session model."""
         manager, session_id = session_manager_with_session
 
-        result = manager.update_model(session_id, "claude-sonnet-4-5-20251001")
+        result = manager.update_model(session_id, SONNET)
         assert result is True
 
         session = manager.get_session(session_id)
-        assert session.model == "claude-sonnet-4-5-20251001"
+        assert session.model == SONNET
 
     def test_update_model_nonexistent(self, fresh_session_manager):
         """Test updating model for nonexistent session."""
-        result = fresh_session_manager.update_model("nonexistent", "claude-sonnet-4-5-20251001")
+        result = fresh_session_manager.update_model("nonexistent", SONNET)
         assert result is False
 
 

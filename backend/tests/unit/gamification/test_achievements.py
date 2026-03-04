@@ -21,6 +21,7 @@ from app.gamification.achievements import (
     CAT_STREAK,
 )
 from datetime import datetime
+from app.config.models import HAIKU, SONNET, OPUS
 
 
 def _make_gamification(**counter_overrides):
@@ -219,12 +220,12 @@ class TestFeatureDiscovery:
         assert "all_export_formats" not in check_achievements(g)
 
     def test_model_connoisseur(self):
-        g = _make_gamification(models_used=["claude-haiku-4-5", "claude-sonnet-4-5"])
+        g = _make_gamification(models_used=[HAIKU, SONNET])
         assert "model_explorer" in check_achievements(g)
 
     def test_triple_threat(self):
         g = _make_gamification(
-            models_used=["claude-haiku-4-5", "claude-sonnet-4-5", "claude-opus-4-5"]
+            models_used=[HAIKU, SONNET, OPUS]
         )
         assert "multi_model" in check_achievements(g)
 

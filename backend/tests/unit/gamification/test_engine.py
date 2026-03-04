@@ -10,6 +10,7 @@ from datetime import datetime
 from app.gamification.models import UserGamification, GamificationCounters
 from app.gamification.engine import process_action, _update_counters
 from app.gamification.xp import XP_VALUES
+from app.config.models import DEFAULT_MODEL
 
 
 def _fresh_gamification(user_id="test-user", **kwargs):
@@ -31,7 +32,7 @@ def _mock_storage(gamification=None):
 class TestUpdateCounters:
     def test_diagram_counter(self):
         g = _fresh_gamification()
-        _update_counters(g, "diagram_generated", {"model": "claude-haiku-4-5"})
+        _update_counters(g, "diagram_generated", {"model": DEFAULT_MODEL})
         assert g.counters.diagrams_generated == 1
 
     def test_chat_counter(self):
@@ -114,8 +115,8 @@ class TestListAppends:
 
     def test_model_appended(self):
         g = _fresh_gamification()
-        _update_counters(g, "diagram_generated", {"model": "claude-haiku-4-5"})
-        assert "claude-haiku-4-5" in g.counters.models_used
+        _update_counters(g, "diagram_generated", {"model": DEFAULT_MODEL})
+        assert DEFAULT_MODEL in g.counters.models_used
 
     def test_missing_metadata_key_does_not_append(self):
         g = _fresh_gamification()
@@ -138,7 +139,7 @@ class TestProcessAction:
         storage = _mock_storage(g)
         mock_get_storage.return_value = storage
 
-        result = process_action("test-user", "diagram_generated", {"model": "claude-haiku-4-5"})
+        result = process_action("test-user", "diagram_generated", {"model": DEFAULT_MODEL})
 
         assert result["xp_gained"] >= XP_VALUES["diagram_generated"]
         assert g.counters.diagrams_generated == 1
@@ -167,7 +168,7 @@ class TestProcessAction:
         storage = _mock_storage(g)
         mock_get_storage.return_value = storage
 
-        result = process_action("test-user", "diagram_generated", {"model": "claude-haiku-4-5"})
+        result = process_action("test-user", "diagram_generated", {"model": DEFAULT_MODEL})
 
         assert result["level_up"] is True
         assert result["new_level"] == 2
@@ -196,7 +197,7 @@ class TestProcessAction:
         storage = _mock_storage(g)
         mock_get_storage.return_value = storage
 
-        result = process_action("test-user", "diagram_generated", {"model": "claude-haiku-4-5"})
+        result = process_action("test-user", "diagram_generated", {"model": DEFAULT_MODEL})
 
         # Should unlock "first_diagram"
         achievement_ids = [a["id"] for a in result["new_achievements"]]
@@ -211,7 +212,7 @@ class TestProcessAction:
         storage = _mock_storage(g)
         mock_get_storage.return_value = storage
 
-        process_action("test-user", "diagram_generated", {"model": "claude-haiku-4-5"})
+        process_action("test-user", "diagram_generated", {"model": DEFAULT_MODEL})
 
         assert len(g.pending_notifications) > 0
         assert any(n.id == "first_diagram" for n in g.pending_notifications)
@@ -278,7 +279,7 @@ class TestProcessAction:
         storage = _mock_storage(g)
         mock_get_storage.return_value = storage
 
-        result = process_action("test-user", "diagram_generated", {"model": "claude-haiku-4-5"})
+        result = process_action("test-user", "diagram_generated", {"model": DEFAULT_MODEL})
 
         achievement_ids = [a["id"] for a in result["new_achievements"]]
         assert "diagrams_5" in achievement_ids

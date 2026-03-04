@@ -188,11 +188,11 @@ All under `/api` prefix. Persists to DynamoDB in Lambda, in-memory locally.
 
 | Model | ID | Cost (per 1M tokens) | Best For |
 |-------|-----|---------------------|----------|
-| **Haiku 4.5** (default) | `claude-haiku-4-5` | $1 in / $5 out | Most use cases, fast |
-| **Sonnet 4.5** | `claude-sonnet-4-5` | $3 in / $15 out | Complex systems |
-| **Opus 4.5** | `claude-opus-4-5` | $5 in / $25 out | Premium reasoning, agents |
+| **Speed** (default) | `claude-haiku-4-5` | $1 in / $5 out | Most use cases, fast |
+| **Power** | `claude-sonnet-4-6` | $3 in / $15 out | Complex systems |
+| **Ultra** | `claude-opus-4-6` | $5 in / $25 out | Premium reasoning, agents |
 
-Model stored in session, used for all operations. Aliases auto-update to latest versions.
+Model IDs are centralized: backend in `backend/app/config/models.py`, frontend in `frontend/src/constants/models.js`. Update only those files when new models are released. Model stored in session, used for all operations.
 
 ## Session Management
 
@@ -299,7 +299,7 @@ All panels use RAF throttling (60fps), `onWidthChange` callback, `useCallback` o
 
 ## Design Document Feature
 
-**Async generation:** Same pattern as diagrams. Local: FastAPI BackgroundTasks. Lambda: async self-invocation. Status: `not_started` → `generating` → `completed`/`failed`. Generation: 30-150s. Model: Haiku 4.5 (32k tokens).
+**Async generation:** Same pattern as diagrams. Local: FastAPI BackgroundTasks. Lambda: async self-invocation. Status: `not_started` → `generating` → `completed`/`failed`. Generation: 30-150s. Model: Speed (32k tokens).
 
 **Components:** `doc_generator.py` (LLM call), `prompts.py` (DESIGN_DOC_PROMPT), `diagram_export.py` (PDF), `DesignDocPanel.jsx` (TipTap editor), `html-to-image` (screenshot).
 

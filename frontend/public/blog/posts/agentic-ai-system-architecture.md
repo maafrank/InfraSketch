@@ -405,7 +405,7 @@ Moving an agent from a prototype to a production system requires addressing cost
 
 Agent systems can be expensive. Each loop iteration is an LLM call, and complex tasks might require 5 to 15 iterations. Strategies for controlling costs:
 
-- **Model routing:** Use a fast, inexpensive model (like Claude Haiku) for simple tasks, and route complex tasks to a more capable model (like Claude Sonnet or Opus). The routing decision can be made by a lightweight classifier or by simple heuristics (prompt length, task type).
+- **Model routing:** Use a fast, inexpensive model (Speed tier) for simple tasks, and route complex tasks to a more capable model (Power or Ultra tier). The routing decision can be made by a lightweight classifier or by simple heuristics (prompt length, task type).
 - **Token budgets:** Set maximum token limits per agent run. If the budget is exhausted, force the agent to produce a final answer with whatever progress it has made.
 - **Caching:** Cache tool results when possible. If the agent asks for the same database query twice in one session, return the cached result.
 - **Early termination:** If the agent is looping without making progress (same tool calls repeated, no state changes), terminate early.

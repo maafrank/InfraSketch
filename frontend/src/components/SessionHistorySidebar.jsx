@@ -143,8 +143,9 @@ export default function SessionHistorySidebar({ isOpen, onClose, onSessionSelect
   };
 
   const getModelDisplayName = (model) => {
-    if (model?.includes('haiku')) return 'Haiku';
-    if (model?.includes('sonnet')) return 'Sonnet';
+    if (model?.includes('haiku')) return 'Speed';
+    if (model?.includes('sonnet')) return 'Power';
+    if (model?.includes('opus')) return 'Ultra';
     return model || 'Unknown';
   };
 

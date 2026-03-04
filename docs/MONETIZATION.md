@@ -16,7 +16,7 @@ InfraSketch uses a **freemium model** with credit-based premium features. Users 
 - ✅ Add/delete/modify nodes and edges
 - ✅ Auto-layout and visualization
 - ✅ Real-time collaboration features
-- ✅ Basic model (Claude Haiku 4.5)
+- ✅ Speed model (default)
 
 **Limitations:**
 - ❌ Cannot export diagrams (PNG, PDF, Markdown)
@@ -34,7 +34,7 @@ InfraSketch uses a **freemium model** with credit-based premium features. Users 
 **Additional Features:**
 - ✅ Export to PNG/PDF/Markdown
 - ✅ Generate boilerplate code for nodes
-- ✅ Upgrade to Sonnet 4.5 or Opus models
+- ✅ Upgrade to Power or Ultra models
 - ✅ Persistent session storage
 - ✅ Save/load diagram library
 - ✅ Version history (future)
@@ -54,8 +54,8 @@ InfraSketch uses a **freemium model** with credit-based premium features. Users 
 | **Export Both (PDF + MD)** | 5 credits | Bundle discount |
 | **Generate Code (1 node)** | 5 credits | Technology-specific boilerplate |
 | **Generate Code (All nodes)** | 3 credits/node | Bulk discount (40% off) |
-| **Use Sonnet 4.5** | 3x multiplier | Per AI request (generate or chat) |
-| **Use Opus** | 10x multiplier | Per AI request (premium quality) |
+| **Use Power** | 3x multiplier | Per AI request (generate or chat) |
+| **Use Ultra** | 10x multiplier | Per AI request (premium quality) |
 
 ### Credit Packages
 
@@ -171,7 +171,7 @@ def set_cached(key: str, value: str, ttl: int = 3600):
 ### 3. Model Selection (Gated)
 
 **Current State:**
-- Hardcoded to Claude Haiku 4.5 in `graph.py`
+- Hardcoded to Speed model in `graph.py`
 
 **Changes Needed:**
 - Add `model` parameter to `/api/generate` and `/api/chat` endpoints
@@ -183,9 +183,9 @@ def set_cached(key: str, value: str, ttl: int = 3600):
 
 | Model | Speed | Quality | Cost Multiplier | Use Case |
 |-------|-------|---------|-----------------|----------|
-| **Haiku 4.5** (default) | ⚡⚡⚡ Fast | ⭐⭐⭐ Good | 1x | Standard diagrams |
-| **Sonnet 4.5** | ⚡⚡ Medium | ⭐⭐⭐⭐ Great | 3x | Complex systems |
-| **Opus** | ⚡ Slower | ⭐⭐⭐⭐⭐ Best | 10x | Mission-critical architecture |
+| **Speed** (default) | ⚡⚡⚡ Fast | ⭐⭐⭐ Good | 1x | Standard diagrams |
+| **Power** | ⚡⚡ Medium | ⭐⭐⭐⭐ Great | 3x | Complex systems |
+| **Ultra** | ⚡ Slower | ⭐⭐⭐⭐⭐ Best | 10x | Mission-critical architecture |
 
 **UI Components:**
 - Model selector dropdown in settings panel
@@ -384,7 +384,7 @@ CREATE TABLE transactions (
 ### Product Metrics
 - **Export Usage:** Which formats are most popular?
 - **Code Generation Usage:** Which node types?
-- **Model Selection:** Do users upgrade to Sonnet/Opus?
+- **Model Selection:** Do users upgrade to Power/Ultra?
 - **Session Duration:** Free vs. paid users
 
 ### Technical Metrics
@@ -399,7 +399,7 @@ CREATE TABLE transactions (
 ### A/B Test Ideas
 1. **Credit Costs:** Test 1 vs. 2 credits for PNG export
 2. **Package Pricing:** $5 starter vs. $10 starter
-3. **Model Multipliers:** 3x vs. 5x for Sonnet
+3. **Model Multipliers:** 3x vs. 5x for Power
 4. **Free Trial Credits:** Give new users 10 free credits?
 
 ### Pricing Adjustments
@@ -412,7 +412,7 @@ CREATE TABLE transactions (
 ## Future Monetization Ideas
 
 ### Subscription Model (Alternative to Credits)
-- **Pro Plan:** $15/month - Unlimited exports, code gen, Sonnet access
+- **Pro Plan:** $15/month - Unlimited exports, code gen, Power access
 - **Team Plan:** $50/month - 5 users, shared diagram library
 - **Enterprise:** Custom pricing - SSO, dedicated support, on-prem
 

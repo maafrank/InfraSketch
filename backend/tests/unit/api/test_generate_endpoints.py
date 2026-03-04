@@ -6,6 +6,7 @@ Tests for diagram generation endpoints:
 
 import pytest
 from fastapi.testclient import TestClient
+from app.config.models import DEFAULT_MODEL, SONNET
 
 
 class TestGenerateEndpoint:
@@ -25,7 +26,7 @@ class TestGenerateEndpoint:
         assert len(data["session_id"]) > 0
 
     def test_generate_uses_default_model_when_not_specified(self, client, mock_user_credits_storage):
-        """Should use claude-haiku-4-5 when no model specified."""
+        """Should use DEFAULT_MODEL when no model specified."""
         response = client.post(
             "/api/generate",
             json={"prompt": "Create a basic API"}
@@ -39,7 +40,7 @@ class TestGenerateEndpoint:
         from app.session.manager import session_manager
         session = session_manager.get_session(session_id)
         assert session is not None
-        assert session.model == "claude-haiku-4-5"
+        assert session.model == DEFAULT_MODEL
 
     def test_generate_uses_specified_model(self, client, mock_user_credits_storage):
         """Should use the model specified in the request."""
@@ -47,7 +48,7 @@ class TestGenerateEndpoint:
             "/api/generate",
             json={
                 "prompt": "Create a complex microservices architecture",
-                "model": "claude-sonnet-4-5"
+                "model": SONNET
             }
         )
 
@@ -59,7 +60,7 @@ class TestGenerateEndpoint:
         from app.session.manager import session_manager
         session = session_manager.get_session(session_id)
         assert session is not None
-        assert session.model == "claude-sonnet-4-5"
+        assert session.model == SONNET
 
     def test_generate_creates_session_with_prompt_stored(self, client, mock_user_credits_storage):
         """Should create session with generation_prompt stored for background task."""
@@ -107,7 +108,7 @@ class TestDiagramStatusEndpoint:
 
         session_id = session_manager.create_session_for_generation(
             user_id="local-dev-user",
-            model="claude-haiku-4-5",
+            model=DEFAULT_MODEL,
             prompt="Test prompt"
         )
 
@@ -164,7 +165,7 @@ class TestDiagramStatusEndpoint:
 
         session_id = session_manager.create_session_for_generation(
             user_id="local-dev-user",
-            model="claude-haiku-4-5",
+            model=DEFAULT_MODEL,
             prompt="Test prompt"
         )
 
@@ -193,7 +194,7 @@ class TestDiagramStatusEndpoint:
         # Create session for generation (sets started_at)
         session_id = session_manager.create_session_for_generation(
             user_id="local-dev-user",
-            model="claude-haiku-4-5",
+            model=DEFAULT_MODEL,
             prompt="Test prompt"
         )
 

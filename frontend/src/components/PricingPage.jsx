@@ -60,7 +60,7 @@ const PLANS = [
     features: [
       '300 credits per month',
       'Everything in Starter',
-      'Claude Sonnet 4.5 access',
+      'Power model access',
       'Priority generation queue',
       'Email support',
     ],
@@ -194,7 +194,7 @@ export default function PricingPage() {
         "priceCurrency": "USD",
         "availability": "https://schema.org/InStock",
         "priceValidUntil": "2026-12-31",
-        "description": "300 credits per month, Claude Sonnet 4.5 access, priority queue"
+        "description": "300 credits per month, Power model access, priority queue"
       }
     ]
   };
@@ -355,12 +355,12 @@ export default function PricingPage() {
             <div className="credit-cost-item">
               <span className="cost-action">Diagram Generation</span>
               <span className="cost-amount">5-15 credits</span>
-              <span className="cost-note">5 (Haiku) / 15 (Sonnet)</span>
+              <span className="cost-note">5 (Speed) / 15 (Power)</span>
             </div>
             <div className="credit-cost-item">
               <span className="cost-action">Chat Message</span>
               <span className="cost-amount">1-3 credits</span>
-              <span className="cost-note">1 (Haiku) / 3 (Sonnet)</span>
+              <span className="cost-note">1 (Speed) / 3 (Power)</span>
             </div>
             <div className="credit-cost-item">
               <span className="cost-action">Design Doc Generation</span>

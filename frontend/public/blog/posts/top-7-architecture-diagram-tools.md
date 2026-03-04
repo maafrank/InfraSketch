@@ -35,7 +35,7 @@ It includes features such as:
 - **Natural language generation**: Describe what you want to build, get a diagram in seconds
 - **Conversational refinement**: Click any component, chat to modify, watch the diagram update in real-time
 - **Auto-generated design docs**: One-click comprehensive technical documentation (PDF, Markdown, PNG)
-- **Claude AI integration**: Uses Claude Haiku 4.5 and Sonnet 4.5 for intelligent system understanding
+- **Claude AI integration**: Speed and Power models for intelligent system understanding
 - **No syntax to learn**: Just describe your system like you would to a colleague
 - **Collapsible groups**: Organize complex diagrams with expandable component clusters
 

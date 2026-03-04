@@ -2,6 +2,8 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any, Literal
 from datetime import datetime
 
+from app.config.models import DEFAULT_MODEL
+
 
 class NodePosition(BaseModel):
     x: float
@@ -88,7 +90,7 @@ class SessionState(BaseModel):
     generation_prompt: Optional[str] = None  # Store prompt for background task
     repo_url: Optional[str] = None  # GitHub repo URL if generated from repo analysis
     repo_analysis: Optional[Dict[str, Any]] = None  # Cached repo analysis data
-    model: str = "claude-haiku-4-5-20251001"  # Model used for this session
+    model: str = DEFAULT_MODEL  # Model used for this session
     created_at: Optional[datetime] = None  # When session was created (for sorting)
     name: Optional[str] = None  # Concise session name (e.g., "E-commerce Platform")
     name_generated: bool = False  # Prevents re-generating name once set

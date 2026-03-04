@@ -24,9 +24,10 @@ from app.agent.prompts import (
 from app.agent.group_processor import process_diagram_groups
 from app.models import Diagram
 from app.utils.secrets import get_anthropic_api_key
+from app.config.models import DEFAULT_MODEL
 
 
-def create_llm(model_name: str = "claude-haiku-4-5"):
+def create_llm(model_name: str = DEFAULT_MODEL):
     """Create Claude LLM instance with specified model."""
     api_key = get_anthropic_api_key()
     return ChatAnthropic(
@@ -55,7 +56,7 @@ def generate_suggestions(
     """
     try:
         # Always use Haiku for speed
-        llm = create_llm("claude-haiku-4-5")
+        llm = create_llm(DEFAULT_MODEL)
 
         # Build context
         diagram_dict = diagram.model_dump() if diagram else {"nodes": [], "edges": []}
@@ -115,7 +116,7 @@ def generate_suggestions(
 
 def generate_diagram_node(state: InfraSketchState) -> dict:
     """Generate initial diagram from user prompt."""
-    llm = create_llm(state.model or "claude-haiku-4-5")
+    llm = create_llm(state.model or DEFAULT_MODEL)
 
     # Get user message from last message in conversation
     user_message = state.messages[-1].content if state.messages else ""
@@ -166,7 +167,7 @@ def generate_diagram_node(state: InfraSketchState) -> dict:
         diagram = process_diagram_groups(
             diagram,
             max_visible_nodes=6,
-            model=state.model or "claude-haiku-4-5"
+            model=state.model or DEFAULT_MODEL
         )
 
     # Return updates (message + diagram)
@@ -188,7 +189,7 @@ def chat_node(state: InfraSketchState) -> dict:
     If tools are called, the tool loop will execute them and return here.
     """
     # Bind tools to LLM (includes both diagram and design doc tools)
-    llm = create_llm(state.model or "claude-haiku-4-5-20251001").bind_tools(all_tools)
+    llm = create_llm(state.model or DEFAULT_MODEL).bind_tools(all_tools)
 
     # Build context
     diagram_dict = state.diagram.model_dump() if state.diagram else {}

@@ -5,6 +5,7 @@ Tests for chat endpoint:
 
 import pytest
 from fastapi.testclient import TestClient
+from app.config.models import SONNET
 
 
 class TestChatEndpoint:
@@ -91,7 +92,7 @@ class TestChatEndpoint:
 
         # Set a specific model on the session
         from app.session.manager import session_manager
-        session_manager.update_model(session_id, "claude-sonnet-4-5")
+        session_manager.update_model(session_id, SONNET)
 
         response = client.post(
             "/api/chat",
@@ -106,12 +107,12 @@ class TestChatEndpoint:
         # Verify agent was called with session model
         mock_agent_graph.invoke.assert_called_once()
         call_args = mock_agent_graph.invoke.call_args[0][0]
-        assert call_args["model"] == "claude-sonnet-4-5"
+        assert call_args["model"] == SONNET
 
     def test_chat_updates_model_when_specified(self, client_with_session, mock_agent_graph, mock_user_credits_storage):
         """Should update session model when model parameter is provided."""
         client, session_id = client_with_session
-        new_model = "claude-sonnet-4-5"
+        new_model = SONNET
 
         response = client.post(
             "/api/chat",

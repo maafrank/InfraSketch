@@ -88,7 +88,7 @@ const SCREENSHOTS = [
   {
     src: "/email-platform-model-selector.png",
     alt: "Email platform with model selector",
-    caption: "Choose between Haiku and Sonnet models"
+    caption: "Choose between Speed and Power models"
   }
 ];
 

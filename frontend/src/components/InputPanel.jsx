@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import LoadingAnimation from './LoadingAnimation';
 import { Button } from '@/components/ui/button';
+import { DEFAULT_MODEL, MODEL_OPTIONS } from '../constants/models';
 
 export default function InputPanel({ onGenerate, loading }) {
   const [prompt, setPrompt] = useState('');
-  const [model, setModel] = useState('claude-haiku-4-5'); // Default to Haiku (always latest)
+  const [model, setModel] = useState(DEFAULT_MODEL);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -41,9 +42,9 @@ export default function InputPanel({ onGenerate, loading }) {
               maxWidth: '400px'
             }}
           >
-            <option value="claude-haiku-4-5">Claude Haiku 4.5 (Fast & Economical)</option>
-            <option value="claude-sonnet-4-5">Claude Sonnet 4.5 (Best Quality, 3x cost)</option>
-            <option value="claude-opus-4-5">Claude Opus 4.5 (Premium, 5x cost)</option>
+            {MODEL_OPTIONS.map(opt => (
+              <option key={opt.id} value={opt.id}>{opt.label} ({opt.description})</option>
+            ))}
           </select>
         </div>
         <textarea

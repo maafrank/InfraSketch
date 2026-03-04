@@ -8,6 +8,7 @@ import { TutorialProvider } from './contexts/TutorialContext';
 import { useTutorial } from './contexts/useTutorial';
 import { GamificationProvider } from './contexts/GamificationContext';
 import { useGamification } from './contexts/useGamification';
+import { DEFAULT_MODEL } from './constants/models';
 import LandingPage from './components/LandingPage';
 import DiagramCanvas from './components/DiagramCanvas';
 import ChatPanel from './components/ChatPanel';
@@ -104,7 +105,7 @@ function AppContent({ resumeMode = false, isMobile }) {
   // Chat panel state
   const [chatPanelWidth, setChatPanelWidth] = useState(400);
   const [examplePrompt, setExamplePrompt] = useState(null);
-  const [currentModel, setCurrentModel] = useState('claude-haiku-4-5'); // Track current model
+  const [currentModel, setCurrentModel] = useState(DEFAULT_MODEL); // Track current model
   const [suggestions, setSuggestions] = useState([]); // AI-generated follow-up suggestions
 
   // Session history sidebar state

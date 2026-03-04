@@ -20,6 +20,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.models import Node, Edge, Diagram, NodeMetadata, NodePosition
 from app.utils.secrets import get_anthropic_api_key
+from app.config.models import DEFAULT_MODEL
 
 
 # Prompt for AI semantic grouping
@@ -154,7 +155,7 @@ def _validate_group_suggestions(groups: list, diagram: Diagram) -> List[dict]:
     return validated
 
 
-def suggest_semantic_groups(diagram: Diagram, model: str = "claude-haiku-4-5") -> Optional[List[dict]]:
+def suggest_semantic_groups(diagram: Diagram, model: str = DEFAULT_MODEL) -> Optional[List[dict]]:
     """
     Use AI to analyze diagram and suggest semantic business domain groupings.
 
@@ -443,7 +444,7 @@ def ensure_groups_collapsed(diagram: Diagram) -> Diagram:
 def process_diagram_groups(
     diagram: Diagram,
     max_visible_nodes: int = 6,
-    model: str = "claude-haiku-4-5"
+    model: str = DEFAULT_MODEL
 ) -> Diagram:
     """
     Main entry point for group processing.

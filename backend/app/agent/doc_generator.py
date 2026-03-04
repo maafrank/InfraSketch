@@ -6,9 +6,10 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage
 from app.agent.prompts import DESIGN_DOC_PROMPT, get_diagram_context
 from app.utils.secrets import get_anthropic_api_key
+from app.config.models import DEFAULT_MODEL
 
 
-def create_doc_llm(model_name: str = "claude-haiku-4-5-20251001"):
+def create_doc_llm(model_name: str = DEFAULT_MODEL):
     """Create Claude LLM instance for document generation."""
     api_key = get_anthropic_api_key()
     return ChatAnthropic(
@@ -19,7 +20,7 @@ def create_doc_llm(model_name: str = "claude-haiku-4-5-20251001"):
     )
 
 
-def generate_design_document(diagram: dict, conversation_history: list[dict], model: str = "claude-haiku-4-5-20251001") -> str:
+def generate_design_document(diagram: dict, conversation_history: list[dict], model: str = DEFAULT_MODEL) -> str:
     """
     Generate a comprehensive design document from a system diagram.
 

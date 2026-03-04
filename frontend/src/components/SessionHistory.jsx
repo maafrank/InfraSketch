@@ -51,8 +51,9 @@ export default function SessionHistory() {
   };
 
   const getModelDisplayName = (model) => {
-    if (model?.includes('haiku')) return 'Claude Haiku 4.5';
-    if (model?.includes('sonnet')) return 'Claude Sonnet 4.5';
+    if (model?.includes('haiku')) return 'Speed';
+    if (model?.includes('sonnet')) return 'Power';
+    if (model?.includes('opus')) return 'Ultra';
     return model || 'Unknown';
   };
 

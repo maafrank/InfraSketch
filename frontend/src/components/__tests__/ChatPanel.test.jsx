@@ -7,6 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ChatPanel from '../ChatPanel';
+import { DEFAULT_MODEL, MODELS } from '../../constants/models';
 
 // Mock ReactMarkdown to simplify testing
 vi.mock('react-markdown', () => ({
@@ -24,7 +25,7 @@ describe('ChatPanel', () => {
     onClose: vi.fn(),
     onExitNodeFocus: vi.fn(),
     examplePrompt: null,
-    currentModel: 'claude-haiku-4-5',
+    currentModel: DEFAULT_MODEL,
     onModelChange: vi.fn(),
   };
 
@@ -51,7 +52,7 @@ describe('ChatPanel', () => {
       render(<ChatPanel {...defaultProps} />);
 
       const select = screen.getByRole('combobox');
-      expect(select).toHaveValue('claude-haiku-4-5');
+      expect(select).toHaveValue(DEFAULT_MODEL);
     });
 
     it('renders all model options', () => {
@@ -59,9 +60,9 @@ describe('ChatPanel', () => {
 
       const options = screen.getAllByRole('option');
       expect(options).toHaveLength(3);
-      expect(options[0]).toHaveValue('claude-haiku-4-5');
-      expect(options[1]).toHaveValue('claude-sonnet-4-5');
-      expect(options[2]).toHaveValue('claude-opus-4-5');
+      expect(options[0]).toHaveValue(MODELS.HAIKU);
+      expect(options[1]).toHaveValue(MODELS.SONNET);
+      expect(options[2]).toHaveValue(MODELS.OPUS);
     });
 
     it('renders textarea for input', () => {
@@ -259,15 +260,15 @@ describe('ChatPanel', () => {
       render(<ChatPanel {...defaultProps} onModelChange={onModelChange} />);
 
       const select = screen.getByRole('combobox');
-      await user.selectOptions(select, 'claude-sonnet-4-5');
+      await user.selectOptions(select, MODELS.SONNET);
 
-      expect(onModelChange).toHaveBeenCalledWith('claude-sonnet-4-5');
+      expect(onModelChange).toHaveBeenCalledWith(MODELS.SONNET);
     });
 
     it('displays current model selection', () => {
-      render(<ChatPanel {...defaultProps} currentModel="claude-sonnet-4-5" />);
+      render(<ChatPanel {...defaultProps} currentModel={MODELS.SONNET} />);
 
-      expect(screen.getByRole('combobox')).toHaveValue('claude-sonnet-4-5');
+      expect(screen.getByRole('combobox')).toHaveValue(MODELS.SONNET);
     });
   });
 

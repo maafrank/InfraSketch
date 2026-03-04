@@ -20,6 +20,7 @@ from app.models import (
     AnalyzeRepoResponse,
 )
 from app.session.manager import session_manager
+from app.config.models import DEFAULT_MODEL
 from app.agent.graph import agent_graph, generate_suggestions
 from app.agent.doc_generator import generate_design_document
 from app.agent.name_generator import generate_session_name
@@ -156,7 +157,7 @@ def verify_session_access(session_id: str, user_id: str, http_request: Request) 
     return session
 
 
-def generate_group_description_ai(child_nodes: list[Node], model: str = "claude-haiku-4-5-20251001") -> dict:
+def generate_group_description_ai(child_nodes: list[Node], model: str = DEFAULT_MODEL) -> dict:
     """
     Generate AI-powered description for a group of nodes.
 
@@ -484,7 +485,7 @@ async def generate_diagram(request: GenerateRequest, http_request: Request, back
 
     try:
         # Use specified model or default to Haiku (alias auto-updates to latest)
-        model = request.model or "claude-haiku-4-5"
+        model = request.model or DEFAULT_MODEL
 
         # Check and deduct credits BEFORE creating session
         await check_and_deduct_credits(
@@ -847,7 +848,7 @@ async def create_blank_session(http_request: Request):
     session_id = session_manager.create_session(
         empty_diagram,
         user_id=user_id,
-        model="claude-haiku-4-5"
+        model=DEFAULT_MODEL
     )
 
     # Set a default name
@@ -863,7 +864,7 @@ async def create_blank_session(http_request: Request):
     )
 
     # Gamification: track session creation
-    process_action(user_id, "session_created", {"model": "claude-haiku-4-5"})
+    process_action(user_id, "session_created", {"model": DEFAULT_MODEL})
 
     return {
         "session_id": session_id,
@@ -3330,7 +3331,7 @@ async def analyze_repo(request: AnalyzeRepoRequest, http_request: Request, backg
             raise HTTPException(status_code=400, detail=str(e))
 
         # Use specified model or default to Haiku
-        model = request.model or "claude-haiku-4-5"
+        model = request.model or DEFAULT_MODEL
 
         # Check and deduct credits BEFORE creating session
         await check_and_deduct_credits(

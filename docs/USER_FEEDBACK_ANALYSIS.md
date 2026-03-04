@@ -12,13 +12,13 @@ The user validated the core problem but identified several UX issues that preven
 
 ## Feedback Items
 
-### 1. Opus 4.5 Missing from Landing Page
+### 1. Ultra Model Missing from Landing Page
 
 **Status**: DONE
 
-**Issue**: Opus 4.5 was available in InputPanel and ChatPanel but missing from the landing page model selector.
+**Issue**: Ultra was available in InputPanel and ChatPanel but missing from the landing page model selector.
 
-**Fix**: Added Opus option to [LandingPage.jsx:376-378](../frontend/src/components/LandingPage.jsx#L376-L378)
+**Fix**: Added Ultra option to [LandingPage.jsx:376-378](../frontend/src/components/LandingPage.jsx#L376-L378)
 
 ---
 
@@ -264,7 +264,7 @@ User Prompt → Design Doc (source of truth) → Diagram (visualization)
 
 | Item | User Impact | Implementation Effort | Priority |
 |------|-------------|----------------------|----------|
-| 1. Opus 4.5 on landing | Low | Low | **DONE** |
+| 1. Ultra on landing | Low | Low | **DONE** |
 | 2. Carousel pause | Medium | Low | **DONE** |
 | 4. Clarifying questions | High | Medium | **P1** |
 | 3. Templates/structure | High | Medium | **P2** |

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { MODEL_OPTIONS } from '../constants/models';
 
 export default function ChatPanel({
   selectedNode,
@@ -209,9 +210,9 @@ export default function ChatPanel({
               disabled={loading}
               className="model-select"
             >
-              <option value="claude-haiku-4-5">Claude Haiku 4.5</option>
-              <option value="claude-sonnet-4-5">Claude Sonnet 4.5</option>
-              <option value="claude-opus-4-5">Claude Opus 4.5</option>
+              {MODEL_OPTIONS.map(opt => (
+                <option key={opt.id} value={opt.id}>{opt.label}</option>
+              ))}
             </select>
             {selectedNode && (
               <span className="chat-context">

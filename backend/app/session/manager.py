@@ -4,6 +4,7 @@ import uuid
 import time
 from datetime import datetime, timezone
 from app.models import SessionState, Diagram, Message, DesignDocStatus, DiagramGenerationStatus, RepoAnalysisStatus
+from app.config.models import DEFAULT_MODEL
 
 
 class SessionManager:
@@ -22,7 +23,7 @@ class SessionManager:
             self.sessions: Dict[str, SessionState] = {}
             self.storage = None
 
-    def create_session(self, diagram: Diagram, user_id: str, model: str = "claude-haiku-4-5-20251001") -> str:
+    def create_session(self, diagram: Diagram, user_id: str, model: str = DEFAULT_MODEL) -> str:
         """
         Create a new session with initial diagram.
 

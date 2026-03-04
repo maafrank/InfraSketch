@@ -67,7 +67,7 @@ const FAQS = [
   },
   {
     question: "What AI model powers InfraSketch?",
-    answer: "InfraSketch is powered by Claude AI from Anthropic. You can choose between Claude Haiku (faster, great for most diagrams) or Claude Sonnet (more detailed reasoning for complex systems)."
+    answer: "InfraSketch is powered by Claude AI from Anthropic. You can choose between Speed mode (faster, great for most diagrams) or Power mode (more detailed reasoning for complex systems)."
   },
   {
     question: "Can I edit the AI-generated diagram?",
