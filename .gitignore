@@ -235,6 +235,7 @@ __marimo__/
 *.avi
 *.mkv
 
-
-
 *settings.json*
+
+# N8N stuff
+*n8n*
