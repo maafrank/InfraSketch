@@ -377,9 +377,9 @@ aws logs tail /aws/lambda/infrasketch-backend --since 7d --filter-pattern '{ $.e
 
 **Send announcements:**
 ```bash
-python scripts/send_announcement.py announcements/my-feature.html --preview  # Browser preview
-python scripts/send_announcement.py announcements/my-feature.html            # Test (your email)
-python scripts/send_announcement.py announcements/my-feature.html --production  # All subscribers
+python scripts/send_announcement.py marketing/announcements/my-feature.html --preview  # Browser preview
+python scripts/send_announcement.py marketing/announcements/my-feature.html            # Test (your email)
+python scripts/send_announcement.py marketing/announcements/my-feature.html --production  # All subscribers
 ```
 
 **IMPORTANT: Deploy images BEFORE sending!** Images in emails must be hosted at `https://infrasketch.net/announcements/`. Before sending any announcement:
@@ -388,4 +388,4 @@ python scripts/send_announcement.py announcements/my-feature.html --production  
 3. Verify images load: `curl -I https://infrasketch.net/announcements/your-image.png` (should return `content-type: image/png`)
 4. Then send the email
 
-**Templates:** `/announcements/`. Subject from `<title>`. Placeholder: `{{UNSUBSCRIBE_URL}}`. Env: `RESEND_API_KEY`.
+**Templates:** `/marketing/announcements/`. Subject from `<title>`. Placeholder: `{{UNSUBSCRIBE_URL}}`. Env: `RESEND_API_KEY`.

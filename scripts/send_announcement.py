@@ -4,16 +4,16 @@ Send feature announcement emails to InfraSketch subscribers.
 
 Usage:
     # Preview in browser (sends nothing)
-    python scripts/send_announcement.py announcements/my-feature.html --preview
+    python scripts/send_announcement.py marketing/announcements/my-feature.html --preview
 
     # Test mode (default) - sends to mattafrank2439@gmail.com only
-    python scripts/send_announcement.py announcements/my-feature.html
+    python scripts/send_announcement.py marketing/announcements/my-feature.html
 
     # Send to a specific subscriber email
-    python scripts/send_announcement.py announcements/my-feature.html --to user@example.com
+    python scripts/send_announcement.py marketing/announcements/my-feature.html --to user@example.com
 
     # Production - sends to ALL subscribed users
-    python scripts/send_announcement.py announcements/my-feature.html --production
+    python scripts/send_announcement.py marketing/announcements/my-feature.html --production
 
 Requirements:
     - RESEND_API_KEY environment variable set
