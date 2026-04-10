@@ -750,18 +750,18 @@ export default function LandingPage({ onGenerate, loading }) {
       >
         <h2 className="follow-us-heading">Follow Us</h2>
         <div className="follow-us-grid">
-          {SOCIAL_LINKS.map(({ name, icon: Icon, url, color }) => (
+          {SOCIAL_LINKS.map((link) => (
             <a
-              key={name}
-              href={url}
+              key={link.name}
+              href={link.url}
               target="_blank"
               rel="noopener noreferrer"
               className="follow-us-link"
-              aria-label={`Follow us on ${name}`}
-              style={{ '--brand-color': color }}
+              aria-label={`Follow us on ${link.name}`}
+              style={{ '--brand-color': link.color }}
             >
-              <Icon className="follow-us-icon" />
-              <span className="follow-us-label">{name}</span>
+              <link.icon className="follow-us-icon" />
+              <span className="follow-us-label">{link.name}</span>
             </a>
           ))}
         </div>
