@@ -1,0 +1,16 @@
+{
+  "name": "infrasketch-content-automation",
+  "version": "1.0.0",
+  "description": "Automated content generation for InfraSketch social media",
+  "type": "module",
+  "scripts": {
+    "generate": "node generate-content.js",
+    "generate:dry": "node generate-content.js --dry-run",
+    "test": "node generate-content.js --dry-run --diagram 'A simple REST API with a database and cache layer'"
+  },
+  "dependencies": {
+    "puppeteer": "^23.0.0",
+    "fluent-ffmpeg": "^2.1.3",
+    "sharp": "^0.33.0"
+  }
+}

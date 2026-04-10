@@ -1,0 +1,17 @@
+Step,Component,Tool,Description,Notes
+1,Daily Trigger,EventBridge / Cron,Fires daily at 6 AM EST. Reads today's day number.,Store day counter in DynamoDB
+2,Content Lookup,CSV / DynamoDB,"Reads content row: prompt, question, edit, captions.",Cache calendar in DynamoDB for speed
+3,Generate Diagram,Puppeteer,"Opens infrasketch.net, enters prompt, waits, screenshots.","Headless Chrome, 1920x1080 viewport"
+4,Chat Question,Puppeteer,"Clicks node, asks question, screenshots response.",Scroll chat panel into view
+5,Edit Diagram,Puppeteer,"Sends edit request, waits for update, screenshots.",Verify node count changed
+6,Generate Design Doc,Puppeteer,"Clicks Create Design Doc, polls status, screenshots.",Takes 30-150 seconds
+7,Edit Design Doc,Puppeteer,"Sends doc edit via chat, screenshots updated doc.",Verify section changed
+8,Export Doc,Puppeteer,"Clicks export, captures the action.",Download PDF for records
+9,Create Title Slide,Sharp,"Branded slide: Day X/365, title, category.",InfraSketch brand template in S3
+10,Create CTA Slide,Sharp,"Closing slide: CTA text, logo, QR code.",QR code links to infrasketch.net
+11,Assemble Carousel,Sharp,10 slides at 1080x1350 with branding.,Instagram max 10 slides
+12,Assemble Video,FFmpeg,"Slideshow: 3-4 sec/slide, transitions, music.","Under 60 sec total, 9:16 aspect"
+13,Post Instagram,Meta Graph API,Posts carousel with caption and hashtags.,Business account required
+14,Post TikTok,TikTok Content API,Uploads video with caption.,Developer app approval needed
+15,Update Status,DynamoDB / Sheets,"Marks day as Posted, logs URLs.",Track engagement later
+16,Error Handling,SNS,"Alerts on failure, marks as Failed.",Email to mattafrank2439@gmail.com

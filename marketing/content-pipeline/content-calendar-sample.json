@@ -1,0 +1,82 @@
+[
+  {
+    "day": 1,
+    "title": "Video Streaming Platform",
+    "category": "media",
+    "prompt": "Build a scalable video streaming platform like YouTube with upload processing, transcoding, CDN delivery, and recommendation engine",
+    "question": "What happens if the transcoding service goes down? How does this handle failures?",
+    "edit": "Add a dead letter queue between the upload service and transcoding pipeline for failed jobs"
+  },
+  {
+    "day": 2,
+    "title": "E-Commerce Checkout",
+    "category": "commerce",
+    "prompt": "Design a high-availability e-commerce checkout system with inventory management, payment processing, and order fulfillment",
+    "question": "How do we prevent overselling when multiple users try to buy the last item?",
+    "edit": "Add Redis distributed locks for inventory reservation during checkout"
+  },
+  {
+    "day": 3,
+    "title": "Real-Time Chat App",
+    "category": "messaging",
+    "prompt": "Build a real-time chat application like Slack with channels, direct messages, file sharing, and presence indicators",
+    "question": "How does the system maintain message ordering across distributed servers?",
+    "edit": "Add a message queue between the WebSocket servers and the message store for guaranteed delivery"
+  },
+  {
+    "day": 4,
+    "title": "CI/CD Pipeline",
+    "category": "devops",
+    "prompt": "Design a CI/CD pipeline system with automated testing, container builds, staging deployments, and production rollouts with canary releases",
+    "question": "What happens during a canary release if the new version starts throwing errors?",
+    "edit": "Add an automated rollback trigger connected to the monitoring service that reverts canary deployments on error rate spikes"
+  },
+  {
+    "day": 5,
+    "title": "Social Media Feed",
+    "category": "social",
+    "prompt": "Design a social media news feed system like Twitter/X with posts, follows, likes, and a personalized timeline algorithm",
+    "question": "How does the timeline generation handle users who follow thousands of accounts?",
+    "edit": "Split into a fan-out-on-write approach for users with few followers and fan-out-on-read for celebrity accounts"
+  },
+  {
+    "day": 6,
+    "title": "IoT Sensor Platform",
+    "category": "iot",
+    "prompt": "Build an IoT platform that ingests data from millions of sensors, processes it in real-time, stores time-series data, and triggers alerts",
+    "question": "How does this handle a sudden spike of 10x normal sensor data volume?",
+    "edit": "Add auto-scaling Kafka partitions and a backpressure mechanism between the ingestion layer and processing pipeline"
+  },
+  {
+    "day": 7,
+    "title": "Food Delivery App",
+    "category": "logistics",
+    "prompt": "Design a food delivery platform like DoorDash with restaurant management, real-time driver tracking, order matching, and ETA calculations",
+    "question": "How does the driver matching algorithm balance delivery speed vs driver utilization?",
+    "edit": "Add a geospatial index service between the order matching engine and the driver pool for faster proximity lookups"
+  },
+  {
+    "day": 8,
+    "title": "Authentication System",
+    "category": "security",
+    "prompt": "Design a centralized authentication and authorization system with OAuth 2.0, SSO, MFA, role-based access control, and session management",
+    "question": "What is the token refresh flow when a user's access token expires during an active session?",
+    "edit": "Add a token blacklist cache in Redis for immediate revocation of compromised refresh tokens"
+  },
+  {
+    "day": 9,
+    "title": "Data Lake Architecture",
+    "category": "data",
+    "prompt": "Build a data lake architecture with raw ingestion from multiple sources, ETL pipelines, a query engine, and a BI dashboard layer",
+    "question": "How do we handle schema evolution when source systems change their data format?",
+    "edit": "Add a schema registry between the ingestion layer and the processing pipeline to validate and version schemas"
+  },
+  {
+    "day": 10,
+    "title": "Ride Sharing Backend",
+    "category": "logistics",
+    "prompt": "Design the backend for a ride-sharing app like Uber with rider matching, surge pricing, route optimization, and payment processing",
+    "question": "How does surge pricing get calculated and communicated to riders in real-time?",
+    "edit": "Add a demand heatmap service that feeds into the pricing engine using geofenced zones"
+  }
+]

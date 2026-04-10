@@ -241,4 +241,7 @@ __marimo__/
 *settings.json*
 
 # Content pipeline (social media automation)
-marketing/content-pipeline/
+marketing/content-pipeline/.env
+marketing/content-pipeline/node_modules/
+marketing/content-pipeline/output/
+marketing/content-pipeline/voiceovers/
