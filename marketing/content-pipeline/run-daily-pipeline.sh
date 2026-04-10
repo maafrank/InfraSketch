@@ -212,6 +212,61 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# Step 5: Wait for Upload-Post processing, then publish Dev.to article
+# ---------------------------------------------------------------------------
+log "Step 5: Waiting for Upload-Post to finish processing..."
+
+REQUEST_ID=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('$OUTPUT_DIR/upload-result.json','utf8')).request_id || '')")
+
+if [ -z "$REQUEST_ID" ]; then
+  log "ERROR: No request_id found in upload-result.json"
+  send_failure_alert "No request_id in upload-result.json, skipping Dev.to article"
+else
+  MAX_POLLS=30
+  POLL_INTERVAL=60
+  POLL_COUNT=0
+  UPLOAD_STATUS="pending"
+
+  while [ "$UPLOAD_STATUS" != "completed" ] && [ "$POLL_COUNT" -lt "$MAX_POLLS" ]; do
+    POLL_COUNT=$((POLL_COUNT + 1))
+    log "  Polling Upload-Post status ($POLL_COUNT/$MAX_POLLS)..."
+
+    STATUS_BODY=$(curl -s "https://api.upload-post.com/api/uploadposts/status?request_id=$REQUEST_ID" \
+      -H "Authorization: Apikey $UPLOAD_POST_API_KEY") || true
+
+    UPLOAD_STATUS=$(echo "$STATUS_BODY" | node -e "
+      try { process.stdout.write(JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).status || 'unknown'); }
+      catch(e) { process.stdout.write('error'); }
+    " 2>/dev/null) || UPLOAD_STATUS="error"
+
+    if [ "$UPLOAD_STATUS" = "completed" ]; then
+      log "  Upload-Post processing complete"
+      break
+    elif [ "$UPLOAD_STATUS" = "failed" ]; then
+      log "ERROR: Upload-Post processing failed"
+      send_failure_alert "Upload-Post processing failed, skipping Dev.to article"
+      break
+    fi
+
+    log "  Status: $UPLOAD_STATUS - waiting ${POLL_INTERVAL}s..."
+    sleep "$POLL_INTERVAL"
+  done
+
+  if [ "$UPLOAD_STATUS" = "completed" ]; then
+    log "Publishing Dev.to article..."
+    ARTICLE_OUTPUT=$(cd "$SCRIPT_DIR" && node publish-video-article.js --day "$DAY_NUMBER" 2>&1) || {
+      log "ERROR: Dev.to article publishing failed"
+      echo "$ARTICLE_OUTPUT"
+      send_failure_alert "Dev.to article publishing failed for Day $DAY_NUMBER"
+    }
+    echo "$ARTICLE_OUTPUT"
+  elif [ "$UPLOAD_STATUS" != "failed" ]; then
+    log "ERROR: Upload-Post timed out after $((MAX_POLLS * POLL_INTERVAL))s (status: $UPLOAD_STATUS)"
+    send_failure_alert "Upload-Post timed out, skipping Dev.to article for Day $DAY_NUMBER"
+  fi
+fi
+
+# ---------------------------------------------------------------------------
 # Done
 # ---------------------------------------------------------------------------
 log "=== Pipeline complete for Day $DAY_NUMBER ==="

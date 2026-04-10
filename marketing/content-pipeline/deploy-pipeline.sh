@@ -22,6 +22,7 @@ echo "=== Deploying Content Pipeline to $EC2_HOST ==="
 FILES=(
   generate-content.js
   stitch-video.sh
+  publish-video-article.js
   run-daily-pipeline.sh
   ec2-setup.sh
   content-calendar.csv

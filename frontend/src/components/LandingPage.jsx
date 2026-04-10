@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useScrollAnimation, useStaggeredAnimation } from '../hooks/useScrollAnimation';
 import { Twitter, ShoppingCart, Link, Tv, Pencil, MessageSquare, Brain, FileText, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FaYoutube, FaTiktok, FaInstagram, FaFacebook, FaXTwitter, FaThreads, FaLinkedin, FaDev } from 'react-icons/fa6';
 import { Link as RouterLink } from 'react-router-dom';
 import Footer from './shared/Footer';
 import { DEFAULT_MODEL, MODEL_OPTIONS } from '../constants/models';
@@ -50,6 +51,17 @@ const FEATURES = [
     title: "Export & Build",
     description: "Generate a design doc with component details, data flows, and implementation notes. Share it with your team or use it to start building."
   }
+];
+
+const SOCIAL_LINKS = [
+  { name: 'YouTube',   icon: FaYoutube,   url: 'https://www.youtube.com/@InfraSketchUSA/shorts', color: '#FF0000' },
+  { name: 'TikTok',    icon: FaTiktok,    url: 'https://www.tiktok.com/@infrasketch',     color: '#00f2ea' },
+  { name: 'Instagram', icon: FaInstagram, url: 'https://www.instagram.com/infrasketch_/', color: '#E4405F' },
+  { name: 'Facebook',  icon: FaFacebook,  url: 'https://www.facebook.com/profile.php?id=61582897800754', color: '#1877F2' },
+  { name: 'X',         icon: FaXTwitter,  url: 'https://x.com/2BeFrankUSA',               color: '#FFFFFF' },
+  { name: 'Threads',   icon: FaThreads,   url: 'https://www.threads.com/@infrasketch_',   color: '#FFFFFF' },
+  { name: 'LinkedIn',  icon: FaLinkedin,  url: 'https://www.linkedin.com/company/infrasketch/', color: '#0A66C2' },
+  { name: 'Dev.to',    icon: FaDev,       url: 'https://dev.to/matt_frank_usa',           color: '#FFFFFF' },
 ];
 
 const LAUNCH_BADGES = [
@@ -185,6 +197,7 @@ export default function LandingPage({ onGenerate, loading }) {
   const showcaseAnimation = useScrollAnimation();
   const howItWorksAnimation = useScrollAnimation();
   const featuredOnAnimation = useScrollAnimation();
+  const followUsAnimation = useScrollAnimation();
   const pricingAnimation = useScrollAnimation();
 
   // Staggered animations for cards
@@ -603,7 +616,7 @@ export default function LandingPage({ onGenerate, loading }) {
             className="featured-badge-link"
           >
             <img
-              src="https://foundrlist.com/api/badge/infrasketch-2"
+              src="https://www.foundrlist.com/api/badge/infrasketch-2"
               alt="Live on FoundrList"
               className="featured-badge-img"
               width="168"
@@ -727,6 +740,30 @@ export default function LandingPage({ onGenerate, loading }) {
             <span>Featured on The Aroma Nest</span>
           </a>
 
+        </div>
+      </div>
+
+      {/* Follow Us Section */}
+      <div
+        ref={followUsAnimation.ref}
+        className={`follow-us-section scroll-animate ${followUsAnimation.isVisible ? 'visible' : ''}`}
+      >
+        <h2 className="follow-us-heading">Follow Us</h2>
+        <div className="follow-us-grid">
+          {SOCIAL_LINKS.map(({ name, icon: Icon, url, color }) => (
+            <a
+              key={name}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="follow-us-link"
+              aria-label={`Follow us on ${name}`}
+              style={{ '--brand-color': color }}
+            >
+              <Icon className="follow-us-icon" />
+              <span className="follow-us-label">{name}</span>
+            </a>
+          ))}
         </div>
       </div>
 

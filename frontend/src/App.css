@@ -854,6 +854,63 @@ body {
   display: block;
 }
 
+/* Follow Us / Social Media Section */
+.follow-us-section {
+  background: var(--bg-primary);
+  padding: 3rem 2rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.follow-us-heading {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--terminal-cyan);
+  margin-bottom: 2.5rem;
+}
+
+.follow-us-grid {
+  max-width: 800px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+  align-items: center;
+  justify-items: center;
+}
+
+.follow-us-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: var(--text-secondary);
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.follow-us-link:hover {
+  color: var(--brand-color, var(--terminal-cyan));
+  transform: translateY(-3px);
+}
+
+.follow-us-icon {
+  font-size: 2rem;
+  transition: color 0.2s ease;
+}
+
+.follow-us-link:hover .follow-us-icon {
+  color: var(--brand-color);
+}
+
+.follow-us-label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 /* Transparent Pricing Section */
 .pricing-section {
   background: var(--bg-secondary);
@@ -3539,6 +3596,20 @@ body {
     max-width: 140px;
   }
 
+  .follow-us-section {
+    padding: 2rem 1rem;
+  }
+
+  .follow-us-heading {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .follow-us-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+  }
+
   /* Site Header - Mobile */
   .site-header {
     padding: 0.75rem 1rem;
@@ -3646,6 +3717,15 @@ body {
 
   .featured-badge-img {
     max-width: 120px;
+  }
+
+  .follow-us-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+
+  .follow-us-icon {
+    font-size: 1.75rem;
   }
 
   /* Compact nodes for phones */

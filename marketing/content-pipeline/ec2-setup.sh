@@ -121,6 +121,8 @@ if [ ! -f "$PIPELINE_DIR/.env" ]; then
   echo "  CLERK_USER_ID=user_..."
   echo "  UPLOAD_POST_API_KEY=..."
   echo "  UPLOAD_POST_PROFILE=InfraSketch"
+  echo "  ANTHROPIC_API_KEY=sk-ant-...  (for Dev.to article generation)"
+  echo "  DEVTO_API_KEY=...  (for Dev.to publishing)"
   echo "  OPENAI_API_KEY=sk-proj-...  (only if regenerating voiceovers)"
 fi
 
