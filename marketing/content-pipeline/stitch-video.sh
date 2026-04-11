@@ -74,13 +74,19 @@ if [ -n "$VOICEOVER_FILE" ]; then
   for video in reel.mp4 post.mp4; do
     echo "  Adding voiceover to $video..."
     mv "${INPUT_DIR}/${video}" "${INPUT_DIR}/${video%.mp4}-silent.mp4"
-    # Get video duration to avoid apad infinite hang
-    VIDEO_DUR=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "${INPUT_DIR}/${video%.mp4}-silent.mp4" 2>/dev/null | cut -d. -f1)
+    # Get video and audio durations, use the longer one so nothing gets cut off
+    VIDEO_DUR=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "${INPUT_DIR}/${video%.mp4}-silent.mp4" 2>/dev/null)
     VIDEO_DUR=${VIDEO_DUR:-15}
+    AUDIO_DUR=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$VOICEOVER_FILE" 2>/dev/null)
+    AUDIO_DUR=${AUDIO_DUR:-0}
+    # Add 0.5s to audio duration to account for the adelay filter, then take the max
+    OUTPUT_DUR=$(awk "BEGIN {a=$AUDIO_DUR+0.5; v=$VIDEO_DUR; print (a>v ? a : v)}")
+    # Calculate extra time needed to hold the last frame (0 if audio is shorter)
+    PAD_DUR=$(awk "BEGIN {d=$OUTPUT_DUR-$VIDEO_DUR; print (d>0 ? d : 0)}")
     ffmpeg -y -i "${INPUT_DIR}/${video%.mp4}-silent.mp4" -i "$VOICEOVER_FILE" \
-      -filter_complex "[1:a]adelay=500|500,volume=1.0[vo]" \
-      -map 0:v -map "[vo]" \
-      -c:v copy -c:a aac -t "${VIDEO_DUR}" \
+      -filter_complex "[0:v]tpad=stop_mode=clone:stop_duration=${PAD_DUR}[v];[1:a]adelay=500|500,volume=1.0[vo]" \
+      -map "[v]" -map "[vo]" \
+      -c:v libx264 -c:a aac -shortest \
       "${INPUT_DIR}/${video}" 2>/dev/null
     rm "${INPUT_DIR}/${video%.mp4}-silent.mp4"
   done
