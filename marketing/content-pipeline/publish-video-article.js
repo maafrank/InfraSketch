@@ -220,18 +220,24 @@ const platformNames = {
 };
 
 for (const result of statusData.results || []) {
-  if (result.success && result.url) {
-    platformUrls[result.platform] = result.url;
-    console.log(`  ${platformNames[result.platform] || result.platform}: ${result.url}`);
+  const url = result.post_url || result.url;
+  if (result.success && url) {
+    platformUrls[result.platform] = url;
+    console.log(`  ${platformNames[result.platform] || result.platform}: ${url}`);
+  } else {
+    console.warn(`  FAILED: ${result.platform} - success=${result.success}, url=${url || 'none'}, error=${result.error_message || result.error || 'unknown'}`);
   }
+}
+
+if (!statusData.results || statusData.results.length === 0) {
+  console.warn('  WARNING: Upload-Post returned no results array');
 }
 
 const successCount = Object.keys(platformUrls).length;
 console.log(`  ${successCount} platforms with URLs`);
 
 if (successCount === 0) {
-  console.error('No successful platform uploads found');
-  process.exit(1);
+  console.warn('WARNING: No successful platform uploads found. Publishing article without video links.');
 }
 
 // ---------------------------------------------------------------------------
@@ -240,11 +246,19 @@ if (successCount === 0) {
 console.log('\nStep 4: Generating article with Claude...');
 
 // Build the watch links section
+const hasVideoLinks = Object.keys(platformUrls).length > 0;
 const watchLinks = Object.entries(platformUrls)
   .map(([platform, url]) => `- [${platformNames[platform] || platform}](${url})`)
   .join('\n');
 
-const articlePrompt = `You are a technical writer creating a short, engaging Dev.to article about a system design topic. The article accompanies a video that shows AI generating an architecture diagram in real-time.
+const watchSection = hasVideoLinks
+  ? `4. **Watch the Full Design Process** - Introduce the video links (provided below, do not make up URLs)
+
+For the "Watch the Full Design Process" section, use exactly these links:
+${watchLinks}`
+  : `4. **See It In Action** - Instead of video links, describe how InfraSketch generates this architecture in seconds and invite the reader to try it at https://infrasketch.net`;
+
+const articlePrompt = `You are a technical writer creating a short, engaging Dev.to article about a system design topic. The article accompanies a demonstration of AI generating an architecture diagram in real-time.
 
 Topic: ${title}
 Category: ${category}
@@ -257,7 +271,7 @@ Write a Dev.to article (500-800 words) with this structure:
 1. **Hook** (2-3 sentences) - Why this architecture matters, what problem it solves
 2. **Architecture Overview** (2-3 paragraphs) - Key components, how they connect, design decisions. Focus on concepts, not code.
 3. **Design Insight** (1 paragraph) - Answer or expand on this question: "${chatQuestion}"
-4. **Watch the Full Design Process** - Introduce the video links (provided below, do not make up URLs)
+${watchSection}
 5. **Try It Yourself** - CTA for InfraSketch
 
 Writing rules:
@@ -268,9 +282,6 @@ Writing rules:
 - Keep paragraphs to 3-4 sentences max
 - Mention [InfraSketch](https://infrasketch.net) 2-3 times naturally
 - This is Day ${dayNumber} of a 365-day system design challenge
-
-For the "Watch the Full Design Process" section, use exactly these links:
-${watchLinks}
 
 End with a "## Try It Yourself" section with a call-to-action:
 "Head over to [InfraSketch](https://infrasketch.net) and describe your system in plain English. In seconds, you'll have a professional architecture diagram, complete with a design document."

@@ -1,6 +1,32 @@
+*Last updated: April 2026*
+
+We tested five of the most popular AI diagram tools by giving each one the same prompt: *"Design a scalable e-commerce platform with microservices, message queues, caching, and a CDN."* The results varied wildly, from full architecture diagrams with design docs to raw code you have to render yourself.
+
+## TL;DR: Quick Comparison
+
+| Tool | AI Generation | Architecture Focus | Chat Refinement | Design Docs | Free Tier | Best For |
+|------|:---:|:---:|:---:|:---:|:---:|------|
+| **[InfraSketch](https://infrasketch.net)** | Full | Yes | Yes | Yes | Yes | System architecture, interview prep |
+| **Eraser (DiagramGPT)** | Full | Partial | No | No | Yes | Technical documentation |
+| **ChatGPT + Mermaid** | Code only | No | Yes | No | Yes | Quick diagrams in docs |
+| **Whimsical AI** | Partial | No | No | No | Yes | Flowcharts, mind maps |
+| **Miro AI** | Partial | No | No | No | Yes | Workshops, brainstorming |
+
+**Bottom line:** If you need software architecture diagrams specifically, [InfraSketch](https://infrasketch.net) is the only tool purpose-built for that. If you need general-purpose diagramming with collaboration, Eraser or Whimsical are solid choices. If you want free and simple, ChatGPT + Mermaid works in a pinch.
+
+---
+
 The landscape of architecture diagramming has changed dramatically with the rise of AI. Instead of manually dragging shapes onto a canvas, engineers can now describe systems in natural language and get professional diagrams in seconds.
 
-This guide compares the best AI-powered diagram tools available in 2026, helping you choose the right tool for your needs. For best practices on creating effective diagrams, see our [Architecture Diagram Best Practices](/blog/architecture-diagram-best-practices) guide.
+This guide compares the best AI-powered diagram tools available in 2026, helping you choose the right one for your workflow. We cover pricing, features, strengths, and limitations for each tool.
+
+**Related guides:**
+- [Best Cloud Architecture Diagram Tools 2026](/blog/best-cloud-architecture-diagram-tools-2026) (AWS, GCP, Azure focus)
+- [Best System Architecture Diagramming Tools 2026](/blog/best-system-architecture-diagramming-tools-2026)
+- [Best Diagram-as-Code Tools 2026](/blog/best-diagram-as-code-tools-2026)
+- [Best Collaborative Diagramming Tools 2026](/blog/best-collaborative-diagramming-tools-2026)
+- [Best Diagramming Tools for Engineering Teams 2026](/blog/best-diagramming-tools-for-engineering-teams-2026)
+- [Architecture Diagram Best Practices](/blog/architecture-diagram-best-practices)
 
 ## Why AI Diagram Tools?
 

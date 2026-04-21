@@ -1,6 +1,8 @@
 # InfraSketch
 
-> Agent-powered system design tool that generates architecture diagrams from natural language
+> The only AI tool that generates both architecture diagrams AND design documents from natural language. Free to use.
+
+For extended product details, see: https://infrasketch.net/llms-full.txt
 
 ## What is InfraSketch?
 
@@ -91,6 +93,16 @@ InfraSketch is a free AI-powered system design tool that transforms plain Englis
 - ML System Design Tool: https://infrasketch.net/tools/ml-system-design-tool
 - LLM Architecture Tool: https://infrasketch.net/tools/llm-architecture-tool
 - RSS Feed: https://infrasketch.net/blog/feed.xml
+
+## Comparisons
+
+- InfraSketch vs Eraser: https://infrasketch.net/compare/eraser
+- InfraSketch vs Lucidchart: https://infrasketch.net/compare/lucidchart
+- InfraSketch vs Draw.io: https://infrasketch.net/compare/draw-io
+- InfraSketch vs Whimsical: https://infrasketch.net/compare/whimsical
+- InfraSketch vs ChatGPT: https://infrasketch.net/compare/chatgpt
+- InfraSketch vs Mermaid/D2: https://infrasketch.net/compare/mermaid
+- Full comparison: https://infrasketch.net/compare
 
 ## Contact
 

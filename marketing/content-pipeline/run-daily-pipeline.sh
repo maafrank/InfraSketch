@@ -241,6 +241,14 @@ else
 
     if [ "$UPLOAD_STATUS" = "completed" ]; then
       log "  Upload-Post processing complete"
+      # Log per-platform results for debugging
+      echo "$STATUS_BODY" | node -e "
+        const data = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));
+        for (const r of data.results || []) {
+          const status = r.success ? 'OK' : 'FAILED';
+          console.log('  ' + status + ': ' + (r.platform || 'unknown') + (r.url ? ' -> ' + r.url : '') + (r.error ? ' (' + r.error + ')' : ''));
+        }
+      " 2>/dev/null || true
       break
     elif [ "$UPLOAD_STATUS" = "failed" ]; then
       log "ERROR: Upload-Post processing failed"

@@ -78,6 +78,24 @@
     <changefreq>monthly</changefreq>
   </url>
   <url>
+    <loc>https://infrasketch.net/compare/draw-io</loc>
+    <lastmod>2026-04-14</lastmod>
+    <priority>0.9</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://infrasketch.net/compare/whimsical</loc>
+    <lastmod>2026-04-14</lastmod>
+    <priority>0.9</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://infrasketch.net/compare/chatgpt</loc>
+    <lastmod>2026-04-14</lastmod>
+    <priority>0.9</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
     <loc>https://infrasketch.net/tools/ml-system-design-tool</loc>
     <lastmod>2026-02-08</lastmod>
     <priority>1.0</priority>
@@ -217,7 +235,37 @@
   </url>
   <url>
     <loc>https://infrasketch.net/blog/best-ai-diagram-tools-2026</loc>
-    <lastmod>2026-01-06</lastmod>
+    <lastmod>2026-04-14</lastmod>
+    <priority>0.9</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://infrasketch.net/blog/best-cloud-architecture-diagram-tools-2026</loc>
+    <lastmod>2026-04-14</lastmod>
+    <priority>0.9</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://infrasketch.net/blog/best-system-architecture-diagramming-tools-2026</loc>
+    <lastmod>2026-04-14</lastmod>
+    <priority>0.9</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://infrasketch.net/blog/best-diagram-as-code-tools-2026</loc>
+    <lastmod>2026-04-14</lastmod>
+    <priority>0.9</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://infrasketch.net/blog/best-collaborative-diagramming-tools-2026</loc>
+    <lastmod>2026-04-14</lastmod>
+    <priority>0.9</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://infrasketch.net/blog/best-diagramming-tools-for-engineering-teams-2026</loc>
+    <lastmod>2026-04-14</lastmod>
     <priority>0.9</priority>
     <changefreq>monthly</changefreq>
   </url>

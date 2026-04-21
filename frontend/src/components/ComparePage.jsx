@@ -326,6 +326,21 @@ export default function ComparePage() {
             <h3>InfraSketch vs Mermaid/D2</h3>
             <p>Natural language input vs diagram-as-code syntax. Two approaches to diagramming.</p>
           </Link>
+          <Link to="/compare/draw-io" className="learn-more-card">
+            <span className="learn-more-icon">🖊️</span>
+            <h3>InfraSketch vs Draw.io</h3>
+            <p>AI-powered generation vs the most popular free manual diagramming tool.</p>
+          </Link>
+          <Link to="/compare/whimsical" className="learn-more-card">
+            <span className="learn-more-icon">💡</span>
+            <h3>InfraSketch vs Whimsical</h3>
+            <p>System architecture focus vs flowcharts, mind maps, and wireframes.</p>
+          </Link>
+          <Link to="/compare/chatgpt" className="learn-more-card">
+            <span className="learn-more-icon">🤖</span>
+            <h3>InfraSketch vs ChatGPT</h3>
+            <p>Visual diagrams directly vs Mermaid code you render separately.</p>
+          </Link>
           <Link to="/tools/design-doc-generator" className="learn-more-card">
             <span className="learn-more-icon">📄</span>
             <h3>Design Doc Generator</h3>

@@ -3,4 +3,20 @@ Allow: /
 Disallow: /session/
 Disallow: /history
 
+# AI crawlers
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
 Sitemap: https://infrasketch.net/sitemap.xml

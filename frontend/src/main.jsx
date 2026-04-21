@@ -27,6 +27,9 @@ import InfraSketchVsLucidchartPage from './components/InfraSketchVsLucidchartPag
 import InfraSketchVsSystemDesignPrimerPage from './components/InfraSketchVsSystemDesignPrimerPage.jsx'
 import InfraSketchVsByteByteGoPage from './components/InfraSketchVsByteByteGoPage.jsx'
 import InfraSketchVsMermaidPage from './components/InfraSketchVsMermaidPage.jsx'
+import InfraSketchVsDrawioPage from './components/InfraSketchVsDrawioPage.jsx'
+import InfraSketchVsWhimsicalPage from './components/InfraSketchVsWhimsicalPage.jsx'
+import InfraSketchVsChatGPTPage from './components/InfraSketchVsChatGPTPage.jsx'
 import MLSystemDesignToolPage from './components/MLSystemDesignToolPage.jsx'
 import LLMArchitectureToolPage from './components/LLMArchitectureToolPage.jsx'
 
@@ -66,6 +69,9 @@ const AppRoot = (
               <Route path="/compare/system-design-primer" element={<InfraSketchVsSystemDesignPrimerPage />} />
               <Route path="/compare/bytebytego" element={<InfraSketchVsByteByteGoPage />} />
               <Route path="/compare/mermaid" element={<InfraSketchVsMermaidPage />} />
+              <Route path="/compare/draw-io" element={<InfraSketchVsDrawioPage />} />
+              <Route path="/compare/whimsical" element={<InfraSketchVsWhimsicalPage />} />
+              <Route path="/compare/chatgpt" element={<InfraSketchVsChatGPTPage />} />
               <Route path="/tools/ml-system-design-tool" element={<MLSystemDesignToolPage />} />
               <Route path="/tools/llm-architecture-tool" element={<LLMArchitectureToolPage />} />
             </Routes>

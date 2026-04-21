@@ -296,15 +296,16 @@
     },
     {
       "slug": "top-7-architecture-diagram-tools",
-      "title": "Top 7 AI-Powered Tools for Software Architecture Diagrams",
-      "description": "Compare the best architecture diagram tools for developers in 2026, from diagrams-as-code to AI-powered generation. Includes InfraSketch, Mermaid, Structurizr, D2, and more.",
+      "title": "Top 7 Architecture Diagram Tools for Developers (2026 Ranked)",
+      "description": "Ranked list of the 7 best architecture diagram tools for developers in 2026. Covers AI generators, diagram-as-code, and traditional tools with honest pros and cons.",
       "date": "2026-01-13",
       "author": "InfraSketch Team",
       "readingTime": "5 min read",
       "image": "/full-app-with-design-doc.png",
       "category": "tools",
       "tags": [
-        "architecture diagram tools",
+        "architecture diagram tools 2026",
+        "best architecture diagram tools",
         "AI diagram generator",
         "diagrams as code",
         "Mermaid",
@@ -413,20 +414,116 @@
       ]
     },
     {
+      "slug": "best-system-architecture-diagramming-tools-2026",
+      "title": "Best System Architecture Diagramming Tools 2026: 8 Tools Ranked",
+      "description": "Compare the top 8 system architecture diagramming tools for 2026. Covers InfraSketch, Lucidchart, Structurizr, Eraser, IcePanel, Draw.io, Mermaid, and D2 with honest pros and cons.",
+      "date": "2026-04-14",
+      "author": "InfraSketch Team",
+      "readingTime": "11 min read",
+      "image": "/full-app-with-design-doc.png",
+      "category": "tools",
+      "tags": [
+        "best system architecture diagramming tools 2026",
+        "top system architecture diagramming tools",
+        "popular architecture diagramming tools 2026",
+        "software architecture diagramming tools",
+        "architecture diagram tool comparison"
+      ]
+    },
+    {
+      "slug": "best-diagram-as-code-tools-2026",
+      "title": "Best Diagram-as-Code Tools 2026: Mermaid, D2, PlantUML and More",
+      "description": "Compare the top diagram-as-code tools for 2026. Covers Mermaid, D2, PlantUML, Structurizr DSL, Graphviz, and Diagrams (Python) with syntax examples and trade-offs.",
+      "date": "2026-04-14",
+      "author": "InfraSketch Team",
+      "readingTime": "10 min read",
+      "image": "/full-app-with-design-doc.png",
+      "category": "tools",
+      "tags": [
+        "best diagram as code tools 2026",
+        "top diagram as code tools",
+        "Mermaid",
+        "D2",
+        "PlantUML",
+        "Structurizr DSL",
+        "diagrams as code"
+      ]
+    },
+    {
+      "slug": "best-collaborative-diagramming-tools-2026",
+      "title": "Best Collaborative Diagramming Tools 2026: Real-Time Team Tools Compared",
+      "description": "Compare the best real-time collaborative diagramming tools for 2026. Covers Miro, Lucidchart, FigJam, Excalidraw, Eraser, Whimsical, and Draw.io for team workflows.",
+      "date": "2026-04-14",
+      "author": "InfraSketch Team",
+      "readingTime": "10 min read",
+      "image": "/full-app-with-design-doc.png",
+      "category": "tools",
+      "tags": [
+        "best collaborative diagramming tools 2026",
+        "real-time collaborative diagramming tools",
+        "interactive diagramming platform",
+        "best cloud diagramming tools for collaborative design",
+        "diagram collaboration tools"
+      ]
+    },
+    {
+      "slug": "best-diagramming-tools-for-engineering-teams-2026",
+      "title": "Best Diagramming Tools for Engineering Teams 2026 (By Use Case)",
+      "description": "Find the right diagramming tool for your engineering team in 2026. Organized by use case: architecture reviews, data pipelines, product planning, and enterprise collaboration.",
+      "date": "2026-04-14",
+      "author": "InfraSketch Team",
+      "readingTime": "10 min read",
+      "image": "/full-app-with-design-doc.png",
+      "category": "tools",
+      "tags": [
+        "best diagramming tools for engineering teams 2026",
+        "best diagramming tools for product teams",
+        "diagramming tools for data pipelines",
+        "enterprise diagramming tools",
+        "architecture diagram tools for teams"
+      ]
+    },
+    {
+      "slug": "best-cloud-architecture-diagram-tools-2026",
+      "title": "Best Cloud Architecture Diagram Tools 2026: 7 Tools Compared",
+      "description": "Compare the 7 best cloud architecture diagram tools for 2026. Covers InfraSketch, AWS Application Composer, Cloudcraft, Lucidchart, Draw.io, Hava.io, and Brainboard with pricing, strengths, and use cases.",
+      "date": "2026-04-14",
+      "author": "InfraSketch Team",
+      "readingTime": "10 min read",
+      "image": "/full-app-with-design-doc.png",
+      "category": "tools",
+      "tags": [
+        "best cloud architecture diagram tools 2026",
+        "best cloud diagramming tools",
+        "aws diagram tool",
+        "aws architecture diagram generator",
+        "best aws diagram tools comparison 2026",
+        "cloud architecture diagramming tools",
+        "Cloudcraft",
+        "Lucidchart",
+        "Draw.io",
+        "Hava.io",
+        "Brainboard"
+      ]
+    },
+    {
       "slug": "best-ai-diagram-tools-2026",
-      "title": "Best AI Diagram Tools Compared: 2026 Guide",
-      "description": "Compare the top AI-powered diagram tools including InfraSketch, Eraser, ChatGPT, Whimsical, and Miro. Find the best tool for your needs.",
-      "date": "2026-01-06",
+      "title": "Best AI Diagram Tools 2026: We Tested 5 Tools Side-by-Side",
+      "description": "We gave the same architecture prompt to InfraSketch, Eraser, ChatGPT, Whimsical, and Miro. Here's an honest comparison of what each AI diagram tool actually delivers in 2026.",
+      "date": "2026-04-14",
       "author": "InfraSketch Team",
       "readingTime": "12 min read",
       "image": "/full-app-with-design-doc.png",
       "category": "tools",
       "tags": [
-        "AI diagram tools",
-        "comparison",
+        "best AI diagram tools 2026",
+        "AI diagram tools comparison",
+        "best diagramming tools 2026",
+        "AI architecture diagram",
         "Eraser",
-        "Lucidchart",
-        "Miro"
+        "Whimsical",
+        "Miro",
+        "ChatGPT Mermaid"
       ]
     },
     {
@@ -478,16 +575,17 @@
     },
     {
       "slug": "ai-system-design-tools-2025",
-      "title": "Best AI Tools for System Architecture Diagrams in 2025",
-      "description": "Compare the top agent-powered and AI tools for creating system architecture diagrams, including features, pricing, and use cases.",
+      "title": "Best AI Tools for System Architecture Diagrams (2025-2026)",
+      "description": "Compare the top AI-powered tools for creating system architecture diagrams in 2025-2026. Features, pricing, and real use cases for InfraSketch, Eraser, D2, and more.",
       "date": "2025-01-10",
       "author": "InfraSketch Team",
       "readingTime": "6 min read",
       "image": "/full-app-with-design-doc.png",
       "category": "tools",
       "tags": [
-        "AI tools",
-        "comparison",
+        "AI system design tools 2025",
+        "AI architecture diagram tools",
+        "system design tools comparison",
         "architecture diagrams"
       ]
     },
