@@ -288,6 +288,8 @@ export default function DesignDocPanel({
           link.click();
           document.body.removeChild(link);
           URL.revokeObjectURL(url);
+        } else {
+          alert('Could not capture the diagram. This can happen on Safari, try Chrome if the problem persists.');
         }
       } else {
         // PDF or Markdown: Call backend

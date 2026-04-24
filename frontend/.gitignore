@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+
 # Environment files (except .env.example)
 .env
 .env.local

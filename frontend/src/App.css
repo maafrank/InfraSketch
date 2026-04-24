@@ -598,6 +598,7 @@ body {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.95);
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -2968,6 +2969,7 @@ body {
   font-size: 1.5rem;
   font-weight: normal;
   border-radius: 8px;
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   transition: all 0.2s;
 }
@@ -4136,6 +4138,7 @@ body {
   justify-content: center;
   min-width: 40px;
   height: 40px;
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 }
 

@@ -28,7 +28,14 @@ export default defineConfig([
   },
   // Test files and config files need Node.js globals
   {
-    files: ['**/*.test.{js,jsx}', '**/*.spec.{js,jsx}', 'vitest.config.js', 'tests/**/*.{js,jsx}'],
+    files: [
+      '**/*.test.{js,jsx}',
+      '**/*.spec.{js,jsx}',
+      'vitest.config.js',
+      'playwright.config.js',
+      'tests/**/*.{js,jsx}',
+      'e2e/**/*.{js,jsx}',
+    ],
     languageOptions: {
       globals: {
         ...globals.node,

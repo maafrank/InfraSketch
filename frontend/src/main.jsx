@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { ClerkProvider } from '@clerk/clerk-react'
 import { HelmetProvider } from 'react-helmet-async'
 import ThemeProvider from './contexts/ThemeContext'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
 import './index.css'
 import App from './App.jsx'
 import SessionHistory from './components/SessionHistory.jsx'
@@ -41,44 +42,46 @@ if (!PUBLISHABLE_KEY) {
 
 const AppRoot = (
   <StrictMode>
-    <HelmetProvider>
-      <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
-        <ThemeProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<App />} />
-              <Route path="/history" element={<SessionHistory />} />
-              <Route path="/session/:sessionId" element={<App resumeMode={true} />} />
-              <Route path="/privacy" element={<PrivacyPolicy />} />
-              <Route path="/terms" element={<TermsOfService />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="/careers" element={<CareersPage />} />
-              <Route path="/contact" element={<ContactPage />} />
-              <Route path="/blog" element={<BlogListPage />} />
-              <Route path="/blog/:slug" element={<BlogPostPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/achievements" element={<AchievementsPage />} />
-              <Route path="/pricing" element={<PricingPage />} />
-              <Route path="/tools/system-design-tool" element={<SystemDesignToolPage />} />
-              <Route path="/tools/ai-diagram-generator" element={<AIDiagramGeneratorPage />} />
-              <Route path="/tools/architecture-diagram-tool" element={<ArchitectureDiagramToolPage />} />
-              <Route path="/tools/design-doc-generator" element={<DesignDocGeneratorPage />} />
-              <Route path="/compare" element={<ComparePage />} />
-              <Route path="/compare/eraser" element={<InfraSketchVsEraserPage />} />
-              <Route path="/compare/lucidchart" element={<InfraSketchVsLucidchartPage />} />
-              <Route path="/compare/system-design-primer" element={<InfraSketchVsSystemDesignPrimerPage />} />
-              <Route path="/compare/bytebytego" element={<InfraSketchVsByteByteGoPage />} />
-              <Route path="/compare/mermaid" element={<InfraSketchVsMermaidPage />} />
-              <Route path="/compare/draw-io" element={<InfraSketchVsDrawioPage />} />
-              <Route path="/compare/whimsical" element={<InfraSketchVsWhimsicalPage />} />
-              <Route path="/compare/chatgpt" element={<InfraSketchVsChatGPTPage />} />
-              <Route path="/tools/ml-system-design-tool" element={<MLSystemDesignToolPage />} />
-              <Route path="/tools/llm-architecture-tool" element={<LLMArchitectureToolPage />} />
-            </Routes>
-          </BrowserRouter>
-        </ThemeProvider>
-      </ClerkProvider>
-    </HelmetProvider>
+    <ErrorBoundary>
+      <HelmetProvider>
+        <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
+          <ThemeProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<App />} />
+                <Route path="/history" element={<SessionHistory />} />
+                <Route path="/session/:sessionId" element={<App resumeMode={true} />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/careers" element={<CareersPage />} />
+                <Route path="/contact" element={<ContactPage />} />
+                <Route path="/blog" element={<BlogListPage />} />
+                <Route path="/blog/:slug" element={<BlogPostPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/achievements" element={<AchievementsPage />} />
+                <Route path="/pricing" element={<PricingPage />} />
+                <Route path="/tools/system-design-tool" element={<SystemDesignToolPage />} />
+                <Route path="/tools/ai-diagram-generator" element={<AIDiagramGeneratorPage />} />
+                <Route path="/tools/architecture-diagram-tool" element={<ArchitectureDiagramToolPage />} />
+                <Route path="/tools/design-doc-generator" element={<DesignDocGeneratorPage />} />
+                <Route path="/compare" element={<ComparePage />} />
+                <Route path="/compare/eraser" element={<InfraSketchVsEraserPage />} />
+                <Route path="/compare/lucidchart" element={<InfraSketchVsLucidchartPage />} />
+                <Route path="/compare/system-design-primer" element={<InfraSketchVsSystemDesignPrimerPage />} />
+                <Route path="/compare/bytebytego" element={<InfraSketchVsByteByteGoPage />} />
+                <Route path="/compare/mermaid" element={<InfraSketchVsMermaidPage />} />
+                <Route path="/compare/draw-io" element={<InfraSketchVsDrawioPage />} />
+                <Route path="/compare/whimsical" element={<InfraSketchVsWhimsicalPage />} />
+                <Route path="/compare/chatgpt" element={<InfraSketchVsChatGPTPage />} />
+                <Route path="/tools/ml-system-design-tool" element={<MLSystemDesignToolPage />} />
+                <Route path="/tools/llm-architecture-tool" element={<LLMArchitectureToolPage />} />
+              </Routes>
+            </BrowserRouter>
+          </ThemeProvider>
+        </ClerkProvider>
+      </HelmetProvider>
+    </ErrorBoundary>
   </StrictMode>
 )
 
