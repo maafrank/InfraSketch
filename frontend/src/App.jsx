@@ -1078,7 +1078,7 @@ function AppContent({ resumeMode = false, isMobile }) {
                   {sessionHistoryOpen ? '✕' : '☰'}
                 </button>
                 <button
-                  className="create-design-doc-button"
+                  className={`create-design-doc-button${diagram && !designDoc && !designDocLoading && !designDocOpen ? ' pulse-glow' : ''}`}
                   onClick={handleCreateDesignDoc}
                   disabled={designDocLoading || !diagram}
                 >

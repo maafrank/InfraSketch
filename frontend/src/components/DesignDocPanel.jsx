@@ -409,7 +409,7 @@ export default function DesignDocPanel({
             <div className="generating-spinner"></div>
             <h3>{isPreview ? 'Generating Preview...' : 'Generating Design Document...'}</h3>
             <p>{isPreview
-              ? 'Sketch is writing the Executive Summary for your diagram. This usually takes 10-30 seconds.'
+              ? 'Sketch is writing a teaser for your diagram. This usually takes a few seconds.'
               : 'This may take 1-2 minutes. Sketch is analyzing your system architecture and creating a comprehensive design document.'}</p>
           </div>
         ) : (
@@ -417,6 +417,15 @@ export default function DesignDocPanel({
             <EditorContent editor={editor} />
             {isPreview && (
               <div className="design-doc-locked">
+                <div className="design-doc-locked-banner">
+                  <div className="design-doc-locked-banner-text">
+                    <strong>The rest of your design doc is locked.</strong>
+                    <span>Upgrade to Starter ($1/mo) to generate component details, data flow, scaling, security, trade-offs, and implementation phases for your diagram.</span>
+                  </div>
+                  <button className="design-doc-locked-button" onClick={onUpgrade}>
+                    Upgrade to unlock
+                  </button>
+                </div>
                 <div className="design-doc-locked-blur" aria-hidden="true">
                   {LOCKED_SECTION_TITLES.map((title) => (
                     <div className="design-doc-locked-section" key={title}>
@@ -427,13 +436,6 @@ export default function DesignDocPanel({
                       <div className="design-doc-locked-line" style={{ width: '64%' }} />
                     </div>
                   ))}
-                </div>
-                <div className="design-doc-locked-cta">
-                  <h3>Unlock the full design document</h3>
-                  <p>You're seeing a free preview. Upgrade to Starter ($1/mo) to generate the complete design doc with component details, data flow, scaling strategy, security, trade-offs, and implementation phases.</p>
-                  <button className="design-doc-locked-button" onClick={onUpgrade}>
-                    Upgrade to unlock
-                  </button>
                 </div>
               </div>
             )}

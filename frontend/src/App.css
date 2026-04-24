@@ -147,6 +147,28 @@ body {
   transform: none;
 }
 
+.create-design-doc-button.pulse-glow:not(:disabled):not(:hover) {
+  animation: design-doc-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes design-doc-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(0, 184, 48, 0.55), 0 0 0 0 rgba(0, 184, 48, 0);
+    border-color: var(--terminal-green);
+  }
+  50% {
+    box-shadow: 0 0 16px 2px rgba(0, 184, 48, 0.55), 0 0 32px 6px rgba(0, 184, 48, 0.25);
+    border-color: rgba(0, 220, 60, 1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .create-design-doc-button.pulse-glow:not(:disabled):not(:hover) {
+    animation: none;
+    box-shadow: 0 0 12px 1px rgba(0, 184, 48, 0.4);
+  }
+}
+
 /* Export button container and menu */
 .export-button-container {
   position: relative;
@@ -3038,10 +3060,38 @@ body {
 }
 
 .design-doc-locked {
-  position: relative;
-  margin-top: 2rem;
-  border-top: 1px dashed var(--border-light);
-  padding-top: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.design-doc-locked-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-start;
+  background: var(--bg-secondary, rgba(0, 184, 48, 0.06));
+  border: 1px solid rgba(0, 184, 48, 0.4);
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+.design-doc-locked-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--text-primary);
+}
+
+.design-doc-locked-banner-text strong {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.design-doc-locked-banner-text span {
+  color: var(--text-secondary, var(--text-tertiary));
 }
 
 .design-doc-locked-blur {
@@ -3069,45 +3119,17 @@ body {
   margin-bottom: 0.5rem;
 }
 
-.design-doc-locked-cta {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: var(--bg-primary, #ffffff);
-  border: 1px solid var(--border-light);
-  border-radius: 12px;
-  padding: 1.5rem 1.75rem;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
-  text-align: center;
-  max-width: 360px;
-  width: calc(100% - 2rem);
-}
-
-.design-doc-locked-cta h3 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.design-doc-locked-cta p {
-  margin: 0 0 1rem 0;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  color: var(--text-secondary, var(--text-tertiary));
-}
-
 .design-doc-locked-button {
   background: var(--terminal-green);
   color: #0a0a0a;
   border: none;
   border-radius: 8px;
-  padding: 0.65rem 1.4rem;
-  font-size: 0.95rem;
+  padding: 0.55rem 1.2rem;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   transition: filter 0.15s ease;
+  align-self: flex-start;
 }
 
 .design-doc-locked-button:hover {

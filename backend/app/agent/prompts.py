@@ -372,7 +372,7 @@ SPEED OPTIMIZATIONS:
 """
 
 
-DESIGN_DOC_PREVIEW_PROMPT = """You are an expert technical writer. Generate ONLY the Executive Summary section of a system design document for the architecture below. This is a preview for a free user, so the rest of the document is intentionally omitted.
+DESIGN_DOC_PREVIEW_PROMPT = """You are an expert technical writer. Write the opening paragraph of the Executive Summary for a system design document based on the architecture below. This is a free-tier teaser, so everything else in the document is intentionally omitted.
 
 System Architecture:
 {diagram_context}
@@ -380,20 +380,16 @@ System Architecture:
 Conversation History (for additional context):
 {conversation_history}
 
-Output requirements:
-- Output ONLY the following two lines, then the Executive Summary content:
+Output format:
+- Begin with this exact line: # System Design Document
+- Then a blank line, then this exact line: ## Executive Summary
+- Then a blank line, then write ONE real paragraph of 2 to 4 sentences that orients the reader: state the system's purpose and the core architectural approach at a high level. Reference specific component names and technologies from the diagram by name. Focus on WHAT and WHY, not HOW to implement.
+- Stop immediately after that paragraph.
 
-# System Design Document
-
-## Executive Summary
-
-- 3 to 5 short paragraphs (each 2 to 4 sentences).
-- Cover: the system's purpose, the core architectural approach, the key components and how they relate, the primary data flow at a high level, and the most important trade-off or design decision.
-- Reference specific component names and technologies from the diagram by name.
-- Focus on WHAT and WHY, not HOW to implement.
-- Do NOT add any other sections, headings, bullet points, or "coming soon" / "locked" placeholder text. The frontend renders the locked sections separately.
+Hard constraints:
+- Do NOT echo placeholder text like "<paragraph>" or "[your paragraph here]" - write the actual paragraph.
+- Do NOT add any additional paragraphs, sections, headings, bullet points, or "coming soon" / "locked" placeholder text. The frontend renders the locked sections separately.
 - Do NOT use tables, code blocks, ASCII art, or emojis.
-- Keep paragraphs under 4 sentences.
 """
 
 

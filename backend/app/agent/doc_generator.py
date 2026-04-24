@@ -79,7 +79,7 @@ def generate_design_document_preview(diagram: dict, conversation_history: list[d
     Returns:
         Markdown formatted document containing only the title and Executive Summary
     """
-    llm = create_doc_llm(model, max_tokens=2048)
+    llm = create_doc_llm(model, max_tokens=512)
 
     diagram_context = get_diagram_context(diagram)
 
