@@ -144,7 +144,11 @@ jobs:
         run: cd frontend && npx playwright test --project=webkit --project=chromium
         env:
           VITE_API_URL: https://api.example.com
-          VITE_CLERK_PUBLISHABLE_KEY: pk_test_placeholder
+          # Format-valid dummy publishable key (decodes to invalid.clerk.accounts.dev$).
+          # Passes Clerk SDK's format check so ClerkProvider does not throw during
+          # mount; subsequent network calls to the bogus host fail asynchronously
+          # without crashing the React render. Real auth is not exercised here.
+          VITE_CLERK_PUBLISHABLE_KEY: pk_test_aW52YWxpZC5jbGVyay5hY2NvdW50cy5kZXYk
 
       - name: Upload Playwright report on failure
         if: failure()
