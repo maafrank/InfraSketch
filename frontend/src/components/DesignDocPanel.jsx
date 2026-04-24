@@ -18,6 +18,17 @@ const turndownService = new TurndownService({
   codeBlockStyle: 'fenced',
 });
 
+const LOCKED_SECTION_TITLES = [
+  'System Overview',
+  'Architecture Diagram',
+  'Component Details',
+  'Data Flow',
+  'Scalability & Reliability',
+  'Security Considerations',
+  'Trade-offs & Alternatives',
+  'Implementation Phases',
+];
+
 export default function DesignDocPanel({
   designDoc,
   onSave,
@@ -25,6 +36,8 @@ export default function DesignDocPanel({
   // sessionId - reserved for future use (e.g., real-time sync)
   onExport,
   isGenerating = false,
+  isPreview = false,
+  onUpgrade,
   onWidthChange,
   onApplyLayout,
   sessionHistorySidebarWidth = 0,
@@ -85,6 +98,14 @@ export default function DesignDocPanel({
       }
     }
   }, [designDoc, editor]);
+
+  // Lock the editor while showing a free-tier preview so the locked content
+  // can't be edited and accidentally persisted as the user's "real" doc.
+  useEffect(() => {
+    if (editor) {
+      editor.setEditable(!isPreview);
+    }
+  }, [editor, isPreview]);
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -386,17 +407,43 @@ export default function DesignDocPanel({
         {isGenerating ? (
           <div className="generating-overlay">
             <div className="generating-spinner"></div>
-            <h3>Generating Design Document...</h3>
-            <p>This may take 1-2 minutes. Sketch is analyzing your system architecture and creating a comprehensive design document.</p>
+            <h3>{isPreview ? 'Generating Preview...' : 'Generating Design Document...'}</h3>
+            <p>{isPreview
+              ? 'Sketch is writing the Executive Summary for your diagram. This usually takes 10-30 seconds.'
+              : 'This may take 1-2 minutes. Sketch is analyzing your system architecture and creating a comprehensive design document.'}</p>
           </div>
         ) : (
-          <EditorContent editor={editor} />
+          <>
+            <EditorContent editor={editor} />
+            {isPreview && (
+              <div className="design-doc-locked">
+                <div className="design-doc-locked-blur" aria-hidden="true">
+                  {LOCKED_SECTION_TITLES.map((title) => (
+                    <div className="design-doc-locked-section" key={title}>
+                      <h2>{title}</h2>
+                      <div className="design-doc-locked-line" style={{ width: '92%' }} />
+                      <div className="design-doc-locked-line" style={{ width: '78%' }} />
+                      <div className="design-doc-locked-line" style={{ width: '85%' }} />
+                      <div className="design-doc-locked-line" style={{ width: '64%' }} />
+                    </div>
+                  ))}
+                </div>
+                <div className="design-doc-locked-cta">
+                  <h3>Unlock the full design document</h3>
+                  <p>You're seeing a free preview. Upgrade to Starter ($1/mo) to generate the complete design doc with component details, data flow, scaling strategy, security, trade-offs, and implementation phases.</p>
+                  <button className="design-doc-locked-button" onClick={onUpgrade}>
+                    Upgrade to unlock
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
       <div className="design-doc-footer">
         <div className={getSaveStatusClass()}>
-          {getSaveStatusText()}
+          {isPreview ? 'Preview' : getSaveStatusText()}
         </div>
         <div className="export-buttons">
           <select
@@ -406,8 +453,9 @@ export default function DesignDocPanel({
                 e.target.value = ''; // Reset dropdown
               }
             }}
-            disabled={exportLoading}
+            disabled={exportLoading || isPreview}
             className="export-dropdown"
+            title={isPreview ? 'Upgrade to export your design document' : undefined}
           >
             <option value="">{exportLoading ? 'Exporting...' : 'Export'}</option>
             <option value="pdf">PDF</option>

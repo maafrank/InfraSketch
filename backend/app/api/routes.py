@@ -22,7 +22,7 @@ from app.models import (
 from app.session.manager import session_manager
 from app.config.models import DEFAULT_MODEL
 from app.agent.graph import agent_graph, generate_suggestions
-from app.agent.doc_generator import generate_design_document
+from app.agent.doc_generator import generate_design_document, generate_design_document_preview
 from app.agent.name_generator import generate_session_name
 from app.utils.diagram_export import generate_diagram_png, convert_markdown_to_pdf
 from app.utils.logger import (
@@ -1622,6 +1622,58 @@ async def export_design_doc(session_id: str, request: ExportRequest, format: str
         raise HTTPException(status_code=500, detail=f"Failed to generate design document: {str(e)}")
 
 
+def _generate_design_doc_preview_background(session_id: str, user_ip: str):
+    """Background task to generate the Executive-Summary-only preview for free users."""
+    start_time = time.time()
+
+    try:
+        session = session_manager.get_session(session_id)
+        if not session:
+            print(f"Session {session_id} not found in preview background task")
+            return
+
+        conversation_history = [
+            {"role": msg.role, "content": msg.content}
+            for msg in session.messages
+        ]
+
+        print(f"\n=== BACKGROUND: GENERATE DESIGN DOC PREVIEW ===")
+        print(f"Session ID: {session_id}")
+        print(f"Nodes: {len(session.diagram.nodes)}")
+        print(f"Edges: {len(session.diagram.edges)}")
+
+        markdown_content = generate_design_document_preview(
+            session.diagram.model_dump(),
+            conversation_history,
+            session.model
+        )
+
+        session_manager.update_design_doc(session_id, markdown_content)
+        session_manager.mark_design_doc_preview_used(session_id)
+        session_manager.set_design_doc_status(session_id, "completed", is_preview=True)
+
+        duration_ms = (time.time() - start_time) * 1000
+        log_event(
+            EventType.EXPORT_DESIGN_DOC,
+            session_id=session_id,
+            user_ip=user_ip,
+            metadata={
+                "action": "preview_generated",
+                "doc_length": len(markdown_content),
+                "duration_ms": duration_ms,
+            },
+        )
+
+        print(f"Generated preview design doc ({len(markdown_content)} chars)")
+        print(f"================================================\n")
+
+    except Exception as e:
+        import traceback
+        print(f"Error generating design doc preview in background: {str(e)}")
+        traceback.print_exc()
+        session_manager.set_design_doc_status(session_id, "failed", error=str(e), is_preview=True)
+
+
 def _generate_design_doc_background(session_id: str, user_ip: str):
     """Background task to generate design document."""
     start_time = time.time()
@@ -1714,20 +1766,23 @@ async def generate_design_doc(session_id: str, request: ExportRequest, backgroun
         # Verify access
         session = verify_session_access(session_id, user_id, http_request)
 
-        # Check plan-level feature gate for design doc generation
+        # Determine free vs paid plan to decide preview vs full generation
+        is_preview_path = False
         if user_id:
             credits_storage = get_user_credits_storage()
             user_credits = credits_storage.get_or_create_credits(user_id)
             if user_credits.plan not in DESIGN_DOC_PLANS:
-                return JSONResponse(
-                    status_code=403,
-                    content={
-                        "error": "feature_locked",
-                        "feature": "design_doc_generation",
-                        "required_plan": "starter",
-                        "message": "Design document generation requires a paid plan. Upgrade to Starter ($1/mo) or Pro ($4.99/mo).",
-                    },
-                )
+                if session.design_doc_preview_used:
+                    return JSONResponse(
+                        status_code=403,
+                        content={
+                            "error": "feature_locked",
+                            "feature": "design_doc_generation",
+                            "required_plan": "starter",
+                            "message": "You've already previewed the design doc for this diagram. Upgrade to Starter ($1/mo) to generate the full design document.",
+                        },
+                    )
+                is_preview_path = True
 
         # Check if already generating (before deducting credits to avoid double-charge)
         if session.design_doc_status.status == "generating":
@@ -1736,15 +1791,23 @@ async def generate_design_doc(session_id: str, request: ExportRequest, backgroun
                 "message": "Design document generation already in progress"
             })
 
-        # Check and deduct credits for design doc generation
-        await check_and_deduct_credits(
-            user_id=user_id,
-            action="design_doc_generation",
-            session_id=session_id,
-        )
-
-        # Set status to generating
-        session_manager.set_design_doc_status(session_id, "generating")
+        if is_preview_path:
+            # Free preview: no credit deduction, generate Executive Summary only
+            session_manager.set_design_doc_status(session_id, "generating", is_preview=True)
+            async_task_name = "generate_design_doc_preview"
+            background_fn = _generate_design_doc_preview_background
+            log_message = f"Starting preview generation for session {session_id}"
+        else:
+            # Paid full generation
+            await check_and_deduct_credits(
+                user_id=user_id,
+                action="design_doc_generation",
+                session_id=session_id,
+            )
+            session_manager.set_design_doc_status(session_id, "generating", is_preview=False)
+            async_task_name = "generate_design_doc"
+            background_fn = _generate_design_doc_background
+            log_message = f"Starting full generation for session {session_id}"
 
         # Check if running in Lambda (AWS_LAMBDA_FUNCTION_NAME env var is set)
         is_lambda = os.environ.get('AWS_LAMBDA_FUNCTION_NAME') is not None
@@ -1756,16 +1819,14 @@ async def generate_design_doc(session_id: str, request: ExportRequest, backgroun
             import boto3
             import json as json_lib
 
-            print(f"Lambda environment detected - triggering async invocation for session {session_id}")
+            print(f"Lambda environment detected - {log_message}")
 
             try:
                 lambda_client = boto3.client('lambda')
                 function_name = os.environ.get('AWS_LAMBDA_FUNCTION_NAME')
 
-                # Invoke this same Lambda function asynchronously with a special event
-                # that will trigger the generation without going through API Gateway
                 payload = {
-                    "async_task": "generate_design_doc",
+                    "async_task": async_task_name,
                     "session_id": session_id,
                     "user_ip": user_ip
                 }
@@ -1780,14 +1841,15 @@ async def generate_design_doc(session_id: str, request: ExportRequest, backgroun
             except Exception as e:
                 print(f"Failed to trigger async invocation: {e}")
                 # Fall back to inline execution (will timeout after 30s but generation continues)
-                background_tasks.add_task(_generate_design_doc_background, session_id, user_ip)
+                background_tasks.add_task(background_fn, session_id, user_ip)
         else:
             # Local development: Use true background tasks (non-blocking)
-            print(f"Local environment - starting background generation for session {session_id}")
-            background_tasks.add_task(_generate_design_doc_background, session_id, user_ip)
+            print(f"Local environment - {log_message}")
+            background_tasks.add_task(background_fn, session_id, user_ip)
 
         return JSONResponse(content={
             "status": "started",
+            "is_preview": is_preview_path,
             "message": "Design document generation started"
         })
 
@@ -1821,6 +1883,7 @@ async def get_design_doc_status(session_id: str, http_request: Request):
         "error": status.error,
         "started_at": status.started_at,
         "completed_at": status.completed_at,
+        "is_preview": status.is_preview,
     }
 
     # Include the document if completed

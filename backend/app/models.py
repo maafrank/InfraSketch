@@ -57,6 +57,7 @@ class DesignDocStatus(BaseModel):
     error: Optional[str] = None
     started_at: Optional[float] = None  # Unix timestamp
     completed_at: Optional[float] = None  # Unix timestamp
+    is_preview: bool = False  # True when only the Executive Summary was generated for a free user
 
 
 class DiagramGenerationStatus(BaseModel):
@@ -85,6 +86,7 @@ class SessionState(BaseModel):
     current_node: Optional[str] = None
     design_doc: Optional[str] = None  # Markdown content for design document
     design_doc_status: DesignDocStatus = Field(default_factory=DesignDocStatus)
+    design_doc_preview_used: bool = False  # Free user has consumed their one-per-session preview
     diagram_generation_status: DiagramGenerationStatus = Field(default_factory=DiagramGenerationStatus)  # For async diagram generation
     repo_analysis_status: RepoAnalysisStatus = Field(default_factory=RepoAnalysisStatus)  # For GitHub repo analysis
     generation_prompt: Optional[str] = None  # Store prompt for background task

@@ -28,6 +28,18 @@ def handler(event, context):
 
             return {"statusCode": 200, "body": "Design doc generation completed"}
 
+        elif async_task == "generate_design_doc_preview":
+            # Async invocation for free-tier design doc preview (Executive Summary only)
+            from app.api.routes import _generate_design_doc_preview_background
+
+            session_id = event.get("session_id")
+            user_ip = event.get("user_ip")
+
+            print(f"Async task invocation: Generating design doc PREVIEW for session {session_id}")
+            _generate_design_doc_preview_background(session_id, user_ip)
+
+            return {"statusCode": 200, "body": "Design doc preview generation completed"}
+
         elif async_task == "generate_diagram":
             # Async invocation for diagram generation
             from app.api.routes import _generate_diagram_background

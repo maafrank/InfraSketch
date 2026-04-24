@@ -3037,6 +3037,83 @@ body {
   line-height: 1.6;
 }
 
+.design-doc-locked {
+  position: relative;
+  margin-top: 2rem;
+  border-top: 1px dashed var(--border-light);
+  padding-top: 1.5rem;
+}
+
+.design-doc-locked-blur {
+  filter: blur(4px);
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.55;
+}
+
+.design-doc-locked-section {
+  margin-bottom: 1.75rem;
+}
+
+.design-doc-locked-section h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.75rem 0;
+}
+
+.design-doc-locked-line {
+  height: 0.75rem;
+  border-radius: 4px;
+  background: var(--border-light);
+  margin-bottom: 0.5rem;
+}
+
+.design-doc-locked-cta {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  text-align: center;
+  max-width: 360px;
+  width: calc(100% - 2rem);
+}
+
+.design-doc-locked-cta h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.design-doc-locked-cta p {
+  margin: 0 0 1rem 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-secondary, var(--text-tertiary));
+}
+
+.design-doc-locked-button {
+  background: var(--terminal-green);
+  color: #0a0a0a;
+  border: none;
+  border-radius: 8px;
+  padding: 0.65rem 1.4rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.design-doc-locked-button:hover {
+  filter: brightness(1.1);
+}
+
 /* Tiptap editor styles */
 .ProseMirror {
   outline: none;

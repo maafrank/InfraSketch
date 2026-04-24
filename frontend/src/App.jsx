@@ -101,6 +101,7 @@ function AppContent({ resumeMode = false, isMobile }) {
   const [designDocOpen, setDesignDocOpen] = useState(false);
   const [designDocLoading, setDesignDocLoading] = useState(false);
   const [designDocWidth, setDesignDocWidth] = useState(400);
+  const [designDocIsPreview, setDesignDocIsPreview] = useState(false);
 
   // Chat panel state
   const [chatPanelWidth, setChatPanelWidth] = useState(400);
@@ -245,6 +246,7 @@ function AppContent({ resumeMode = false, isMobile }) {
       setDiagram(sessionData.diagram);
       setMessages(sessionData.messages || []);
       setDesignDoc(sessionData.design_doc);
+      setDesignDocIsPreview(sessionData.design_doc_status?.is_preview === true);
 
       // Restore model from session (fallback to default if not present)
       if (sessionData.model) {
@@ -804,6 +806,7 @@ function AppContent({ resumeMode = false, isMobile }) {
     setSelectedNode(null);
     setMessages([]);
     setDesignDoc(null);
+    setDesignDocIsPreview(false);
     setDesignDocOpen(false);
     setSessionName('Untitled Design');
     navigate('/');
@@ -830,6 +833,7 @@ function AppContent({ resumeMode = false, isMobile }) {
       const result = await pollDesignDocStatus(sessionId);
 
       if (result.success) {
+        setDesignDocIsPreview(result.is_preview === true);
         setDesignDoc(result.design_doc);
         // Refresh credit balance and gamification immediately after successful generation
         if (refreshCredits) refreshCredits();
@@ -840,7 +844,7 @@ function AppContent({ resumeMode = false, isMobile }) {
     } catch (error) {
       console.error('Failed to generate design doc:', error);
 
-      // Handle feature locked (403) - design docs require paid plan
+      // Handle feature locked (403) - free user has already used their per-session preview
       if (error.response?.status === 403 && error.response.data?.error === 'feature_locked') {
         setDesignDocOpen(false);
         setInsufficientCreditsError({
@@ -865,6 +869,10 @@ function AppContent({ resumeMode = false, isMobile }) {
       setDesignDocLoading(false);
     }
   };
+
+  const handleUpgradeFromPreview = useCallback(() => {
+    navigate('/pricing');
+  }, [navigate]);
 
   const handleSaveDesignDoc = async (content) => {
     if (!sessionId) return;
@@ -1155,6 +1163,8 @@ function AppContent({ resumeMode = false, isMobile }) {
             sessionId={sessionId}
             onExport={handleExportDesignDoc}
             isGenerating={designDocLoading}
+            isPreview={designDocIsPreview}
+            onUpgrade={handleUpgradeFromPreview}
             onWidthChange={handleDesignDocWidthChange}
             onApplyLayout={applyLayoutFn}
             sessionHistorySidebarWidth={sessionHistoryOpen ? sessionHistorySidebarWidth : 0}

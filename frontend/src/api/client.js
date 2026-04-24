@@ -265,6 +265,7 @@ export const pollDesignDocStatus = async (sessionId, onProgress = null, maxWaitT
         success: true,
         design_doc: status.design_doc,
         duration: status.duration_seconds,
+        is_preview: status.is_preview === true,
       };
     }
 

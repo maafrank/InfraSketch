@@ -372,6 +372,31 @@ SPEED OPTIMIZATIONS:
 """
 
 
+DESIGN_DOC_PREVIEW_PROMPT = """You are an expert technical writer. Generate ONLY the Executive Summary section of a system design document for the architecture below. This is a preview for a free user, so the rest of the document is intentionally omitted.
+
+System Architecture:
+{diagram_context}
+
+Conversation History (for additional context):
+{conversation_history}
+
+Output requirements:
+- Output ONLY the following two lines, then the Executive Summary content:
+
+# System Design Document
+
+## Executive Summary
+
+- 3 to 5 short paragraphs (each 2 to 4 sentences).
+- Cover: the system's purpose, the core architectural approach, the key components and how they relate, the primary data flow at a high level, and the most important trade-off or design decision.
+- Reference specific component names and technologies from the diagram by name.
+- Focus on WHAT and WHY, not HOW to implement.
+- Do NOT add any other sections, headings, bullet points, or "coming soon" / "locked" placeholder text. The frontend renders the locked sections separately.
+- Do NOT use tables, code blocks, ASCII art, or emojis.
+- Keep paragraphs under 4 sentences.
+"""
+
+
 SUGGESTION_PROMPT = """You are helping a user design a system architecture. Based on the current diagram and conversation, suggest 2-3 brief follow-up actions they might want to take.
 
 Current diagram has: {node_count} nodes, {edge_count} edges

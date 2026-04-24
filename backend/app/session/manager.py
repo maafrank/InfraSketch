@@ -169,14 +169,21 @@ class SessionManager:
             return self.storage.save_session(session)
         return True
 
-    def set_design_doc_status(self, session_id: str, status: str, error: Optional[str] = None) -> bool:
-        """Update design document generation status."""
+    def set_design_doc_status(self, session_id: str, status: str, error: Optional[str] = None, is_preview: Optional[bool] = None) -> bool:
+        """Update design document generation status.
+
+        If is_preview is provided, also updates the is_preview flag (use when starting
+        or completing a preview generation). Pass False explicitly to clear the flag
+        when starting a full generation.
+        """
         session = self.get_session(session_id)
         if not session:
             return False
 
         session.design_doc_status.status = status
         session.design_doc_status.error = error
+        if is_preview is not None:
+            session.design_doc_status.is_preview = is_preview
 
         if status == "generating" and not session.design_doc_status.started_at:
             session.design_doc_status.started_at = time.time()
@@ -184,6 +191,16 @@ class SessionManager:
             session.design_doc_status.completed_at = time.time()
 
         # Save updated session
+        if self.is_lambda:
+            return self.storage.save_session(session)
+        return True
+
+    def mark_design_doc_preview_used(self, session_id: str) -> bool:
+        """Mark this session as having consumed its one-time design doc preview."""
+        session = self.get_session(session_id)
+        if not session:
+            return False
+        session.design_doc_preview_used = True
         if self.is_lambda:
             return self.storage.save_session(session)
         return True

@@ -24,6 +24,7 @@ const mockEditor = {
   commands: {
     setContent: vi.fn(),
   },
+  setEditable: vi.fn(),
 };
 
 vi.mock('@tiptap/react', () => ({
