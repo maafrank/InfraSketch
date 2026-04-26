@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { MODEL_OPTIONS } from '../constants/models';
+import { MOBILE_BREAKPOINT } from '../constants/ui';
 
 export default function ChatPanel({
   selectedNode,
@@ -29,7 +30,7 @@ export default function ChatPanel({
   // Detect mobile viewport
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
+      setIsMobile(window.innerWidth <= MOBILE_BREAKPOINT);
     };
 
     checkMobile();

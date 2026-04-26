@@ -5,6 +5,7 @@ import { toPng } from 'html-to-image';
 import { addWatermark } from '../utils/watermark';
 import { marked } from 'marked';
 import TurndownService from 'turndown';
+import { MOBILE_BREAKPOINT } from '../constants/ui';
 
 // Initialize markdown-to-HTML converter
 marked.setOptions({
@@ -52,7 +53,7 @@ export default function DesignDocPanel({
   // Detect mobile viewport
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
+      setIsMobile(window.innerWidth <= MOBILE_BREAKPOINT);
     };
 
     checkMobile();

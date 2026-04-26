@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { POLL_TIMEOUTS_MS, REQUEST_TIMEOUT_MS } from '../constants/api';
+import { createPoller } from './poller';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}/api`
@@ -53,7 +55,7 @@ const client = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 45000, // 45 seconds (API Gateway times out at 30s)
+  timeout: REQUEST_TIMEOUT_MS,
 });
 
 // Store getToken function - will be set by App.jsx
@@ -131,56 +133,18 @@ export const getDiagramStatus = async (sessionId) => {
   return response.data;
 };
 
-/**
- * Poll diagram generation status until completed or failed.
- *
- * @param {string} sessionId - Session ID to poll
- * @param {function} onProgress - Optional callback for progress updates (receives status object)
- * @param {number} maxWaitTime - Max time to wait in milliseconds (default: 5 minutes)
- * @returns {Promise<{success: boolean, diagram?: object, messages?: array, name?: string, error?: string}>}
- */
-export const pollDiagramStatus = async (sessionId, onProgress = null, maxWaitTime = 300000) => {
-  const startTime = Date.now();
-  const pollInterval = 2000; // Poll every 2 seconds
-
-  while (Date.now() - startTime < maxWaitTime) {
-    const status = await getDiagramStatus(sessionId);
-
-    // Call progress callback if provided
-    if (onProgress) {
-      onProgress(status);
-    }
-
-    // Check if completed
-    if (status.status === 'completed') {
-      return {
-        success: true,
-        diagram: status.diagram,
-        messages: status.messages,
-        name: status.name,
-        duration: status.duration_seconds,
-        suggestions: status.suggestions || [],
-      };
-    }
-
-    // Check if failed
-    if (status.status === 'failed') {
-      return {
-        success: false,
-        error: status.error,
-      };
-    }
-
-    // Still generating, wait before next poll
-    await new Promise(resolve => setTimeout(resolve, pollInterval));
-  }
-
-  // Timeout
-  return {
-    success: false,
-    error: 'Diagram generation timed out after 5 minutes',
-  };
-};
+export const pollDiagramStatus = createPoller({
+  fetchStatus: getDiagramStatus,
+  mapSuccess: (s) => ({
+    diagram: s.diagram,
+    messages: s.messages,
+    name: s.name,
+    duration: s.duration_seconds,
+    suggestions: s.suggestions || [],
+  }),
+  timeoutMessage: 'Diagram generation timed out after 5 minutes',
+  timeoutMs: POLL_TIMEOUTS_MS.diagram,
+});
 
 export const sendChatMessage = async (sessionId, message, nodeId = null, model = null) => {
   const response = await client.post('/chat', {
@@ -247,46 +211,16 @@ export const getDesignDocStatus = async (sessionId) => {
   return response.data;
 };
 
-export const pollDesignDocStatus = async (sessionId, onProgress = null, maxWaitTime = 180000) => {
-  const startTime = Date.now();
-  const pollInterval = 2000; // Poll every 2 seconds
-
-  while (Date.now() - startTime < maxWaitTime) {
-    const status = await getDesignDocStatus(sessionId);
-
-    // Call progress callback if provided
-    if (onProgress) {
-      onProgress(status);
-    }
-
-    // Check if completed
-    if (status.status === 'completed') {
-      return {
-        success: true,
-        design_doc: status.design_doc,
-        duration: status.duration_seconds,
-        is_preview: status.is_preview === true,
-      };
-    }
-
-    // Check if failed
-    if (status.status === 'failed') {
-      return {
-        success: false,
-        error: status.error,
-      };
-    }
-
-    // Still generating, wait before next poll
-    await new Promise(resolve => setTimeout(resolve, pollInterval));
-  }
-
-  // Timeout
-  return {
-    success: false,
-    error: 'Design document generation timed out',
-  };
-};
+export const pollDesignDocStatus = createPoller({
+  fetchStatus: getDesignDocStatus,
+  mapSuccess: (s) => ({
+    design_doc: s.design_doc,
+    duration: s.duration_seconds,
+    is_preview: s.is_preview === true,
+  }),
+  timeoutMessage: 'Design document generation timed out',
+  timeoutMs: POLL_TIMEOUTS_MS.designDoc,
+});
 
 export const exportDesignDoc = async (sessionId, format = 'pdf', diagramImage = null) => {
   const response = await client.post(
@@ -603,53 +537,15 @@ export const getRepoAnalysisStatus = async (sessionId) => {
   return response.data;
 };
 
-/**
- * Poll repository analysis status until completed or failed.
- *
- * @param {string} sessionId - Session ID to poll
- * @param {function} onProgress - Optional callback for progress updates (receives status object)
- * @param {number} maxWaitTime - Max time to wait in milliseconds (default: 5 minutes)
- * @returns {Promise<{success: boolean, diagram?: object, messages?: array, name?: string, error?: string}>}
- */
-export const pollRepoAnalysisStatus = async (sessionId, onProgress = null, maxWaitTime = 300000) => {
-  const startTime = Date.now();
-  const pollInterval = 2000; // Poll every 2 seconds
-
-  while (Date.now() - startTime < maxWaitTime) {
-    const status = await getRepoAnalysisStatus(sessionId);
-
-    // Call progress callback if provided
-    if (onProgress) {
-      onProgress(status);
-    }
-
-    // Check if completed
-    if (status.status === 'completed') {
-      return {
-        success: true,
-        diagram: status.diagram,
-        messages: status.messages,
-        name: status.name,
-        duration: status.duration_seconds,
-        suggestions: status.suggestions || [],
-      };
-    }
-
-    // Check if failed
-    if (status.status === 'failed') {
-      return {
-        success: false,
-        error: status.error,
-      };
-    }
-
-    // Still analyzing, wait before next poll
-    await new Promise(resolve => setTimeout(resolve, pollInterval));
-  }
-
-  // Timeout
-  return {
-    success: false,
-    error: 'Repository analysis timed out after 5 minutes',
-  };
-};
+export const pollRepoAnalysisStatus = createPoller({
+  fetchStatus: getRepoAnalysisStatus,
+  mapSuccess: (s) => ({
+    diagram: s.diagram,
+    messages: s.messages,
+    name: s.name,
+    duration: s.duration_seconds,
+    suggestions: s.suggestions || [],
+  }),
+  timeoutMessage: 'Repository analysis timed out after 5 minutes',
+  timeoutMs: POLL_TIMEOUTS_MS.repoAnalysis,
+});

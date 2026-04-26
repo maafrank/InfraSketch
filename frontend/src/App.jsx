@@ -48,6 +48,7 @@ import {
   pollRepoAnalysisStatus
 } from './api/client';
 import './App.css';
+import { MOBILE_BREAKPOINT } from './constants/ui';
 
 // Settings icon for UserButton menu
 const SettingsIcon = () => (
@@ -64,7 +65,7 @@ function App({ resumeMode = false }) {
 
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
+      setIsMobile(window.innerWidth <= MOBILE_BREAKPOINT);
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);

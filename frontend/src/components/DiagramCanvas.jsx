@@ -12,6 +12,7 @@ import 'reactflow/dist/style.css';
 import NodeTooltip from './NodeTooltip';
 import CustomNode from './CustomNode';
 import { getLayoutedElements } from '../utils/layout';
+import { MOBILE_BREAKPOINT } from '../constants/ui';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -171,7 +172,7 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
   // Detect mobile viewport
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
+      setIsMobile(window.innerWidth <= MOBILE_BREAKPOINT);
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);
@@ -196,7 +197,7 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
 
         // Use fitView to center the diagram after layout (tighter padding on mobile)
         setTimeout(() => {
-          const fitPadding = window.innerWidth <= 768 ? 0.05 : 0.2;
+          const fitPadding = window.innerWidth <= MOBILE_BREAKPOINT ? 0.05 : 0.2;
           reactFlowInstance?.fitView({ padding: fitPadding, duration: 400 });
         }, 10);
 
@@ -381,7 +382,7 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (nodes.length > 0 && reactFlowInstance) {
-        const fitPadding = window.innerWidth <= 768 ? 0.05 : 0.2;
+        const fitPadding = window.innerWidth <= MOBILE_BREAKPOINT ? 0.05 : 0.2;
         reactFlowInstance.fitView({ padding: fitPadding, duration: 400 });
       }
     }, 100);

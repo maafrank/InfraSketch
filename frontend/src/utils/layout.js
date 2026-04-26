@@ -1,4 +1,5 @@
 import dagre from 'dagre';
+import { MOBILE_BREAKPOINT } from '../constants/ui';
 
 /**
  * Get responsive layout configuration based on viewport width
@@ -22,7 +23,7 @@ const getResponsiveLayoutConfig = () => {
   }
 
   // Tablet: 481-768px
-  if (width <= 768) {
+  if (width <= MOBILE_BREAKPOINT) {
     return {
       nodeWidth: 180,
       nodeHeight: 80,

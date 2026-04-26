@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getUserSessions, renameSession, deleteSession } from '../api/client';
 import './SessionHistorySidebar.css';
+import { MOBILE_BREAKPOINT } from '../constants/ui';
 
 export default function SessionHistorySidebar({ isOpen, onClose, onSessionSelect, onWidthChange, currentSessionId, sessionNameUpdated, onSessionDeleted }) {
   const [sessions, setSessions] = useState([]);
@@ -16,7 +17,7 @@ export default function SessionHistorySidebar({ isOpen, onClose, onSessionSelect
   // Mobile detection
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
+      setIsMobile(window.innerWidth <= MOBILE_BREAKPOINT);
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);
