@@ -10,8 +10,9 @@ import gzip
 import io
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Set
 from urllib.parse import unquote
 
 # S3 bucket containing CloudFront logs
@@ -111,10 +112,14 @@ def is_asset_request(uri_stem: str) -> bool:
     return False
 
 
-def get_cached_visitor_count() -> Optional[int]:
+def read_cached_visitor_count_any_age() -> Optional[int]:
     """
-    Get cached visitor count from DynamoDB.
-    Returns None if cache is expired or doesn't exist.
+    Read the cached visitor count from DynamoDB regardless of TTL.
+    Returns None only when no cache row exists at all.
+
+    The serving endpoint uses this so it never parses S3 logs in the request
+    path (would exceed API Gateway's 30s timeout). The cache is refreshed
+    asynchronously by the infrasketch-visitor-count-refresh Lambda.
     """
     try:
         dynamodb = get_dynamodb_client()
@@ -127,15 +132,9 @@ def get_cached_visitor_count() -> Optional[int]:
             return None
 
         item = response["Item"]
-
-        # Check if cache is expired
-        cached_at = float(item.get("cached_at", {}).get("N", 0))
-        if time.time() - cached_at > CACHE_TTL_SECONDS:
-            return None
-
         return int(item.get("visitor_count", {}).get("N", 0))
     except Exception as e:
-        print(f"Error getting cached visitor count: {e}")
+        print(f"Error reading cached visitor count: {e}")
         return None
 
 
@@ -158,7 +157,66 @@ def set_cached_visitor_count(count: int) -> None:
         print(f"Error caching visitor count: {e}")
 
 
-def parse_cloudfront_logs_for_unique_ips(days: int = 30) -> int:
+def _list_log_keys_in_window(s3, start_date: datetime, end_date: datetime) -> list:
+    """List CloudFront log keys whose filename date falls within [start_date, end_date]."""
+    keys: list = []
+    paginator = s3.get_paginator("list_objects_v2")
+    for page in paginator.paginate(
+        Bucket=CLOUDFRONT_LOGS_BUCKET,
+        Prefix=CLOUDFRONT_LOGS_PREFIX,
+    ):
+        for obj in page.get("Contents", []):
+            key = obj["Key"]
+            # Filename format: E2YM028NUBX2QN.YYYY-MM-DD-HH.xxxxx.gz
+            try:
+                filename = key.split("/")[-1]
+                parts = filename.split(".")
+                if len(parts) < 2:
+                    continue
+                date_str = parts[1][:10]
+                log_date = datetime.strptime(date_str, "%Y-%m-%d")
+            except (ValueError, IndexError):
+                continue
+            if start_date <= log_date <= end_date:
+                keys.append(key)
+    return keys
+
+
+def _parse_log_file_unique_ips(s3, key: str) -> Set[str]:
+    """Download, decompress, and parse one CloudFront log file. Returns unique human IPs."""
+    ips: Set[str] = set()
+    try:
+        response = s3.get_object(Bucket=CLOUDFRONT_LOGS_BUCKET, Key=key)
+        if key.endswith(".gz"):
+            with gzip.GzipFile(fileobj=io.BytesIO(response["Body"].read())) as f:
+                content = f.read().decode("utf-8")
+        else:
+            content = response["Body"].read().decode("utf-8")
+
+        # CloudFront log fields (tab-separated):
+        # 0: date, 1: time, 2: x-edge-location, 3: sc-bytes, 4: c-ip,
+        # 5: cs-method, 6: cs(Host), 7: cs-uri-stem, 8: sc-status,
+        # 9: cs(Referer), 10: cs(User-Agent), ...
+        for line in content.split("\n"):
+            if line.startswith("#") or not line.strip():
+                continue
+            fields = line.split("\t")
+            if len(fields) < 11:
+                continue
+            ip = fields[4]
+            uri_stem = fields[7]
+            user_agent = fields[10]
+            if is_asset_request(uri_stem):
+                continue
+            if is_bot(user_agent):
+                continue
+            ips.add(ip)
+    except Exception as e:
+        print(f"Error parsing log file {key}: {e}")
+    return ips
+
+
+def parse_cloudfront_logs_for_unique_ips(days: int = 30, max_workers: int = 32) -> int:
     """
     Parse CloudFront logs from S3 and count unique human visitor IPs.
 
@@ -166,112 +224,35 @@ def parse_cloudfront_logs_for_unique_ips(days: int = 30) -> int:
     - Bots and crawlers (based on User-Agent)
     - Asset requests (JS, CSS, images, etc.)
 
+    Downloads in parallel because the bucket holds tens of thousands of small
+    gzipped logs and a sequential pass exceeds Lambda's max timeout.
+
     Args:
         days: Number of days to look back (default 30)
+        max_workers: Concurrent S3 GETs (boto3 clients are thread-safe)
 
     Returns:
         Count of unique human IP addresses
     """
     s3 = get_s3_client()
-    unique_ips = set()
-
-    # Calculate date range (rolling lookback from today)
     end_date = datetime.utcnow()
     start_date = end_date - timedelta(days=days)
 
-    # CloudFront log fields (tab-separated):
-    # 0: date, 1: time, 2: x-edge-location, 3: sc-bytes, 4: c-ip,
-    # 5: cs-method, 6: cs(Host), 7: cs-uri-stem, 8: sc-status,
-    # 9: cs(Referer), 10: cs(User-Agent), ...
-
     try:
-        # List all log files
-        paginator = s3.get_paginator("list_objects_v2")
-
-        for page in paginator.paginate(
-            Bucket=CLOUDFRONT_LOGS_BUCKET,
-            Prefix=CLOUDFRONT_LOGS_PREFIX
-        ):
-            for obj in page.get("Contents", []):
-                key = obj["Key"]
-
-                # Extract date from filename (format: E2YM028NUBX2QN.2026-01-12-14.xxxxx.gz)
-                try:
-                    # Get the date part from the filename
-                    filename = key.split("/")[-1]
-                    parts = filename.split(".")
-                    if len(parts) >= 2:
-                        date_str = parts[1][:10]  # "2026-01-12"
-                        log_date = datetime.strptime(date_str, "%Y-%m-%d")
-
-                        # Skip if outside our date range
-                        if log_date < start_date or log_date > end_date:
-                            continue
-                except (ValueError, IndexError):
-                    continue
-
-                # Download and parse the log file
-                try:
-                    response = s3.get_object(Bucket=CLOUDFRONT_LOGS_BUCKET, Key=key)
-
-                    # Decompress gzip content
-                    if key.endswith(".gz"):
-                        with gzip.GzipFile(fileobj=io.BytesIO(response["Body"].read())) as f:
-                            content = f.read().decode("utf-8")
-                    else:
-                        content = response["Body"].read().decode("utf-8")
-
-                    # Parse each line
-                    for line in content.split("\n"):
-                        if line.startswith("#") or not line.strip():
-                            continue
-
-                        fields = line.split("\t")
-                        if len(fields) >= 11:
-                            ip = fields[4]           # c-ip field
-                            uri_stem = fields[7]     # cs-uri-stem field
-                            user_agent = fields[10]  # cs(User-Agent) field
-
-                            # Skip asset requests (JS, CSS, images, etc.)
-                            if is_asset_request(uri_stem):
-                                continue
-
-                            # Skip bots/crawlers
-                            if is_bot(user_agent):
-                                continue
-
-                            # This is a real human visitor viewing a page
-                            unique_ips.add(ip)
-
-                except Exception as e:
-                    print(f"Error parsing log file {key}: {e}")
-                    continue
-
+        keys = _list_log_keys_in_window(s3, start_date, end_date)
     except Exception as e:
         print(f"Error listing S3 objects: {e}")
+        return 0
+
+    print(f"Parsing {len(keys)} CloudFront log files (lookback={days}d, workers={max_workers})")
+
+    unique_ips: Set[str] = set()
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(_parse_log_file_unique_ips, s3, k) for k in keys]
+        for fut in as_completed(futures):
+            unique_ips.update(fut.result())
 
     return len(unique_ips)
-
-
-def get_monthly_visitor_count() -> int:
-    """
-    Get monthly visitor count, using cache if available.
-    """
-    # Check cache first
-    cached_count = get_cached_visitor_count()
-    if cached_count is not None:
-        print(f"Using cached visitor count: {cached_count}")
-        return cached_count
-
-    # Parse logs and cache result
-    print("Cache miss - parsing CloudFront logs...")
-    count = parse_cloudfront_logs_for_unique_ips(days=30)
-
-    if count > 0:
-        set_cached_visitor_count(count)
-        print(f"Cached new visitor count: {count}")
-
-    return count
 
 
 def format_visitor_count(count: int) -> str:
@@ -321,20 +302,20 @@ def generate_badge_svg(count: str) -> str:
 
 def get_monthly_visitors_badge_svg() -> str:
     """
-    Main function to get the complete badge SVG.
-    Handles caching, log parsing, and SVG generation.
+    Build the monthly-visitors SVG badge from the DynamoDB cache only.
+
+    Must stay fast (well under API Gateway's 30s timeout). The cache is
+    populated by the infrasketch-visitor-count-refresh scheduled Lambda;
+    this function never parses CloudFront logs itself.
     """
     try:
-        count = get_monthly_visitor_count()
+        count = read_cached_visitor_count_any_age()
 
-        if count == 0:
-            # If no data, show "New!" instead
+        if not count:
             return generate_badge_svg("New!")
 
-        formatted_count = format_visitor_count(count)
-        return generate_badge_svg(formatted_count)
+        return generate_badge_svg(format_visitor_count(count))
 
     except Exception as e:
         print(f"Error generating badge: {e}")
-        # Return a fallback badge on error
         return generate_badge_svg("N/A")
