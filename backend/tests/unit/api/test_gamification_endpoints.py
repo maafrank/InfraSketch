@@ -43,7 +43,7 @@ def _make_test_gamification(user_id="local-dev-user"):
 # ── GET /user/gamification ──
 
 class TestGetGamification:
-    @patch("app.api.routes.get_gamification_storage")
+    @patch("app.api.routes_users.get_gamification_storage")
     def test_returns_gamification_state(self, mock_get_storage, client):
         g = _make_test_gamification()
         mock_storage = MagicMock()
@@ -60,7 +60,7 @@ class TestGetGamification:
         assert data["current_streak"] == 5
         assert data["longest_streak"] == 12
 
-    @patch("app.api.routes.get_gamification_storage")
+    @patch("app.api.routes_users.get_gamification_storage")
     def test_includes_level_progress(self, mock_get_storage, client):
         g = _make_test_gamification()
         mock_storage = MagicMock()
@@ -75,7 +75,7 @@ class TestGetGamification:
         assert "xp_to_next_level" in data
         assert "level_color" in data
 
-    @patch("app.api.routes.get_gamification_storage")
+    @patch("app.api.routes_users.get_gamification_storage")
     def test_includes_pending_notifications(self, mock_get_storage, client):
         g = _make_test_gamification()
         mock_storage = MagicMock()
@@ -89,7 +89,7 @@ class TestGetGamification:
         assert len(data["pending_notifications"]) == 1
         assert data["pending_notifications"][0]["id"] == "diagrams_5"
 
-    @patch("app.api.routes.get_gamification_storage")
+    @patch("app.api.routes_users.get_gamification_storage")
     def test_new_user_returns_defaults(self, mock_get_storage, client):
         g = UserGamification(user_id="local-dev-user")
         mock_storage = MagicMock()
@@ -108,7 +108,7 @@ class TestGetGamification:
 # ── GET /user/gamification/achievements ──
 
 class TestGetAchievements:
-    @patch("app.api.routes.get_gamification_storage")
+    @patch("app.api.routes_users.get_gamification_storage")
     def test_returns_all_achievements(self, mock_get_storage, client):
         g = _make_test_gamification()
         mock_storage = MagicMock()
@@ -122,7 +122,7 @@ class TestGetAchievements:
         assert "achievements" in data
         assert len(data["achievements"]) == 32
 
-    @patch("app.api.routes.get_gamification_storage")
+    @patch("app.api.routes_users.get_gamification_storage")
     def test_shows_unlocked_status(self, mock_get_storage, client):
         g = _make_test_gamification()
         mock_storage = MagicMock()
@@ -141,7 +141,7 @@ class TestGetAchievements:
         master = next(a for a in data["achievements"] if a["id"] == "diagrams_100")
         assert master["unlocked"] is False
 
-    @patch("app.api.routes.get_gamification_storage")
+    @patch("app.api.routes_users.get_gamification_storage")
     def test_includes_stats(self, mock_get_storage, client):
         g = _make_test_gamification()
         mock_storage = MagicMock()
@@ -157,7 +157,7 @@ class TestGetAchievements:
         assert data["stats"]["total"] == 32
         assert data["stats"]["unlocked"] == 2  # first_diagram, first_chat
 
-    @patch("app.api.routes.get_gamification_storage")
+    @patch("app.api.routes_users.get_gamification_storage")
     def test_includes_category_stats(self, mock_get_storage, client):
         g = _make_test_gamification()
         mock_storage = MagicMock()
@@ -171,7 +171,7 @@ class TestGetAchievements:
         assert "first_time" in data["stats"]["by_category"]
         assert "volume" in data["stats"]["by_category"]
 
-    @patch("app.api.routes.get_gamification_storage")
+    @patch("app.api.routes_users.get_gamification_storage")
     def test_includes_progress_for_locked(self, mock_get_storage, client):
         g = _make_test_gamification()
         mock_storage = MagicMock()
@@ -189,7 +189,7 @@ class TestGetAchievements:
 # ── POST /user/gamification/notifications/dismiss ──
 
 class TestDismissNotifications:
-    @patch("app.api.routes.get_gamification_storage")
+    @patch("app.api.routes_users.get_gamification_storage")
     def test_dismiss_clears_notifications(self, mock_get_storage, client):
         g = _make_test_gamification()
         mock_storage = MagicMock()
@@ -205,7 +205,7 @@ class TestDismissNotifications:
         assert len(g.pending_notifications) == 0
         mock_storage.save.assert_called_once()
 
-    @patch("app.api.routes.get_gamification_storage")
+    @patch("app.api.routes_users.get_gamification_storage")
     def test_dismiss_partial_list(self, mock_get_storage, client):
         g = _make_test_gamification()
         # Add another notification
@@ -225,7 +225,7 @@ class TestDismissNotifications:
         assert len(g.pending_notifications) == 1
         assert g.pending_notifications[0].id == "first_chat"
 
-    @patch("app.api.routes.get_gamification_storage")
+    @patch("app.api.routes_users.get_gamification_storage")
     def test_dismiss_nonexistent_id_is_harmless(self, mock_get_storage, client):
         g = _make_test_gamification()
         mock_storage = MagicMock()
@@ -241,7 +241,7 @@ class TestDismissNotifications:
         # Original notification should still be there
         assert len(g.pending_notifications) == 1
 
-    @patch("app.api.routes.get_gamification_storage")
+    @patch("app.api.routes_users.get_gamification_storage")
     def test_dismiss_empty_list(self, mock_get_storage, client):
         g = _make_test_gamification()
         mock_storage = MagicMock()

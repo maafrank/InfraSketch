@@ -388,7 +388,7 @@ def mock_agent_graph(mocker):
 def mock_design_doc_generator(mocker):
     """Mock design document generator to avoid LLM calls."""
     return mocker.patch(
-        "app.api.routes.generate_design_document",
+        "app.api.routes_design_docs.generate_design_document",
         return_value="# Test Design Document\n\nThis is a mocked design document."
     )
 
@@ -397,7 +397,7 @@ def mock_design_doc_generator(mocker):
 def mock_session_name_generator(mocker):
     """Mock session name generator to avoid LLM calls."""
     return mocker.patch(
-        "app.api.routes.generate_session_name",
+        "app.api._helpers.generate_session_name",
         return_value="Test Session Name"
     )
 
@@ -427,7 +427,7 @@ def mock_subscriber_storage(mocker):
     mock_storage.resubscribe.return_value = True
     mock_storage.get_subscriber_by_token.return_value = test_subscriber
 
-    mocker.patch("app.api.routes.get_subscriber_storage", return_value=mock_storage)
+    mocker.patch("app.api.routes_billing.get_subscriber_storage", return_value=mock_storage)
     return mock_storage
 
 
@@ -456,7 +456,9 @@ def mock_user_credits_storage(mocker):
     mock_storage.get_credits.return_value = test_user_credits
     mock_storage.add_credits.return_value = test_user_credits
 
-    mocker.patch("app.api.routes.get_user_credits_storage", return_value=mock_storage)
+    # Patch every location that imports get_user_credits_storage at import time
+    mocker.patch("app.api._helpers.get_user_credits_storage", return_value=mock_storage)
+    mocker.patch("app.api.routes_billing.get_user_credits_storage", return_value=mock_storage)
     return mock_storage
 
 

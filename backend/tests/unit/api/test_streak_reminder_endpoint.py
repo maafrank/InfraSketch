@@ -8,7 +8,7 @@ from app.gamification.models import UserGamification
 
 
 class TestUpdateStreakReminderPreference:
-    @patch("app.api.routes.get_gamification_storage")
+    @patch("app.api.routes_users.get_gamification_storage")
     def test_enable_streak_reminders(self, mock_get_storage, client):
         g = UserGamification(user_id="local-dev-user", streak_reminders_enabled=False)
         mock_storage = MagicMock()
@@ -27,7 +27,7 @@ class TestUpdateStreakReminderPreference:
         assert g.streak_reminders_enabled is True
         mock_storage.save.assert_called_once()
 
-    @patch("app.api.routes.get_gamification_storage")
+    @patch("app.api.routes_users.get_gamification_storage")
     def test_disable_streak_reminders(self, mock_get_storage, client):
         g = UserGamification(user_id="local-dev-user", streak_reminders_enabled=True)
         mock_storage = MagicMock()
@@ -45,7 +45,7 @@ class TestUpdateStreakReminderPreference:
         assert data["streak_reminders_enabled"] is False
         assert g.streak_reminders_enabled is False
 
-    @patch("app.api.routes.get_gamification_storage")
+    @patch("app.api.routes_users.get_gamification_storage")
     def test_toggle_saves_to_storage(self, mock_get_storage, client):
         g = UserGamification(user_id="local-dev-user")
         mock_storage = MagicMock()
@@ -60,7 +60,7 @@ class TestUpdateStreakReminderPreference:
         mock_storage.save.assert_called_once_with(g)
 
 
-    @patch("app.api.routes.get_gamification_storage")
+    @patch("app.api.routes_users.get_gamification_storage")
     def test_toggle_roundtrip(self, mock_get_storage, client):
         """Verify toggling off then on updates model state correctly."""
         g = UserGamification(user_id="local-dev-user", streak_reminders_enabled=True)
@@ -91,7 +91,7 @@ class TestUpdateStreakReminderPreference:
 
 
 class TestGetGamificationIncludesStreakReminders:
-    @patch("app.api.routes.get_gamification_storage")
+    @patch("app.api.routes_users.get_gamification_storage")
     def test_includes_streak_reminders_enabled_true(self, mock_get_storage, client):
         g = UserGamification(user_id="local-dev-user", streak_reminders_enabled=True)
         mock_storage = MagicMock()
@@ -105,7 +105,7 @@ class TestGetGamificationIncludesStreakReminders:
         assert "streak_reminders_enabled" in data
         assert data["streak_reminders_enabled"] is True
 
-    @patch("app.api.routes.get_gamification_storage")
+    @patch("app.api.routes_users.get_gamification_storage")
     def test_includes_streak_reminders_enabled_false(self, mock_get_storage, client):
         g = UserGamification(user_id="local-dev-user", streak_reminders_enabled=False)
         mock_storage = MagicMock()

@@ -189,7 +189,7 @@ class TestExportDesignDoc:
         # Mock PDF conversion to avoid WeasyPrint compatibility issues in CI
         mock_pdf_bytes = b"%PDF-1.4 test pdf content"
         mocker.patch(
-            "app.api.routes.convert_markdown_to_pdf",
+            "app.api.routes_design_docs.convert_markdown_to_pdf",
             return_value=mock_pdf_bytes
         )
 
@@ -250,7 +250,7 @@ class TestExportDesignDoc:
         # Mock PDF conversion to avoid WeasyPrint compatibility issues in CI
         mock_pdf_bytes = b"%PDF-1.4 test pdf content"
         mocker.patch(
-            "app.api.routes.convert_markdown_to_pdf",
+            "app.api.routes_design_docs.convert_markdown_to_pdf",
             return_value=mock_pdf_bytes
         )
 
@@ -274,7 +274,7 @@ class TestExportDesignDoc:
         """Should trigger process_action for gamification tracking."""
         client, session_id = client_with_session
 
-        mock_process_action = mocker.patch("app.api.routes.process_action", return_value={
+        mock_process_action = mocker.patch("app.api.routes_design_docs.process_action", return_value={
             "xp_gained": 0,
             "level_up": False,
             "new_level": None,
@@ -283,7 +283,7 @@ class TestExportDesignDoc:
             "current_streak": 0,
         })
         mocker.patch(
-            "app.api.routes.convert_markdown_to_pdf",
+            "app.api.routes_design_docs.convert_markdown_to_pdf",
             return_value=b"%PDF-1.4 test"
         )
 

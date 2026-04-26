@@ -7,6 +7,11 @@ import os
 load_dotenv()
 
 from app.api.routes import router
+from app.api.routes_billing import router as billing_router
+from app.api.routes_design_docs import router as design_docs_router
+from app.api.routes_diagrams import router as diagrams_router
+from app.api.routes_groups import router as groups_router
+from app.api.routes_users import router as users_router
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.auth import APIKeyMiddleware
 from app.middleware.clerk_auth import ClerkAuthMiddleware
@@ -57,8 +62,13 @@ app.add_middleware(APIKeyMiddleware)
 # Add request logging middleware (should be last to capture all requests)
 app.add_middleware(RequestLoggingMiddleware)
 
-# Include API routes
+# Include API routes (split by domain for navigability)
 app.include_router(router, prefix="/api")
+app.include_router(diagrams_router, prefix="/api")
+app.include_router(groups_router, prefix="/api")
+app.include_router(design_docs_router, prefix="/api")
+app.include_router(billing_router, prefix="/api")
+app.include_router(users_router, prefix="/api")
 
 
 @app.get("/")
