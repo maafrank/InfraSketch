@@ -456,9 +456,20 @@ def mock_user_credits_storage(mocker):
     mock_storage.get_credits.return_value = test_user_credits
     mock_storage.add_credits.return_value = test_user_credits
 
-    # Patch every location that imports get_user_credits_storage at import time
-    mocker.patch("app.api._helpers.get_user_credits_storage", return_value=mock_storage)
-    mocker.patch("app.api.routes_billing.get_user_credits_storage", return_value=mock_storage)
+    # Patch every routes_*.py + _helpers location that imports
+    # get_user_credits_storage at module-load time. The split gave each
+    # split file the same canonical import block (some unused), so any of
+    # them can be the binding point a test ends up exercising.
+    for mod in (
+        "app.api._helpers",
+        "app.api.routes",
+        "app.api.routes_billing",
+        "app.api.routes_design_docs",
+        "app.api.routes_diagrams",
+        "app.api.routes_groups",
+        "app.api.routes_users",
+    ):
+        mocker.patch(f"{mod}.get_user_credits_storage", return_value=mock_storage)
     return mock_storage
 
 
