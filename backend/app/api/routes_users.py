@@ -109,7 +109,7 @@ async def get_user_sessions(http_request: Request,
     Returns:
         List of sessions with metadata, sorted by most recent first
     """
-    
+
     try:
         # Get all sessions for this user
         sessions = session_manager.get_user_sessions(user_id)
@@ -243,7 +243,7 @@ async def get_user_preferences(http_request: Request,
 
     Returns default preferences if none exist yet.
     """
-    
+
     storage = get_user_preferences_storage()
     prefs = storage.get_or_create_preferences(user_id)
 
@@ -263,7 +263,7 @@ async def complete_tutorial(http_request: Request,
     """
     Mark the tutorial as completed for the current user.
     """
-    
+
     storage = get_user_preferences_storage()
     success = storage.mark_tutorial_completed(user_id)
 
@@ -280,7 +280,7 @@ async def reset_tutorial(http_request: Request,
     """
     Reset the tutorial status so the user can replay it.
     """
-    
+
     storage = get_user_preferences_storage()
     success = storage.reset_tutorial(user_id)
 
@@ -295,7 +295,7 @@ async def get_user_gamification(http_request: Request,
     user_id: str = Depends(get_current_user)
 ):
     """Get the user's gamification state (level, XP, streak, pending notifications)."""
-    
+
     storage = get_gamification_storage()
     gamification = storage.get_or_create(user_id)
 
@@ -339,7 +339,7 @@ async def get_user_achievements(http_request: Request,
     user_id: str = Depends(get_current_user)
 ):
     """Get all achievement definitions with unlock status and progress."""
-    
+
     storage = get_gamification_storage()
     gamification = storage.get_or_create(user_id)
 
@@ -374,7 +374,7 @@ async def dismiss_gamification_notifications(
     user_id: str = Depends(get_current_user)
 ):
     """Clear pending notifications after the user has seen them."""
-    
+
     storage = get_gamification_storage()
     gamification = storage.get_or_create(user_id)
 
@@ -394,7 +394,7 @@ async def update_streak_reminder_preference(
     user_id: str = Depends(get_current_user)
 ):
     """Update whether the user receives streak reminder emails."""
-    
+
     storage = get_gamification_storage()
     gamification = storage.get_or_create(user_id)
     gamification.streak_reminders_enabled = request.enabled

@@ -92,7 +92,7 @@ async def chat(request: ChatRequest, http_request: Request, background_tasks: Ba
     user_ip = http_request.client.host if http_request.client else None
 
     # Extract user_id from request state (set by Clerk middleware)
-    
+
     try:
         # Get session
         session = session_manager.get_session(request.session_id)
@@ -245,7 +245,7 @@ async def get_session(session_id: str, http_request: Request,
 ):
     """Retrieve current session state."""
     # Extract user_id from request state (set by Clerk middleware)
-    
+
     session = session_manager.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -262,7 +262,7 @@ async def rename_session(session_id: str, request: dict, http_request: Request,
     user_id: str = Depends(get_current_user)
 ):
     """Rename a session."""
-    
+
     session = session_manager.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -287,7 +287,7 @@ async def delete_session(session_id: str, http_request: Request,
     user_id: str = Depends(get_current_user)
 ):
     """Delete a session."""
-    
+
     session = session_manager.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -315,7 +315,7 @@ async def create_blank_session(http_request: Request,
     user_id: str = Depends(get_current_user)
 ):
     """Create a new blank session with empty diagram."""
-    
+
     # Create empty diagram
     empty_diagram = Diagram(nodes=[], edges=[])
 

@@ -459,7 +459,7 @@ async def get_design_doc_status(session_id: str, http_request: Request,
     Returns:
         JSON with status information
     """
-    
+
     status = session.design_doc_status
 
     response = {

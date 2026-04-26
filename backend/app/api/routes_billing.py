@@ -119,7 +119,7 @@ async def subscribe(request: SubscribeRequest, http_request: Request,
     Subscribe a user to email notifications.
     Creates a new subscriber record if one doesn't exist.
     """
-    
+
     try:
         storage = get_subscriber_storage()
         subscriber = storage.create_subscriber(user_id, request.email)
@@ -152,7 +152,7 @@ async def get_subscription_status(http_request: Request,
     """
     Get the current user's subscription status.
     """
-    
+
     try:
         storage = get_subscriber_storage()
         subscriber = storage.get_subscriber(user_id)
@@ -179,7 +179,7 @@ async def unsubscribe_authenticated(http_request: Request,
     """
     Unsubscribe the current authenticated user from emails.
     """
-    
+
     try:
         storage = get_subscriber_storage()
         success = storage.unsubscribe(user_id)
@@ -216,7 +216,7 @@ async def resubscribe_authenticated(http_request: Request,
     """
     Re-subscribe the current authenticated user to marketing emails.
     """
-    
+
     try:
         storage = get_subscriber_storage()
         success = storage.resubscribe(user_id)
@@ -486,7 +486,7 @@ async def get_user_credits(http_request: Request,
     Returns:
         JSON with plan, credit balances, and subscription info
     """
-    
+
     storage = get_user_credits_storage()
     credits = storage.get_or_create_credits(user_id)
 
@@ -515,7 +515,7 @@ async def get_credit_history(http_request: Request, limit: int = 50,
     Returns:
         JSON with list of transactions
     """
-    
+
     storage = get_user_credits_storage()
     transactions = storage.get_transaction_history(user_id, limit=limit)
 
@@ -549,7 +549,7 @@ async def redeem_promo(request: RedeemPromoRequest, http_request: Request,
     Returns:
         JSON with success status and credits granted
     """
-    
+
     success, error, credits_granted = redeem_promo_code(request.code, user_id)
 
     if not success:
@@ -580,7 +580,7 @@ async def validate_promo(request: RedeemPromoRequest, http_request: Request,
     Returns:
         JSON with validity status and code info
     """
-    
+
     is_valid, error = validate_promo_code(request.code, user_id)
 
     if not is_valid:

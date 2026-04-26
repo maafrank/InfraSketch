@@ -18,6 +18,7 @@ from app.agent.doc_generator import generate_design_document, generate_design_do
 from app.agent.graph import agent_graph, generate_suggestions, process_diagram_groups
 from app.agent.name_generator import generate_session_name
 from app.api.deps import get_current_user, get_session_for_user, verify_session_access
+from app.api.routes_groups import generate_group_description_ai
 from app.api._helpers import (
     check_and_deduct_credits,
     generate_system_overview,
@@ -378,7 +379,7 @@ async def generate_diagram(request: GenerateRequest, http_request: Request, back
     user_ip = http_request.client.host if http_request.client else None
 
     # Extract user_id from request state (set by Clerk middleware)
-    
+
     try:
         # Use specified model or default to Haiku (alias auto-updates to latest)
         model = request.model or DEFAULT_MODEL
@@ -464,7 +465,7 @@ async def get_diagram_status(session_id: str, http_request: Request,
     Returns:
         JSON with status, elapsed_seconds, and diagram (when completed)
     """
-    
+
     status = session.diagram_generation_status
 
     response = {
@@ -506,7 +507,7 @@ async def add_node(session_id: str, node: Node, http_request: Request, backgroun
 ):
     """Add a new node to the diagram."""
     # Extract user_id and verify ownership
-    
+
     session = session_manager.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -558,7 +559,7 @@ async def delete_node(session_id: str, node_id: str, http_request: Request,
 
     If the node is a group, all child nodes are also deleted (cascade delete).
     """
-    
+
     # Find the node to delete
     node_to_delete = next((n for n in session.diagram.nodes if n.id == node_id), None)
     if not node_to_delete:
@@ -609,7 +610,7 @@ async def update_node(session_id: str, node_id: str, updated_node: Node, http_re
     session: SessionState = Depends(get_session_for_user)
 ):
     """Update an existing node's properties."""
-    
+
     # Ensure IDs match
     if updated_node.id != node_id:
         raise HTTPException(status_code=400, detail="Node ID in body must match URL parameter")
@@ -637,7 +638,7 @@ async def add_edge(session_id: str, edge: Edge, http_request: Request,
     session: SessionState = Depends(get_session_for_user)
 ):
     """Add a new edge to the diagram."""
-    
+
     # Validate source and target nodes exist
     node_ids = {n.id for n in session.diagram.nodes}
     if edge.source not in node_ids:
@@ -669,7 +670,7 @@ async def delete_edge(session_id: str, edge_id: str, http_request: Request,
     session: SessionState = Depends(get_session_for_user)
 ):
     """Delete an edge from the diagram."""
-    
+
     # Find and remove edge
     original_count = len(session.diagram.edges)
     session.diagram.edges = [e for e in session.diagram.edges if e.id != edge_id]
@@ -705,7 +706,7 @@ async def generate_node_description(
     Returns:
         Updated node description and full diagram
     """
-    
+
     # Find the node
     target_node = None
     for node in session.diagram.nodes:
@@ -786,7 +787,7 @@ async def analyze_repo(request: AnalyzeRepoRequest, http_request: Request, backg
     user_ip = http_request.client.host if http_request.client else None
 
     # Extract user_id from request state (set by Clerk middleware)
-    
+
     try:
         # Validate GitHub URL format
         try:
@@ -883,7 +884,7 @@ async def get_repo_analysis_status(session_id: str, http_request: Request,
         JSON with status, phase, progress_message, elapsed_seconds,
         and diagram/messages when completed.
     """
-    
+
     status = session.repo_analysis_status
 
     response = {
