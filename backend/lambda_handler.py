@@ -18,7 +18,7 @@ def handler(event, context):
 
         if async_task == "generate_design_doc":
             # Async invocation for design doc generation
-            from app.api.routes import _generate_design_doc_background
+            from app.api.routes_design_docs import _generate_design_doc_background
 
             session_id = event.get("session_id")
             user_ip = event.get("user_ip")
@@ -30,7 +30,7 @@ def handler(event, context):
 
         elif async_task == "generate_design_doc_preview":
             # Async invocation for free-tier design doc preview (Executive Summary only)
-            from app.api.routes import _generate_design_doc_preview_background
+            from app.api.routes_design_docs import _generate_design_doc_preview_background
 
             session_id = event.get("session_id")
             user_ip = event.get("user_ip")
@@ -42,7 +42,7 @@ def handler(event, context):
 
         elif async_task == "generate_diagram":
             # Async invocation for diagram generation
-            from app.api.routes import _generate_diagram_background
+            from app.api.routes_diagrams import _generate_diagram_background
 
             session_id = event.get("session_id")
             prompt = event.get("prompt")
@@ -56,7 +56,7 @@ def handler(event, context):
 
         elif async_task == "analyze_repo":
             # Async invocation for GitHub repository analysis
-            from app.api.routes import _analyze_repo_background
+            from app.api.routes_diagrams import _analyze_repo_background
 
             session_id = event.get("session_id")
             repo_url = event.get("repo_url")

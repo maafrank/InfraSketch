@@ -591,7 +591,7 @@ def create_group(
         Dict with success status, group_id, and message
     """
     import uuid
-    from app.api.routes import generate_group_description_ai
+    from app.api.routes_groups import generate_group_description_ai
 
     # Get session
     session = session_manager.get_session(session_id)
