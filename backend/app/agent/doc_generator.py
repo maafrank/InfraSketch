@@ -8,6 +8,9 @@ from app.agent.prompts import DESIGN_DOC_PROMPT, DESIGN_DOC_PREVIEW_PROMPT, get_
 from app.utils.secrets import get_anthropic_api_key
 from app.config.models import DEFAULT_MODEL
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 def create_doc_llm(model_name: str = DEFAULT_MODEL, max_tokens: int = 32768):
     """Create Claude LLM instance for document generation."""
@@ -54,15 +57,15 @@ def generate_design_document(diagram: dict, conversation_history: list[dict], mo
         HumanMessage(content=prompt)
     ]
 
-    print(f"\n=== GENERATING DESIGN DOCUMENT ===")
-    print(f"Diagram nodes: {len(diagram.get('nodes', []))}")
-    print(f"Diagram edges: {len(diagram.get('edges', []))}")
-    print(f"Conversation messages: {len(conversation_history)}")
+    logger.info(f"\n=== GENERATING DESIGN DOCUMENT ===")
+    logger.info(f"Diagram nodes: {len(diagram.get('nodes', []))}")
+    logger.info(f"Diagram edges: {len(diagram.get('edges', []))}")
+    logger.info(f"Conversation messages: {len(conversation_history)}")
 
     response = llm.invoke(messages)
 
-    print(f"Generated document length: {len(response.content)} characters")
-    print(f"===================================\n")
+    logger.info(f"Generated document length: {len(response.content)} characters")
+    logger.info(f"===================================\n")
 
     return response.content
 
@@ -98,14 +101,14 @@ def generate_design_document_preview(diagram: dict, conversation_history: list[d
         HumanMessage(content=prompt)
     ]
 
-    print(f"\n=== GENERATING DESIGN DOCUMENT PREVIEW ===")
-    print(f"Diagram nodes: {len(diagram.get('nodes', []))}")
-    print(f"Diagram edges: {len(diagram.get('edges', []))}")
-    print(f"Conversation messages: {len(conversation_history)}")
+    logger.info(f"\n=== GENERATING DESIGN DOCUMENT PREVIEW ===")
+    logger.info(f"Diagram nodes: {len(diagram.get('nodes', []))}")
+    logger.info(f"Diagram edges: {len(diagram.get('edges', []))}")
+    logger.info(f"Conversation messages: {len(conversation_history)}")
 
     response = llm.invoke(messages)
 
-    print(f"Generated preview length: {len(response.content)} characters")
-    print(f"==========================================\n")
+    logger.info(f"Generated preview length: {len(response.content)} characters")
+    logger.info(f"==========================================\n")
 
     return response.content

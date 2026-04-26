@@ -11,6 +11,9 @@ import boto3
 from botocore.exceptions import ClientError
 from app.models import SessionState, Diagram, Message, DesignDocStatus
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class DecimalEncoder(json.JSONEncoder):
     """Custom JSON encoder for DynamoDB Decimal types."""
@@ -48,7 +51,7 @@ class DynamoDBSessionStorage:
         try:
             # Try to describe the table
             self.table.load()
-            print(f"DynamoDB table '{self.table_name}' exists")
+            logger.info(f"DynamoDB table '{self.table_name}' exists")
 
             # Check if GSI exists, create if missing
             table_description = dynamodb_client.describe_table(TableName=self.table_name)
@@ -57,7 +60,7 @@ class DynamoDBSessionStorage:
             has_user_gsi = any(gsi['IndexName'] == 'user_id-index' for gsi in gsis)
 
             if not has_user_gsi:
-                print(f"Creating user_id GSI on table '{self.table_name}'...")
+                logger.info(f"Creating user_id GSI on table '{self.table_name}'...")
                 dynamodb_client.update_table(
                     TableName=self.table_name,
                     AttributeDefinitions=[
@@ -74,12 +77,12 @@ class DynamoDBSessionStorage:
                         }
                     }]
                 )
-                print(f"GSI creation initiated for '{self.table_name}'")
+                logger.info(f"GSI creation initiated for '{self.table_name}'")
 
         except ClientError as e:
             if e.response['Error']['Code'] == 'ResourceNotFoundException':
                 # Table doesn't exist, create it with GSI
-                print(f"Creating DynamoDB table '{self.table_name}' with user_id GSI...")
+                logger.info(f"Creating DynamoDB table '{self.table_name}' with user_id GSI...")
                 dynamodb_client.create_table(
                     TableName=self.table_name,
                     KeySchema=[
@@ -106,7 +109,7 @@ class DynamoDBSessionStorage:
                 # Wait for table to be created
                 waiter = dynamodb_client.get_waiter('table_exists')
                 waiter.wait(TableName=self.table_name)
-                print(f"DynamoDB table '{self.table_name}' created successfully with GSI")
+                logger.info(f"DynamoDB table '{self.table_name}' created successfully with GSI")
             else:
                 raise
 
@@ -140,7 +143,7 @@ class DynamoDBSessionStorage:
             self.table.put_item(Item=item)
             return True
         except Exception as e:
-            print(f"Error saving session {session.session_id}: {e}")
+            logger.exception(f"Error saving session {session.session_id}: {e}")
             return False
 
     def get_session(self, session_id: str) -> Optional[SessionState]:
@@ -153,7 +156,7 @@ class DynamoDBSessionStorage:
 
             return self._deserialize_session(response['Item'])
         except Exception as e:
-            print(f"Error retrieving session {session_id}: {e}")
+            logger.exception(f"Error retrieving session {session_id}: {e}")
             return None
 
     def delete_session(self, session_id: str) -> bool:
@@ -162,7 +165,7 @@ class DynamoDBSessionStorage:
             self.table.delete_item(Key={'session_id': session_id})
             return True
         except Exception as e:
-            print(f"Error deleting session {session_id}: {e}")
+            logger.exception(f"Error deleting session {session_id}: {e}")
             return False
 
     def get_sessions_by_user(self, user_id: str) -> List[SessionState]:
@@ -188,11 +191,11 @@ class DynamoDBSessionStorage:
                     session = self._deserialize_session(item)
                     sessions.append(session)
                 except Exception as e:
-                    print(f"Error deserializing session: {e}")
+                    logger.exception(f"Error deserializing session: {e}")
                     continue
 
             return sessions
 
         except Exception as e:
-            print(f"Error querying sessions for user {user_id}: {e}")
+            logger.exception(f"Error querying sessions for user {user_id}: {e}")
             return []

@@ -9,6 +9,9 @@ import boto3
 from botocore.exceptions import ClientError
 from .models import UserGamification
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class DecimalEncoder(json.JSONEncoder):
     """Custom JSON encoder for DynamoDB Decimal types."""
@@ -46,11 +49,11 @@ class GamificationStorage:
 
         try:
             self.table.load()
-            print(f"DynamoDB table '{self.table_name}' exists")
+            logger.info(f"DynamoDB table '{self.table_name}' exists")
 
         except ClientError as e:
             if e.response["Error"]["Code"] == "ResourceNotFoundException":
-                print(f"Creating DynamoDB table '{self.table_name}'...")
+                logger.info(f"Creating DynamoDB table '{self.table_name}'...")
                 dynamodb_client.create_table(
                     TableName=self.table_name,
                     KeySchema=[{"AttributeName": "user_id", "KeyType": "HASH"}],
@@ -65,7 +68,7 @@ class GamificationStorage:
                 )
                 waiter = dynamodb_client.get_waiter("table_exists")
                 waiter.wait(TableName=self.table_name)
-                print(f"DynamoDB table '{self.table_name}' created successfully")
+                logger.info(f"DynamoDB table '{self.table_name}' created successfully")
             else:
                 raise
 
@@ -87,7 +90,7 @@ class GamificationStorage:
                 return None
             return self._deserialize(response["Item"])
         except Exception as e:
-            print(f"Error retrieving gamification for user {user_id}: {e}")
+            logger.exception(f"Error retrieving gamification for user {user_id}: {e}")
             return None
 
     def save(self, gamification: UserGamification) -> bool:
@@ -98,7 +101,7 @@ class GamificationStorage:
             self.table.put_item(Item=item)
             return True
         except Exception as e:
-            print(f"Error saving gamification for user {gamification.user_id}: {e}")
+            logger.exception(f"Error saving gamification for user {gamification.user_id}: {e}")
             return False
 
     def get_or_create(self, user_id: str) -> UserGamification:
@@ -150,7 +153,7 @@ class GamificationStorage:
 
             return results
         except Exception as e:
-            print(f"Error scanning at-risk users: {e}")
+            logger.exception(f"Error scanning at-risk users: {e}")
             return []
 
 

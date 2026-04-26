@@ -12,6 +12,9 @@ from botocore.exceptions import ClientError
 
 from .models import Subscriber
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class SubscriberStorage:
     """DynamoDB-backed subscriber storage."""
@@ -28,10 +31,10 @@ class SubscriberStorage:
 
         try:
             self.table.load()
-            print(f"DynamoDB table '{self.table_name}' exists")
+            logger.info(f"DynamoDB table '{self.table_name}' exists")
         except ClientError as e:
             if e.response['Error']['Code'] == 'ResourceNotFoundException':
-                print(f"Creating DynamoDB table '{self.table_name}'...")
+                logger.info(f"Creating DynamoDB table '{self.table_name}'...")
                 dynamodb_client.create_table(
                     TableName=self.table_name,
                     KeySchema=[
@@ -56,7 +59,7 @@ class SubscriberStorage:
                 )
                 waiter = dynamodb_client.get_waiter('table_exists')
                 waiter.wait(TableName=self.table_name)
-                print(f"DynamoDB table '{self.table_name}' created successfully")
+                logger.info(f"DynamoDB table '{self.table_name}' created successfully")
             else:
                 raise
 
@@ -94,10 +97,10 @@ class SubscriberStorage:
 
         try:
             self.table.put_item(Item=subscriber.model_dump())
-            print(f"Created subscriber: {email}")
+            logger.info(f"Created subscriber: {email}")
             return subscriber
         except Exception as e:
-            print(f"Error creating subscriber {user_id}: {e}")
+            logger.exception(f"Error creating subscriber {user_id}: {e}")
             raise
 
     def get_subscriber(self, user_id: str) -> Optional[Subscriber]:
@@ -108,7 +111,7 @@ class SubscriberStorage:
                 return None
             return Subscriber(**response['Item'])
         except Exception as e:
-            print(f"Error getting subscriber {user_id}: {e}")
+            logger.exception(f"Error getting subscriber {user_id}: {e}")
             return None
 
     def get_subscriber_by_token(self, token: str) -> Optional[Subscriber]:
@@ -124,7 +127,7 @@ class SubscriberStorage:
                 return None
             return Subscriber(**items[0])
         except Exception as e:
-            print(f"Error getting subscriber by token: {e}")
+            logger.exception(f"Error getting subscriber by token: {e}")
             return None
 
     def unsubscribe(self, user_id: str) -> bool:
@@ -140,10 +143,10 @@ class SubscriberStorage:
                     ':updated': now
                 }
             )
-            print(f"Unsubscribed user: {user_id}")
+            logger.info(f"Unsubscribed user: {user_id}")
             return True
         except Exception as e:
-            print(f"Error unsubscribing {user_id}: {e}")
+            logger.exception(f"Error unsubscribing {user_id}: {e}")
             return False
 
     def resubscribe(self, user_id: str) -> bool:
@@ -158,10 +161,10 @@ class SubscriberStorage:
                     ':updated': now
                 }
             )
-            print(f"Resubscribed user: {user_id}")
+            logger.info(f"Resubscribed user: {user_id}")
             return True
         except Exception as e:
-            print(f"Error resubscribing {user_id}: {e}")
+            logger.exception(f"Error resubscribing {user_id}: {e}")
             return False
 
     def update_email(self, user_id: str, new_email: str) -> Optional[Subscriber]:
@@ -176,10 +179,10 @@ class SubscriberStorage:
                     ':updated': now
                 }
             )
-            print(f"Updated email for user {user_id}")
+            logger.info(f"Updated email for user {user_id}")
             return self.get_subscriber(user_id)
         except Exception as e:
-            print(f"Error updating email for {user_id}: {e}")
+            logger.exception(f"Error updating email for {user_id}: {e}")
             return None
 
     def get_all_subscribed(self) -> List[Subscriber]:
@@ -209,7 +212,7 @@ class SubscriberStorage:
 
             return subscribers
         except Exception as e:
-            print(f"Error getting subscribed users: {e}")
+            logger.exception(f"Error getting subscribed users: {e}")
             return []
 
     def get_subscriber_count(self) -> dict:
@@ -235,7 +238,7 @@ class SubscriberStorage:
                 'unsubscribed': total - subscribed
             }
         except Exception as e:
-            print(f"Error getting subscriber count: {e}")
+            logger.exception(f"Error getting subscriber count: {e}")
             return {'total': 0, 'subscribed': 0, 'unsubscribed': 0}
 
 

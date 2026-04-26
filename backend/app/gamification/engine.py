@@ -7,6 +7,9 @@ from .achievements import check_achievements, ACHIEVEMENTS_BY_ID
 from .xp import XP_VALUES, calculate_level, get_xp_for_action
 from .streaks import update_streak
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 # Maps action names to counter fields and list-append metadata keys
 _COUNTER_MAP = {
@@ -144,7 +147,7 @@ def process_action(user_id: str, action: str, metadata: dict = None) -> dict:
         storage.save(gamification)
 
     except Exception as e:
-        print(f"Gamification error for user {user_id}, action {action}: {e}")
+        logger.info(f"Gamification error for user {user_id}, action {action}: {e}")
         # Fail silently, don't break the primary operation
 
     return result

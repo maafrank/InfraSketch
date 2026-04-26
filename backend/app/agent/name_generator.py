@@ -7,6 +7,9 @@ Creates concise, descriptive names for sessions based on the initial prompt.
 from anthropic import Anthropic
 from app.config.models import DEFAULT_MODEL
 
+import logging
+logger = logging.getLogger(__name__)
+
 NAME_GENERATION_PROMPT = """You are a technical writer creating concise session names for system design diagrams.
 
 Given a user's initial prompt for creating a system architecture diagram, generate a short, descriptive name that captures the essence of what they're designing.
@@ -59,13 +62,13 @@ def generate_session_name(prompt: str, anthropic_api_key: str, model: str = DEFA
 
         # Fallback if something went wrong
         if not name or len(name) > 100:
-            print(f"⚠️  Invalid name generated (length={len(name)}): {name}")
+            logger.info(f"⚠️  Invalid name generated (length={len(name)}): {name}")
             return "Untitled Design"
 
-        print(f"✓ Generated session name: {name}")
+        logger.info(f"✓ Generated session name: {name}")
         return name
 
     except Exception as e:
-        print(f"✗ Error generating session name: {e}")
+        logger.info(f"✗ Error generating session name: {e}")
         # Fallback to a generic name
         return "Untitled Design"

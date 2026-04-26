@@ -12,6 +12,9 @@ import boto3
 from botocore.exceptions import ClientError
 from .models import UserPreferences
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class DecimalEncoder(json.JSONEncoder):
     """Custom JSON encoder for DynamoDB Decimal types."""
@@ -50,12 +53,12 @@ class UserPreferencesStorage:
         try:
             # Try to describe the table
             self.table.load()
-            print(f"DynamoDB table '{self.table_name}' exists")
+            logger.info(f"DynamoDB table '{self.table_name}' exists")
 
         except ClientError as e:
             if e.response["Error"]["Code"] == "ResourceNotFoundException":
                 # Table doesn't exist, create it
-                print(f"Creating DynamoDB table '{self.table_name}'...")
+                logger.info(f"Creating DynamoDB table '{self.table_name}'...")
                 dynamodb_client.create_table(
                     TableName=self.table_name,
                     KeySchema=[{"AttributeName": "user_id", "KeyType": "HASH"}],
@@ -71,7 +74,7 @@ class UserPreferencesStorage:
                 # Wait for table to be created
                 waiter = dynamodb_client.get_waiter("table_exists")
                 waiter.wait(TableName=self.table_name)
-                print(f"DynamoDB table '{self.table_name}' created successfully")
+                logger.info(f"DynamoDB table '{self.table_name}' created successfully")
             else:
                 raise
 
@@ -100,7 +103,7 @@ class UserPreferencesStorage:
 
             return self._deserialize_preferences(response["Item"])
         except Exception as e:
-            print(f"Error retrieving preferences for user {user_id}: {e}")
+            logger.exception(f"Error retrieving preferences for user {user_id}: {e}")
             return None
 
     def save_preferences(self, prefs: UserPreferences) -> bool:
@@ -112,7 +115,7 @@ class UserPreferencesStorage:
             self.table.put_item(Item=item)
             return True
         except Exception as e:
-            print(f"Error saving preferences for user {prefs.user_id}: {e}")
+            logger.exception(f"Error saving preferences for user {prefs.user_id}: {e}")
             return False
 
     def get_or_create_preferences(self, user_id: str) -> UserPreferences:

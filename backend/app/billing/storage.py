@@ -14,6 +14,9 @@ from botocore.exceptions import ClientError
 from .models import UserCredits, CreditTransaction
 from .credit_costs import get_plan_credits
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class DecimalEncoder(json.JSONEncoder):
     """Custom JSON encoder for DynamoDB Decimal types."""
@@ -58,10 +61,10 @@ class UserCreditsStorage:
         # Check/create credits table
         try:
             self.credits_table.load()
-            print(f"DynamoDB table '{self.credits_table_name}' exists")
+            logger.info(f"DynamoDB table '{self.credits_table_name}' exists")
         except ClientError as e:
             if e.response["Error"]["Code"] == "ResourceNotFoundException":
-                print(f"Creating DynamoDB table '{self.credits_table_name}'...")
+                logger.info(f"Creating DynamoDB table '{self.credits_table_name}'...")
                 dynamodb_client.create_table(
                     TableName=self.credits_table_name,
                     KeySchema=[{"AttributeName": "user_id", "KeyType": "HASH"}],
@@ -76,17 +79,17 @@ class UserCreditsStorage:
                 )
                 waiter = dynamodb_client.get_waiter("table_exists")
                 waiter.wait(TableName=self.credits_table_name)
-                print(f"DynamoDB table '{self.credits_table_name}' created successfully")
+                logger.info(f"DynamoDB table '{self.credits_table_name}' created successfully")
             else:
                 raise
 
         # Check/create transactions table
         try:
             self.transactions_table.load()
-            print(f"DynamoDB table '{self.transactions_table_name}' exists")
+            logger.info(f"DynamoDB table '{self.transactions_table_name}' exists")
         except ClientError as e:
             if e.response["Error"]["Code"] == "ResourceNotFoundException":
-                print(f"Creating DynamoDB table '{self.transactions_table_name}'...")
+                logger.info(f"Creating DynamoDB table '{self.transactions_table_name}'...")
                 dynamodb_client.create_table(
                     TableName=self.transactions_table_name,
                     KeySchema=[
@@ -113,7 +116,7 @@ class UserCreditsStorage:
                 )
                 waiter = dynamodb_client.get_waiter("table_exists")
                 waiter.wait(TableName=self.transactions_table_name)
-                print(
+                logger.info(
                     f"DynamoDB table '{self.transactions_table_name}' created successfully"
                 )
             else:
@@ -147,7 +150,7 @@ class UserCreditsStorage:
                 return None
             return self._deserialize_credits(response["Item"])
         except Exception as e:
-            print(f"Error retrieving credits for user {user_id}: {e}")
+            logger.exception(f"Error retrieving credits for user {user_id}: {e}")
             return None
 
     def save_credits(self, credits: UserCredits) -> bool:
@@ -158,7 +161,7 @@ class UserCreditsStorage:
             self.credits_table.put_item(Item=item)
             return True
         except Exception as e:
-            print(f"Error saving credits for user {credits.user_id}: {e}")
+            logger.exception(f"Error saving credits for user {credits.user_id}: {e}")
             return False
 
     def get_or_create_credits(self, user_id: str) -> UserCredits:
@@ -361,7 +364,7 @@ class UserCreditsStorage:
             item = self._serialize_transaction(txn)
             self.transactions_table.put_item(Item=item)
         except Exception as e:
-            print(f"Error logging transaction for user {user_id}: {e}")
+            logger.exception(f"Error logging transaction for user {user_id}: {e}")
 
     def get_transaction_history(
         self, user_id: str, limit: int = 50
@@ -379,7 +382,7 @@ class UserCreditsStorage:
                 self._deserialize_transaction(item) for item in response.get("Items", [])
             ]
         except Exception as e:
-            print(f"Error retrieving transaction history for user {user_id}: {e}")
+            logger.exception(f"Error retrieving transaction history for user {user_id}: {e}")
             return []
 
 

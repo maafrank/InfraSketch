@@ -15,6 +15,9 @@ from datetime import datetime, timedelta
 from typing import Optional, Set
 from urllib.parse import unquote
 
+import logging
+logger = logging.getLogger(__name__)
+
 # S3 bucket containing CloudFront logs
 CLOUDFRONT_LOGS_BUCKET = "infrasketch-cloudfront-logs-059409992371"
 CLOUDFRONT_LOGS_PREFIX = "cloudfront/"
@@ -134,7 +137,7 @@ def read_cached_visitor_count_any_age() -> Optional[int]:
         item = response["Item"]
         return int(item.get("visitor_count", {}).get("N", 0))
     except Exception as e:
-        print(f"Error reading cached visitor count: {e}")
+        logger.exception(f"Error reading cached visitor count: {e}")
         return None
 
 
@@ -154,7 +157,7 @@ def set_cached_visitor_count(count: int) -> None:
             }
         )
     except Exception as e:
-        print(f"Error caching visitor count: {e}")
+        logger.exception(f"Error caching visitor count: {e}")
 
 
 def _list_log_keys_in_window(s3, start_date: datetime, end_date: datetime) -> list:
@@ -212,7 +215,7 @@ def _parse_log_file_unique_ips(s3, key: str) -> Set[str]:
                 continue
             ips.add(ip)
     except Exception as e:
-        print(f"Error parsing log file {key}: {e}")
+        logger.exception(f"Error parsing log file {key}: {e}")
     return ips
 
 
@@ -241,10 +244,10 @@ def parse_cloudfront_logs_for_unique_ips(days: int = 30, max_workers: int = 32) 
     try:
         keys = _list_log_keys_in_window(s3, start_date, end_date)
     except Exception as e:
-        print(f"Error listing S3 objects: {e}")
+        logger.exception(f"Error listing S3 objects: {e}")
         return 0
 
-    print(f"Parsing {len(keys)} CloudFront log files (lookback={days}d, workers={max_workers})")
+    logger.info(f"Parsing {len(keys)} CloudFront log files (lookback={days}d, workers={max_workers})")
 
     unique_ips: Set[str] = set()
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -317,5 +320,5 @@ def get_monthly_visitors_badge_svg() -> str:
         return generate_badge_svg(format_visitor_count(count))
 
     except Exception as e:
-        print(f"Error generating badge: {e}")
+        logger.exception(f"Error generating badge: {e}")
         return generate_badge_svg("N/A")

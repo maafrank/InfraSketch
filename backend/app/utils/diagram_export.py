@@ -8,6 +8,9 @@ import os
 from typing import Optional
 from PIL import Image, ImageDraw, ImageFont
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 def generate_diagram_png(diagram: dict, output_path: Optional[str] = None) -> bytes:
     """
@@ -212,7 +215,7 @@ def convert_markdown_to_pdf(markdown_content: str, diagram_png_bytes: bytes, out
     try:
         return _convert_markdown_to_pdf_weasyprint(markdown_content, diagram_png_bytes, output_path)
     except (ImportError, OSError) as e:
-        print(f"WeasyPrint not available ({e}), falling back to ReportLab...")
+        logger.info(f"WeasyPrint not available ({e}), falling back to ReportLab...")
         return _convert_markdown_to_pdf_reportlab(markdown_content, diagram_png_bytes, output_path)
 
 
@@ -442,7 +445,7 @@ def _convert_markdown_to_pdf_reportlab(markdown_content: str, diagram_png_bytes:
                 story.append(img)
                 story.append(Spacer(1, 0.3*inch))
             except Exception as e:
-                print(f"Error adding image: {e}")
+                logger.info(f"Error adding image: {e}")
             continue
 
         # Handle headings (check longest patterns first)

@@ -26,6 +26,9 @@ from app.models import Diagram
 from app.utils.secrets import get_anthropic_api_key
 from app.config.models import DEFAULT_MODEL
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 def create_llm(model_name: str = DEFAULT_MODEL):
     """Create Claude LLM instance with specified model."""
@@ -100,7 +103,7 @@ def generate_suggestions(
             end = content.rindex("]") + 1
             suggestions = json.loads(content[start:end])
         else:
-            print(f"✗ Could not parse suggestions: {content[:100]}")
+            logger.info(f"✗ Could not parse suggestions: {content[:100]}")
             return []
 
         # Validate and limit to 3 suggestions
@@ -110,7 +113,7 @@ def generate_suggestions(
         return []
 
     except Exception as e:
-        print(f"✗ Error generating suggestions: {e}")
+        logger.exception(f"✗ Error generating suggestions: {e}")
         return []
 
 
@@ -128,37 +131,37 @@ def generate_diagram_node(state: InfraSketchState) -> dict:
 
     response = llm.invoke(messages)
 
-    print(f"\n=== CLAUDE RESPONSE ===")
-    print(f"Content: {response.content}")
-    print(f"======================\n")
+    logger.info(f"\n=== CLAUDE RESPONSE ===")
+    logger.info(f"Content: {response.content}")
+    logger.info(f"======================\n")
 
     diagram = None
     try:
         # Parse JSON response
         diagram_json = json.loads(response.content)
-        print(f"✓ Successfully parsed JSON directly")
+        logger.info(f"✓ Successfully parsed JSON directly")
         diagram = Diagram(**diagram_json)
     except json.JSONDecodeError as e:
-        print(f"✗ Failed to parse JSON directly: {e}")
+        logger.exception(f"✗ Failed to parse JSON directly: {e}")
         # Fallback: try to extract JSON from response
         content = response.content
         if "```json" in content:
             json_str = content.split("```json")[1].split("```")[0].strip()
-            print(f"Extracted JSON from ```json block")
+            logger.info(f"Extracted JSON from ```json block")
         elif "```" in content:
             json_str = content.split("```")[1].split("```")[0].strip()
-            print(f"Extracted JSON from ``` block")
+            logger.info(f"Extracted JSON from ``` block")
         else:
             json_str = content.strip()
-            print(f"Using content as-is")
+            logger.info(f"Using content as-is")
 
         try:
             diagram_json = json.loads(json_str)
-            print(f"✓ Successfully parsed extracted JSON")
+            logger.info(f"✓ Successfully parsed extracted JSON")
             diagram = Diagram(**diagram_json)
         except Exception as e2:
-            print(f"✗ Failed to parse extracted JSON: {e2}")
-            print(f"JSON string was: {json_str[:500]}")
+            logger.exception(f"✗ Failed to parse extracted JSON: {e2}")
+            logger.info(f"JSON string was: {json_str[:500]}")
             # Create error response
             diagram = Diagram(nodes=[], edges=[])
 
@@ -226,15 +229,15 @@ def chat_node(state: InfraSketchState) -> dict:
 
     response = llm.invoke(messages)
 
-    print(f"\n=== CHAT NODE RESPONSE ===")
-    print(f"Response type: {type(response)}")
-    print(f"Has tool_calls: {hasattr(response, 'tool_calls') and len(response.tool_calls) > 0}")
+    logger.info(f"\n=== CHAT NODE RESPONSE ===")
+    logger.info(f"Response type: {type(response)}")
+    logger.info(f"Has tool_calls: {hasattr(response, 'tool_calls') and len(response.tool_calls) > 0}")
     if hasattr(response, 'tool_calls') and response.tool_calls:
-        print(f"Tool calls: {len(response.tool_calls)}")
+        logger.info(f"Tool calls: {len(response.tool_calls)}")
         for i, tc in enumerate(response.tool_calls):
-            print(f"  Tool {i+1}: {tc.get('name', 'unknown')}")
-    print(f"Content length: {len(response.content) if response.content else 0}")
-    print(f"==========================\n")
+            logger.info(f"  Tool {i+1}: {tc.get('name', 'unknown')}")
+    logger.info(f"Content length: {len(response.content) if response.content else 0}")
+    logger.info(f"==========================\n")
 
     # Return the AIMessage - tool loop will handle tool execution if needed
     return {
@@ -258,7 +261,7 @@ def tools_node(state: InfraSketchState) -> dict:
     if not tool_calls:
         return {"messages": []}
 
-    print(f"\n=== EXECUTING {len(tool_calls)} TOOL(S) ===")
+    logger.info(f"\n=== EXECUTING {len(tool_calls)} TOOL(S) ===")
 
     # Build a map of tool names to tool functions
     tool_map = {tool.name: tool for tool in all_tools}
@@ -269,12 +272,12 @@ def tools_node(state: InfraSketchState) -> dict:
         tool_args = tool_call.get("args", {})
         tool_id = tool_call.get("id", "unknown")
 
-        print(f"Tool: {tool_name}")
-        print(f"Args: {tool_args}")
+        logger.info(f"Tool: {tool_name}")
+        logger.info(f"Args: {tool_args}")
 
         if tool_name not in tool_map:
             result = {"error": f"Unknown tool: {tool_name}"}
-            print(f"✗ Unknown tool")
+            logger.info(f"✗ Unknown tool")
         else:
             try:
                 # Execute the tool
@@ -282,10 +285,10 @@ def tools_node(state: InfraSketchState) -> dict:
                 # Inject session_id into args (required by all tools)
                 tool_args["session_id"] = state.session_id
                 result = tool_func.invoke(tool_args)
-                print(f"✓ Result: {result}")
+                logger.info(f"✓ Result: {result}")
             except Exception as e:
                 result = {"error": str(e)}
-                print(f"✗ Error: {e}")
+                logger.exception(f"✗ Error: {e}")
 
         # Create ToolMessage with result
         tool_messages.append(
@@ -295,7 +298,7 @@ def tools_node(state: InfraSketchState) -> dict:
             )
         )
 
-    print(f"=== TOOL EXECUTION COMPLETE ===\n")
+    logger.info(f"=== TOOL EXECUTION COMPLETE ===\n")
 
     return {"messages": tool_messages}
 
@@ -309,9 +312,9 @@ def route_tool_decision(state: InfraSketchState) -> Literal["tools", "finalize"]
     """
     last_message = state.messages[-1]
     if isinstance(last_message, AIMessage) and hasattr(last_message, 'tool_calls') and last_message.tool_calls:
-        print(f"→ Routing to tools ({len(last_message.tool_calls)} tool call(s))")
+        logger.info(f"→ Routing to tools ({len(last_message.tool_calls)} tool call(s))")
         return "tools"
-    print(f"→ Routing to finalize (no tool calls)")
+    logger.info(f"→ Routing to finalize (no tool calls)")
     return "finalize"
 
 
@@ -352,12 +355,12 @@ def finalize_chat_response(state: InfraSketchState) -> dict:
 
     # Update diagram in state if diagram tools were called
     if diagram_tools_called:
-        print(f"✓ Diagram tools were executed, updating diagram in state")
+        logger.info(f"✓ Diagram tools were executed, updating diagram in state")
         updates["diagram"] = session.diagram
 
     # Update design doc in state if design doc tools were called
     if design_doc_tools_called:
-        print(f"✓ Design doc tools were executed, updating design doc in state")
+        logger.info(f"✓ Design doc tools were executed, updating design doc in state")
         updates["design_doc"] = session.design_doc
 
     # Add visual indicators to the last message if tools were called
@@ -391,17 +394,17 @@ def finalize_chat_response(state: InfraSketchState) -> dict:
                 last_assistant_content = msg.content
                 break
 
-        print("→ Generating follow-up suggestions...")
+        logger.info("→ Generating follow-up suggestions...")
         suggestions = generate_suggestions(
             diagram=current_diagram,
             node_id=state.node_id,
             last_message=last_assistant_content
         )
         if suggestions:
-            print(f"✓ Generated {len(suggestions)} suggestions: {suggestions}")
+            logger.info(f"✓ Generated {len(suggestions)} suggestions: {suggestions}")
             updates["suggestions"] = suggestions
         else:
-            print("✗ No suggestions generated")
+            logger.info("✗ No suggestions generated")
             updates["suggestions"] = []
 
     return updates

@@ -4,49 +4,79 @@ from fastapi.responses import Response, JSONResponse
 from pydantic import BaseModel
 from typing import Optional
 from langchain_core.messages import HumanMessage, AIMessage
-from app.models import (
-    GenerateRequest,
-    GenerateResponse,
-    ChatRequest,
-    ChatResponse,
-    SessionState,
-    Diagram,
-    Message,
-    Node,
-    Edge,
-    CreateGroupRequest,
-    CreateGroupResponse,
-    AnalyzeRepoRequest,
-    AnalyzeRepoResponse,
-)
-from app.session.manager import session_manager
-from app.config.models import DEFAULT_MODEL
-from app.agent.graph import agent_graph, generate_suggestions
-from app.agent.doc_generator import generate_design_document, generate_design_document_preview
-from app.agent.name_generator import generate_session_name
-from app.utils.diagram_export import generate_diagram_png, convert_markdown_to_pdf
-from app.utils.logger import (
-    log_diagram_generation,
-    log_chat_interaction,
-    log_design_doc_generation,
-    log_export,
-    log_event,
-    log_error,
-    EventType,
-)
+import base64
+import json
+import logging
+import time
+
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import HTMLResponse, JSONResponse, Response
+from pydantic import BaseModel
+from typing import Optional
+
 from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import SystemMessage
-from app.utils.secrets import get_anthropic_api_key
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+
+from app.agent.doc_generator import generate_design_document, generate_design_document_preview
+from app.agent.graph import agent_graph, generate_suggestions, process_diagram_groups
+from app.agent.name_generator import generate_session_name
+from app.billing.credit_costs import DESIGN_DOC_PLANS, calculate_cost
+from app.billing.promo_codes import get_promo_code_info, redeem_promo_code, validate_promo_code
 from app.billing.storage import get_user_credits_storage
-from app.billing.credit_costs import calculate_cost, DESIGN_DOC_PLANS
-from app.billing.promo_codes import redeem_promo_code, validate_promo_code
+from app.config.models import DEFAULT_MODEL
+from app.gamification.achievements import (
+    ACHIEVEMENT_DEFINITIONS,
+    ACHIEVEMENTS_BY_ID,
+    get_achievement_progress,
+)
 from app.gamification.engine import process_action
 from app.gamification.storage import get_gamification_storage
-from app.gamification.achievements import get_achievement_progress, ACHIEVEMENT_DEFINITIONS
+from app.gamification.streaks import check_streak_expired
 from app.gamification.xp import get_level_progress
-import json
-import base64
-import time
+from app.github.analyzer import (
+    GitHubAnalyzer,
+    GitHubRateLimitError,
+    RepoAccessDeniedError,
+    RepoNotFoundError,
+)
+from app.github.prompts import format_repo_analysis_prompt
+from app.models import (
+    AnalyzeRepoRequest,
+    AnalyzeRepoResponse,
+    ChatRequest,
+    ChatResponse,
+    CreateGroupRequest,
+    CreateGroupResponse,
+    Diagram,
+    Edge,
+    GenerateRequest,
+    GenerateResponse,
+    Message,
+    Node,
+    NodeMetadata,
+    NodePosition,
+    SessionState,
+)
+from app.session.manager import session_manager
+from app.subscription.models import SubscribeRequest, SubscriptionStatus
+from app.subscription.storage import get_subscriber_storage
+from app.user.models import UserPreferences
+from app.user.storage import get_user_preferences_storage
+from app.utils.badge_generator import get_monthly_visitors_badge_svg
+from app.utils.diagram_export import convert_markdown_to_pdf, generate_diagram_png
+from app.utils.logger import (
+    EventType,
+    log_chat_interaction,
+    log_design_doc_generation,
+    log_diagram_generation,
+    log_error,
+    log_event,
+    log_export,
+)
+from app.utils.secrets import get_anthropic_api_key
+
+logger = logging.getLogger(__name__)
 
 
 async def check_and_deduct_credits(
@@ -215,13 +245,13 @@ Return ONLY the JSON, no markdown code blocks or extra text."""
             HumanMessage(content=prompt)
         ]
 
-        print(f"\n=== GENERATING AI GROUP DESCRIPTION ===")
-        print(f"Child nodes: {len(child_nodes)}")
-        print(f"Node types: {[n.type for n in child_nodes]}")
+        logger.info(f"\n=== GENERATING AI GROUP DESCRIPTION ===")
+        logger.info(f"Child nodes: {len(child_nodes)}")
+        logger.info(f"Node types: {[n.type for n in child_nodes]}")
 
         response = llm.invoke(messages)
 
-        print(f"AI Response: {response.content[:200]}...")
+        logger.info(f"AI Response: {response.content[:200]}...")
 
         # Parse JSON response
         # Clean up markdown code blocks if present
@@ -236,14 +266,14 @@ Return ONLY the JSON, no markdown code blocks or extra text."""
 
         result = json.loads(content)
 
-        print(f"Parsed result: label='{result.get('label')}', description length={len(result.get('description', ''))}")
-        print(f"=====================================\n")
+        logger.info(f"Parsed result: label='{result.get('label')}', description length={len(result.get('description', ''))}")
+        logger.info(f"=====================================\n")
 
         return result
 
     except Exception as e:
-        print(f"✗ Error generating AI description: {e}")
-        print(f"  Falling back to default description")
+        logger.exception(f"✗ Error generating AI description: {e}")
+        logger.info(f"  Falling back to default description")
         # Return None to signal fallback to default logic
         return None
 
@@ -275,16 +305,16 @@ def _generate_session_name_from_content(session_id: str, model: str):
     try:
         session = session_manager.get_session(session_id)
         if not session:
-            print(f"Session {session_id} not found for name generation")
+            logger.info(f"Session {session_id} not found for name generation")
             return
 
         # Skip if already generated
         if not _should_generate_session_name(session):
-            print(f"Session {session_id} already has a name: {session.name}")
+            logger.info(f"Session {session_id} already has a name: {session.name}")
             return
 
-        print(f"\n=== BACKGROUND: GENERATE SESSION NAME ===")
-        print(f"Session ID: {session_id}")
+        logger.info(f"\n=== BACKGROUND: GENERATE SESSION NAME ===")
+        logger.info(f"Session ID: {session_id}")
 
         # Build prompt from session content
         # Priority: 1) First user message, 2) Node descriptions
@@ -295,21 +325,20 @@ def _generate_session_name_from_content(session_id: str, model: str):
             for msg in session.messages:
                 if msg.role == "user":
                     prompt = msg.content
-                    print(f"Using first user message: {prompt[:100]}...")
+                    logger.info(f"Using first user message: {prompt[:100]}...")
                     break
 
         if not prompt and session.diagram and session.diagram.nodes:
             # Use node descriptions/labels
             node_descriptions = [f"{node.label}: {node.description}" for node in session.diagram.nodes[:5]]
             prompt = "System with: " + ", ".join(node_descriptions)
-            print(f"Using node descriptions: {prompt[:100]}...")
+            logger.info(f"Using node descriptions: {prompt[:100]}...")
 
         if not prompt:
-            print("No content available for name generation, skipping")
+            logger.info("No content available for name generation, skipping")
             return
 
         # Get API key from environment or secrets
-        from app.utils.secrets import get_anthropic_api_key
         api_key = get_anthropic_api_key()
 
         # Generate name using LLM (synchronous - no asyncio.run needed)
@@ -318,13 +347,11 @@ def _generate_session_name_from_content(session_id: str, model: str):
         # Update session using proper method
         session_manager.update_session_name(session_id, name)
 
-        print(f"Generated name: {name}")
-        print(f"=========================================\n")
+        logger.info(f"Generated name: {name}")
+        logger.info(f"=========================================\n")
 
     except Exception as e:
-        import traceback
-        print(f"Error generating session name: {e}")
-        print(traceback.format_exc())
+        logger.exception(f"Error generating session name: {e}")
         # Set fallback name so we don't retry
         try:
             session_manager.update_session_name(session_id, "Untitled Design")
@@ -339,20 +366,19 @@ def _generate_session_name_background(session_id: str, prompt: str, model: str):
     try:
         session = session_manager.get_session(session_id)
         if not session:
-            print(f"Session {session_id} not found for name generation")
+            logger.info(f"Session {session_id} not found for name generation")
             return
 
         # Skip if already generated
         if not _should_generate_session_name(session):
-            print(f"Session {session_id} already has a name: {session.name}")
+            logger.info(f"Session {session_id} already has a name: {session.name}")
             return
 
-        print(f"\n=== BACKGROUND: GENERATE SESSION NAME ===")
-        print(f"Session ID: {session_id}")
-        print(f"Prompt: {prompt[:100]}...")
+        logger.info(f"\n=== BACKGROUND: GENERATE SESSION NAME ===")
+        logger.info(f"Session ID: {session_id}")
+        logger.info(f"Prompt: {prompt[:100]}...")
 
         # Get API key from environment or secrets
-        from app.utils.secrets import get_anthropic_api_key
         api_key = get_anthropic_api_key()
 
         # Generate name using LLM (synchronous - no asyncio.run needed)
@@ -361,13 +387,11 @@ def _generate_session_name_background(session_id: str, prompt: str, model: str):
         # Update session using proper method
         session_manager.update_session_name(session_id, name)
 
-        print(f"Generated name: {name}")
-        print(f"=========================================\n")
+        logger.info(f"Generated name: {name}")
+        logger.info(f"=========================================\n")
 
     except Exception as e:
-        import traceback
-        print(f"Error generating session name: {e}")
-        print(traceback.format_exc())
+        logger.exception(f"Error generating session name: {e}")
         # Set fallback name so we don't retry
         try:
             session_manager.update_session_name(session_id, "Untitled Design")
@@ -380,10 +404,10 @@ def _generate_diagram_background(session_id: str, prompt: str, model: str, user_
     start_time = time.time()
 
     try:
-        print(f"\n=== BACKGROUND: GENERATE DIAGRAM ===")
-        print(f"Session ID: {session_id}")
-        print(f"Model: {model}")
-        print(f"Prompt length: {len(prompt)}")
+        logger.info(f"\n=== BACKGROUND: GENERATE DIAGRAM ===")
+        logger.info(f"Session ID: {session_id}")
+        logger.info(f"Model: {model}")
+        logger.info(f"Prompt length: {len(prompt)}")
 
         # Run agent with message-based state
         result = agent_graph.invoke({
@@ -421,9 +445,9 @@ def _generate_diagram_background(session_id: str, prompt: str, model: str, user_
             name = generate_session_name(prompt, api_key, model)
             if name:
                 session_manager.update_session_name(session_id, name)
-                print(f"Session name generated: {name}")
+                logger.info(f"Session name generated: {name}")
         except Exception as name_error:
-            print(f"Failed to generate session name: {name_error}")
+            logger.exception(f"Failed to generate session name: {name_error}")
             session_manager.update_session_name(session_id, "Untitled Design")
 
         # Log diagram generation event
@@ -438,9 +462,9 @@ def _generate_diagram_background(session_id: str, prompt: str, model: str, user_
             prompt=prompt,  # Include actual prompt for analytics
         )
 
-        print(f"Generated diagram: {len(diagram.nodes)} nodes, {len(diagram.edges)} edges")
-        print(f"Duration: {duration_ms:.0f}ms")
-        print(f"========================================\n")
+        logger.info(f"Generated diagram: {len(diagram.nodes)} nodes, {len(diagram.edges)} edges")
+        logger.info(f"Duration: {duration_ms:.0f}ms")
+        logger.info(f"========================================\n")
 
         # Gamification: track diagram generation and session creation
         session = session_manager.get_session(session_id)
@@ -452,9 +476,7 @@ def _generate_diagram_background(session_id: str, prompt: str, model: str, user_
             })
 
     except Exception as e:
-        import traceback
-        print(f"Error generating diagram in background: {str(e)}")
-        traceback.print_exc()
+        logger.exception(f"Error generating diagram in background: {str(e)}")
 
         # Mark as failed
         session_manager.set_diagram_generation_status(session_id, "failed", error=str(e))
@@ -510,7 +532,7 @@ async def generate_diagram(request: GenerateRequest, http_request: Request, back
             import boto3
             import json as json_lib
 
-            print(f"Lambda environment detected - triggering async diagram generation for session {session_id}")
+            logger.info(f"Lambda environment detected - triggering async diagram generation for session {session_id}")
 
             try:
                 lambda_client = boto3.client('lambda')
@@ -530,14 +552,14 @@ async def generate_diagram(request: GenerateRequest, http_request: Request, back
                     Payload=json_lib.dumps(payload)
                 )
 
-                print(f"Async Lambda invocation triggered for diagram generation")
+                logger.info(f"Async Lambda invocation triggered for diagram generation")
             except Exception as e:
-                print(f"Failed to trigger async invocation: {e}")
+                logger.exception(f"Failed to trigger async invocation: {e}")
                 # Fall back to background task (will timeout but generation continues)
                 background_tasks.add_task(_generate_diagram_background, session_id, request.prompt, model, user_ip)
         else:
             # Local development: Use true background tasks (non-blocking)
-            print(f"Local environment - starting background diagram generation for session {session_id}")
+            logger.info(f"Local environment - starting background diagram generation for session {session_id}")
             background_tasks.add_task(_generate_diagram_background, session_id, request.prompt, model, user_ip)
 
         # Return immediately with session_id and generating status
@@ -597,7 +619,7 @@ async def get_diagram_status(session_id: str, http_request: Request):
             )
             response["suggestions"] = suggestions
         except Exception as e:
-            print(f"✗ Error generating initial suggestions: {e}")
+            logger.exception(f"✗ Error generating initial suggestions: {e}")
             response["suggestions"] = []
 
     return JSONResponse(content=response)
@@ -701,13 +723,13 @@ async def chat(request: ChatRequest, http_request: Request, background_tasks: Ba
         if new_diagram_dict != old_diagram_dict:
             response_diagram = updated_session.diagram
             diagram_updated = True
-            print(f"✓ Diagram updated: {len(updated_session.diagram.nodes)} nodes, {len(updated_session.diagram.edges)} edges")
+            logger.info(f"✓ Diagram updated: {len(updated_session.diagram.nodes)} nodes, {len(updated_session.diagram.edges)} edges")
 
         # Check if design doc was updated (reload from session like diagram)
         response_design_doc = None
         if updated_session.design_doc and updated_session.design_doc != old_design_doc:
             response_design_doc = updated_session.design_doc
-            print(f"✓ Design doc updated via chat ({len(response_design_doc)} chars)")
+            logger.info(f"✓ Design doc updated via chat ({len(response_design_doc)} chars)")
 
         # Add assistant response to session
         session_manager.add_message(
@@ -1215,7 +1237,6 @@ async def create_node_group(
 
     # No existing group - create a new one
     import uuid
-    from app.models import NodePosition, NodeMetadata
 
     group_id = f"group-{uuid.uuid4().hex[:8]}"
 
@@ -1525,12 +1546,12 @@ async def export_design_doc(session_id: str, request: ExportRequest, format: str
             for msg in session.messages
         ]
 
-        print(f"\n=== EXPORT DESIGN DOC ===")
-        print(f"Session ID: {session_id}")
-        print(f"Format requested: {format}")
-        print(f"Nodes: {len(session.diagram.nodes)}")
-        print(f"Edges: {len(session.diagram.edges)}")
-        print(f"Has custom diagram image: {request.diagram_image is not None}")
+        logger.info(f"\n=== EXPORT DESIGN DOC ===")
+        logger.info(f"Session ID: {session_id}")
+        logger.info(f"Format requested: {format}")
+        logger.info(f"Nodes: {len(session.diagram.nodes)}")
+        logger.info(f"Edges: {len(session.diagram.edges)}")
+        logger.info(f"Has custom diagram image: {request.diagram_image is not None}")
 
         # Generate markdown document using LLM with session's model
         markdown_content = generate_design_document(
@@ -1543,11 +1564,11 @@ async def export_design_doc(session_id: str, request: ExportRequest, format: str
         if request.diagram_image:
             # Use the screenshot from frontend
             diagram_png = base64.b64decode(request.diagram_image)
-            print("Using frontend screenshot for diagram")
+            logger.info("Using frontend screenshot for diagram")
         else:
             # Fallback to generated diagram
             diagram_png = generate_diagram_png(session.diagram.model_dump())
-            print("Generated diagram using Pillow")
+            logger.info("Generated diagram using Pillow")
 
         result = {}
 
@@ -1572,8 +1593,8 @@ async def export_design_doc(session_id: str, request: ExportRequest, format: str
                 "filename": "design_document.pdf"
             }
 
-        print(f"Generated documents successfully")
-        print(f"========================\n")
+        logger.info(f"Generated documents successfully")
+        logger.info(f"========================\n")
 
         # Log export event
         duration_ms = (time.time() - start_time) * 1000
@@ -1593,8 +1614,6 @@ async def export_design_doc(session_id: str, request: ExportRequest, format: str
         return JSONResponse(content=result)
 
     except ImportError as e:
-        import traceback
-        traceback.print_exc()
         duration_ms = (time.time() - start_time) * 1000
         log_export(
             session_id=session_id,
@@ -1608,9 +1627,7 @@ async def export_design_doc(session_id: str, request: ExportRequest, format: str
             detail=f"PDF generation dependencies not installed: {str(e)}"
         )
     except Exception as e:
-        import traceback
-        print(f"Error generating design doc: {str(e)}")
-        traceback.print_exc()
+        logger.exception(f"Error generating design doc: {str(e)}")
         duration_ms = (time.time() - start_time) * 1000
         log_export(
             session_id=session_id,
@@ -1629,7 +1646,7 @@ def _generate_design_doc_preview_background(session_id: str, user_ip: str):
     try:
         session = session_manager.get_session(session_id)
         if not session:
-            print(f"Session {session_id} not found in preview background task")
+            logger.info(f"Session {session_id} not found in preview background task")
             return
 
         conversation_history = [
@@ -1637,10 +1654,10 @@ def _generate_design_doc_preview_background(session_id: str, user_ip: str):
             for msg in session.messages
         ]
 
-        print(f"\n=== BACKGROUND: GENERATE DESIGN DOC PREVIEW ===")
-        print(f"Session ID: {session_id}")
-        print(f"Nodes: {len(session.diagram.nodes)}")
-        print(f"Edges: {len(session.diagram.edges)}")
+        logger.info(f"\n=== BACKGROUND: GENERATE DESIGN DOC PREVIEW ===")
+        logger.info(f"Session ID: {session_id}")
+        logger.info(f"Nodes: {len(session.diagram.nodes)}")
+        logger.info(f"Edges: {len(session.diagram.edges)}")
 
         markdown_content = generate_design_document_preview(
             session.diagram.model_dump(),
@@ -1664,13 +1681,11 @@ def _generate_design_doc_preview_background(session_id: str, user_ip: str):
             },
         )
 
-        print(f"Generated preview design doc ({len(markdown_content)} chars)")
-        print(f"================================================\n")
+        logger.info(f"Generated preview design doc ({len(markdown_content)} chars)")
+        logger.info(f"================================================\n")
 
     except Exception as e:
-        import traceback
-        print(f"Error generating design doc preview in background: {str(e)}")
-        traceback.print_exc()
+        logger.exception(f"Error generating design doc preview in background: {str(e)}")
         session_manager.set_design_doc_status(session_id, "failed", error=str(e), is_preview=True)
 
 
@@ -1682,7 +1697,7 @@ def _generate_design_doc_background(session_id: str, user_ip: str):
         # Get session
         session = session_manager.get_session(session_id)
         if not session:
-            print(f"Session {session_id} not found in background task")
+            logger.info(f"Session {session_id} not found in background task")
             return
 
         # Get conversation history
@@ -1691,10 +1706,10 @@ def _generate_design_doc_background(session_id: str, user_ip: str):
             for msg in session.messages
         ]
 
-        print(f"\n=== BACKGROUND: GENERATE DESIGN DOC ===")
-        print(f"Session ID: {session_id}")
-        print(f"Nodes: {len(session.diagram.nodes)}")
-        print(f"Edges: {len(session.diagram.edges)}")
+        logger.info(f"\n=== BACKGROUND: GENERATE DESIGN DOC ===")
+        logger.info(f"Session ID: {session_id}")
+        logger.info(f"Nodes: {len(session.diagram.nodes)}")
+        logger.info(f"Edges: {len(session.diagram.edges)}")
 
         # Generate markdown document using LLM with session's model
         markdown_content = generate_design_document(
@@ -1717,17 +1732,15 @@ def _generate_design_doc_background(session_id: str, user_ip: str):
             success=True,
         )
 
-        print(f"Generated and stored design doc ({len(markdown_content)} chars)")
-        print(f"========================================\n")
+        logger.info(f"Generated and stored design doc ({len(markdown_content)} chars)")
+        logger.info(f"========================================\n")
 
         # Gamification: track design doc generation
         if session:
             process_action(session.user_id, "design_doc_generated")
 
     except Exception as e:
-        import traceback
-        print(f"Error generating design doc in background: {str(e)}")
-        traceback.print_exc()
+        logger.exception(f"Error generating design doc in background: {str(e)}")
 
         # Mark as failed
         session_manager.set_design_doc_status(session_id, "failed", error=str(e))
@@ -1819,7 +1832,7 @@ async def generate_design_doc(session_id: str, request: ExportRequest, backgroun
             import boto3
             import json as json_lib
 
-            print(f"Lambda environment detected - {log_message}")
+            logger.info(f"Lambda environment detected - {log_message}")
 
             try:
                 lambda_client = boto3.client('lambda')
@@ -1837,14 +1850,14 @@ async def generate_design_doc(session_id: str, request: ExportRequest, backgroun
                     Payload=json_lib.dumps(payload)
                 )
 
-                print(f"Async Lambda invocation triggered for session {session_id}")
+                logger.info(f"Async Lambda invocation triggered for session {session_id}")
             except Exception as e:
-                print(f"Failed to trigger async invocation: {e}")
+                logger.exception(f"Failed to trigger async invocation: {e}")
                 # Fall back to inline execution (will timeout after 30s but generation continues)
                 background_tasks.add_task(background_fn, session_id, user_ip)
         else:
             # Local development: Use true background tasks (non-blocking)
-            print(f"Local environment - {log_message}")
+            logger.info(f"Local environment - {log_message}")
             background_tasks.add_task(background_fn, session_id, user_ip)
 
         return JSONResponse(content={
@@ -1856,9 +1869,7 @@ async def generate_design_doc(session_id: str, request: ExportRequest, backgroun
     except HTTPException:
         raise
     except Exception as e:
-        import traceback
-        print(f"Error starting design doc generation: {str(e)}")
-        traceback.print_exc()
+        logger.exception(f"Error starting design doc generation: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to start design document generation: {str(e)}")
 
 
@@ -1932,7 +1943,7 @@ async def update_design_doc(session_id: str, request: DesignDocUpdateRequest, ht
         # Update session state
         session_manager.update_design_doc(session_id, request.content)
 
-        print(f"Updated design doc for session {session_id} ({len(request.content)} chars)")
+        logger.info(f"Updated design doc for session {session_id} ({len(request.content)} chars)")
 
         # Log event
         log_event(
@@ -1989,11 +2000,11 @@ async def export_design_doc_from_session(session_id: str, request: ExportRequest
             metadata={"format": format},
         )
 
-        print(f"\n=== EXPORT DESIGN DOC FROM SESSION ===")
-        print(f"Session ID: {session_id}")
-        print(f"Format requested: {format}")
-        print(f"Design doc length: {len(session.design_doc)} chars")
-        print(f"Has custom diagram image: {request.diagram_image is not None}")
+        logger.info(f"\n=== EXPORT DESIGN DOC FROM SESSION ===")
+        logger.info(f"Session ID: {session_id}")
+        logger.info(f"Format requested: {format}")
+        logger.info(f"Design doc length: {len(session.design_doc)} chars")
+        logger.info(f"Has custom diagram image: {request.diagram_image is not None}")
 
         markdown_content = session.design_doc
 
@@ -2001,11 +2012,11 @@ async def export_design_doc_from_session(session_id: str, request: ExportRequest
         if request.diagram_image:
             # Use the screenshot from frontend
             diagram_png = base64.b64decode(request.diagram_image)
-            print("Using frontend screenshot for diagram")
+            logger.info("Using frontend screenshot for diagram")
         else:
             # Fallback to generated diagram
             diagram_png = generate_diagram_png(session.diagram.model_dump())
-            print("Generated diagram using Pillow")
+            logger.info("Generated diagram using Pillow")
 
         result = {}
 
@@ -2030,8 +2041,8 @@ async def export_design_doc_from_session(session_id: str, request: ExportRequest
                 "filename": "design_document.pdf"
             }
 
-        print(f"Exported documents successfully")
-        print(f"======================================\n")
+        logger.info(f"Exported documents successfully")
+        logger.info(f"======================================\n")
 
         # Log export event
         duration_ms = (time.time() - start_time) * 1000
@@ -2053,8 +2064,6 @@ async def export_design_doc_from_session(session_id: str, request: ExportRequest
     except HTTPException:
         raise
     except ImportError as e:
-        import traceback
-        traceback.print_exc()
         duration_ms = (time.time() - start_time) * 1000
         log_export(
             session_id=session_id,
@@ -2068,9 +2077,7 @@ async def export_design_doc_from_session(session_id: str, request: ExportRequest
             detail=f"PDF generation dependencies not installed: {str(e)}"
         )
     except Exception as e:
-        import traceback
-        print(f"Error exporting design doc: {str(e)}")
-        traceback.print_exc()
+        logger.exception(f"Error exporting design doc: {str(e)}")
         duration_ms = (time.time() - start_time) * 1000
         log_export(
             session_id=session_id,
@@ -2136,9 +2143,6 @@ async def get_user_sessions(http_request: Request):
 # SUBSCRIPTION ENDPOINTS
 # =============================================================================
 
-from app.subscription.storage import get_subscriber_storage
-from app.subscription.models import SubscriptionStatus, SubscribeRequest
-from fastapi.responses import HTMLResponse
 
 
 @router.post("/subscribe", response_model=SubscriptionStatus)
@@ -2604,8 +2608,6 @@ async def clerk_webhook(request: Request):
 # USER PREFERENCES ENDPOINTS (for tutorial status, etc.)
 # =============================================================================
 
-from app.user.storage import get_user_preferences_storage
-from app.user.models import UserPreferences
 
 
 class UserPreferencesResponse(BaseModel):
@@ -2691,7 +2693,6 @@ async def get_user_gamification(http_request: Request):
     gamification = storage.get_or_create(user_id)
 
     # Reset streak if user has been inactive too long
-    from app.gamification.streaks import check_streak_expired
     if check_streak_expired(gamification):
         storage.save(gamification)
 
@@ -2700,7 +2701,6 @@ async def get_user_gamification(http_request: Request):
     # Build pending notification details
     pending = []
     for notif in gamification.pending_notifications:
-        from app.gamification.achievements import ACHIEVEMENTS_BY_ID
         defn = ACHIEVEMENTS_BY_ID.get(notif.id, {})
         pending.append({
             "id": notif.id,
@@ -2935,7 +2935,6 @@ async def validate_promo(request: RedeemPromoRequest, http_request: Request):
         }
 
     # Get code info for display
-    from app.billing.promo_codes import get_promo_code_info
     code_info = get_promo_code_info(request.code)
 
     return {
@@ -3000,19 +2999,19 @@ async def clerk_billing_webhook(http_request: Request):
                 wh = Webhook(webhook_secret)
                 payload = wh.verify(body, headers)
             except WebhookVerificationError:
-                print("Clerk billing webhook signature verification failed")
+                logger.exception("Clerk billing webhook signature verification failed")
                 raise HTTPException(status_code=401, detail="Invalid webhook signature")
         else:
             # In development, parse without verification
             payload = json.loads(body)
-            print("WARNING: Clerk billing webhook signature not verified (no secret configured)")
+            logger.info("WARNING: Clerk billing webhook signature not verified (no secret configured)")
 
         event_type = payload.get("type")
         data = payload.get("data", {})
 
-        print(f"\n=== CLERK BILLING WEBHOOK ===")
-        print(f"Event type: {event_type}")
-        print(f"Data: {json.dumps(data, indent=2)}")
+        logger.info(f"\n=== CLERK BILLING WEBHOOK ===")
+        logger.info(f"Event type: {event_type}")
+        logger.info(f"Data: {json.dumps(data, indent=2)}")
 
         storage = get_user_credits_storage()
 
@@ -3035,7 +3034,7 @@ async def clerk_billing_webhook(http_request: Request):
             if user_id:
                 # This will create credits with free tier defaults if not exists
                 storage.get_or_create_credits(user_id)
-                print(f"Initialized credits for new user {user_id}")
+                logger.info(f"Initialized credits for new user {user_id}")
 
         # Handle subscription events
         elif event_type in ["subscription.created", "subscription.active"]:
@@ -3052,7 +3051,7 @@ async def clerk_billing_webhook(http_request: Request):
                     clerk_subscription_id=subscription_id,
                     stripe_customer_id=stripe_customer_id,
                 )
-                print(f"Created/activated subscription for user {user_id}: {plan}")
+                logger.info(f"Created/activated subscription for user {user_id}: {plan}")
 
         elif event_type == "subscription.updated":
             user_id = get_user_id_from_data(data)
@@ -3066,7 +3065,7 @@ async def clerk_billing_webhook(http_request: Request):
                     new_plan=plan,
                     clerk_subscription_id=subscription_id,
                 )
-                print(f"Updated subscription for user {user_id}: {plan}")
+                logger.info(f"Updated subscription for user {user_id}: {plan}")
 
         elif event_type == "subscription.pastDue":
             user_id = get_user_id_from_data(data)
@@ -3075,7 +3074,7 @@ async def clerk_billing_webhook(http_request: Request):
                 if credits:
                     credits.subscription_status = "past_due"
                     storage.save_credits(credits)
-                    print(f"Marked subscription as past_due for user {user_id}")
+                    logger.info(f"Marked subscription as past_due for user {user_id}")
 
         # Handle subscriptionItem events (for plan changes)
         elif event_type in ["subscriptionItem.created", "subscriptionItem.active", "subscriptionItem.updated"]:
@@ -3091,7 +3090,7 @@ async def clerk_billing_webhook(http_request: Request):
                     new_plan=plan,
                     clerk_subscription_id=subscription_id,
                 )
-                print(f"SubscriptionItem {event_type} for user {user_id}: {plan}")
+                logger.info(f"SubscriptionItem {event_type} for user {user_id}: {plan}")
 
         elif event_type in ["subscriptionItem.canceled", "subscriptionItem.ended"]:
             # User canceled or subscription ended - revert to free
@@ -3101,25 +3100,25 @@ async def clerk_billing_webhook(http_request: Request):
                     user_id=user_id,
                     new_plan="free",
                 )
-                print(f"Subscription canceled/ended for user {user_id}, reverted to free")
+                logger.info(f"Subscription canceled/ended for user {user_id}, reverted to free")
 
         elif event_type == "subscriptionItem.upcoming":
             # Upcoming renewal - could use this to reset credits
             user_id = get_user_id_from_data(data)
             if user_id:
                 storage.reset_monthly_credits(user_id)
-                print(f"Reset monthly credits for upcoming renewal: user {user_id}")
+                logger.info(f"Reset monthly credits for upcoming renewal: user {user_id}")
 
         # Log unhandled events for debugging
         else:
-            print(f"Unhandled Clerk billing event: {event_type}")
+            logger.info(f"Unhandled Clerk billing event: {event_type}")
 
         return {"received": True}
 
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error processing Clerk billing webhook: {e}")
+        logger.exception(f"Error processing Clerk billing webhook: {e}")
         raise HTTPException(status_code=500, detail=f"Webhook processing failed: {str(e)}")
 
 
@@ -3127,7 +3126,6 @@ async def clerk_billing_webhook(http_request: Request):
 # BADGES
 # =============================================================================
 
-from app.utils.badge_generator import get_monthly_visitors_badge_svg
 
 
 @router.get("/badges/monthly-visitors.svg")
@@ -3150,7 +3148,7 @@ async def get_monthly_visitors_badge():
             }
         )
     except Exception as e:
-        print(f"Error generating monthly visitors badge: {e}")
+        logger.exception(f"Error generating monthly visitors badge: {e}")
         # Return a fallback badge on error
         fallback_svg = '''<svg xmlns="http://www.w3.org/2000/svg" width="140" height="28" viewBox="0 0 140 28">
   <rect width="140" height="28" rx="6" ry="6" fill="#2d2d2d"/>
@@ -3170,19 +3168,15 @@ async def get_monthly_visitors_badge():
 
 def _analyze_repo_background(session_id: str, repo_url: str, model: str, user_ip: str):
     """Background task to analyze GitHub repository and generate diagram."""
-    from app.github.analyzer import GitHubAnalyzer, RepoNotFoundError, RepoAccessDeniedError, GitHubRateLimitError
-    from app.github.prompts import format_repo_analysis_prompt
-    from app.agent.graph import process_diagram_groups
     from dataclasses import asdict
-    import traceback
 
     start_time = time.time()
 
     try:
-        print(f"\n=== BACKGROUND: ANALYZE REPO ===")
-        print(f"Session ID: {session_id}")
-        print(f"Repo URL: {repo_url}")
-        print(f"Model: {model}")
+        logger.info(f"\n=== BACKGROUND: ANALYZE REPO ===")
+        logger.info(f"Session ID: {session_id}")
+        logger.info(f"Repo URL: {repo_url}")
+        logger.info(f"Model: {model}")
 
         # Phase 1: Fetch repository data
         session_manager.set_repo_analysis_status(
@@ -3202,11 +3196,11 @@ def _analyze_repo_background(session_id: str, repo_url: str, model: str, user_ip
         analysis_dict = asdict(analysis)
         session_manager.store_repo_analysis(session_id, analysis_dict)
 
-        print(f"Analysis complete: {analysis.name}")
-        print(f"  - Languages: {list(analysis.languages.keys())}")
-        print(f"  - Dependencies: {list(analysis.dependencies.keys())}")
-        print(f"  - Databases: {analysis.database_connections}")
-        print(f"  - Services: {analysis.external_services}")
+        logger.info(f"Analysis complete: {analysis.name}")
+        logger.info(f"  - Languages: {list(analysis.languages.keys())}")
+        logger.info(f"  - Dependencies: {list(analysis.dependencies.keys())}")
+        logger.info(f"  - Databases: {analysis.database_connections}")
+        logger.info(f"  - Services: {analysis.external_services}")
 
         # Phase 3: Generate diagram
         session_manager.set_repo_analysis_status(
@@ -3285,9 +3279,9 @@ Feel free to explore the diagram and ask me anything!"""
             }
         )
 
-        print(f"Generated diagram: {len(diagram.nodes)} nodes, {len(diagram.edges)} edges")
-        print(f"Duration: {duration_ms:.0f}ms")
-        print(f"========================================\n")
+        logger.info(f"Generated diagram: {len(diagram.nodes)} nodes, {len(diagram.edges)} edges")
+        logger.info(f"Duration: {duration_ms:.0f}ms")
+        logger.info(f"========================================\n")
 
         # Gamification: track repo analysis and session creation
         session = session_manager.get_session(session_id)
@@ -3302,7 +3296,7 @@ Feel free to explore the diagram and ask me anything!"""
         analyzer.close()
 
     except RepoNotFoundError as e:
-        print(f"Repository not found: {e}")
+        logger.info(f"Repository not found: {e}")
         session_manager.set_repo_analysis_status(
             session_id, "failed", error=f"Repository not found: {repo_url}"
         )
@@ -3314,7 +3308,7 @@ Feel free to explore the diagram and ask me anything!"""
         )
 
     except RepoAccessDeniedError as e:
-        print(f"Repository access denied: {e}")
+        logger.info(f"Repository access denied: {e}")
         session_manager.set_repo_analysis_status(
             session_id, "failed",
             error="Private repos coming soon. For now, please use a public repository."
@@ -3327,7 +3321,7 @@ Feel free to explore the diagram and ask me anything!"""
         )
 
     except GitHubRateLimitError as e:
-        print(f"GitHub rate limit exceeded: {e}")
+        logger.info(f"GitHub rate limit exceeded: {e}")
         session_manager.set_repo_analysis_status(
             session_id, "failed",
             error="GitHub API rate limit exceeded. Please try again later."
@@ -3340,8 +3334,7 @@ Feel free to explore the diagram and ask me anything!"""
         )
 
     except Exception as e:
-        print(f"Error analyzing repository: {str(e)}")
-        traceback.print_exc()
+        logger.exception(f"Error analyzing repository: {str(e)}")
 
         session_manager.set_repo_analysis_status(
             session_id, "failed", error=f"Analysis failed: {str(e)}"
@@ -3375,7 +3368,6 @@ async def analyze_repo(request: AnalyzeRepoRequest, http_request: Request, backg
         JSON with session_id and status
     """
     import os
-    from app.github.analyzer import GitHubAnalyzer
 
     user_ip = http_request.client.host if http_request.client else None
 
@@ -3419,7 +3411,7 @@ async def analyze_repo(request: AnalyzeRepoRequest, http_request: Request, backg
             import boto3
             import json as json_lib
 
-            print(f"Lambda environment detected - triggering async repo analysis for session {session_id}")
+            logger.info(f"Lambda environment detected - triggering async repo analysis for session {session_id}")
 
             try:
                 lambda_client = boto3.client('lambda')
@@ -3439,14 +3431,14 @@ async def analyze_repo(request: AnalyzeRepoRequest, http_request: Request, backg
                     Payload=json_lib.dumps(payload)
                 )
 
-                print(f"Async Lambda invocation triggered for repo analysis")
+                logger.info(f"Async Lambda invocation triggered for repo analysis")
             except Exception as e:
-                print(f"Failed to trigger async invocation: {e}")
+                logger.exception(f"Failed to trigger async invocation: {e}")
                 # Fall back to background task
                 background_tasks.add_task(_analyze_repo_background, session_id, request.repo_url, model, user_ip)
         else:
             # Local development: Use true background tasks
-            print(f"Local environment - starting background repo analysis for session {session_id}")
+            logger.info(f"Local environment - starting background repo analysis for session {session_id}")
             background_tasks.add_task(_analyze_repo_background, session_id, request.repo_url, model, user_ip)
 
         # Return immediately with session_id and fetching status
@@ -3511,7 +3503,7 @@ async def get_repo_analysis_status(session_id: str, http_request: Request):
             )
             response["suggestions"] = suggestions
         except Exception as e:
-            print(f"Error generating suggestions: {e}")
+            logger.exception(f"Error generating suggestions: {e}")
             response["suggestions"] = []
 
     return JSONResponse(content=response)

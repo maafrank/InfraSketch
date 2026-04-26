@@ -22,6 +22,9 @@ from app.models import Node, Edge, Diagram, NodeMetadata, NodePosition
 from app.utils.secrets import get_anthropic_api_key
 from app.config.models import DEFAULT_MODEL
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 # Prompt for AI semantic grouping
 SEMANTIC_GROUPING_PROMPT = """You are analyzing a system architecture diagram to identify logical business domains for grouping.
@@ -168,7 +171,7 @@ def suggest_semantic_groups(diagram: Diagram, model: str = DEFAULT_MODEL) -> Opt
     """
     # Skip small diagrams
     if len(diagram.nodes) < 7:
-        print(f"Diagram has {len(diagram.nodes)} nodes (<7), skipping AI grouping")
+        logger.info(f"Diagram has {len(diagram.nodes)} nodes (<7), skipping AI grouping")
         return None
 
     try:
@@ -189,7 +192,7 @@ def suggest_semantic_groups(diagram: Diagram, model: str = DEFAULT_MODEL) -> Opt
             edges_context=edges_context
         )
 
-        print(f"Calling AI for semantic grouping analysis...")
+        logger.info(f"Calling AI for semantic grouping analysis...")
 
         # Call Claude
         response = llm.invoke([
@@ -197,7 +200,7 @@ def suggest_semantic_groups(diagram: Diagram, model: str = DEFAULT_MODEL) -> Opt
             HumanMessage(content=prompt)
         ])
 
-        print(f"AI grouping response received ({len(response.content)} chars)")
+        logger.info(f"AI grouping response received ({len(response.content)} chars)")
 
         # Parse JSON response
         result = _parse_grouping_response(response.content)
@@ -207,17 +210,17 @@ def suggest_semantic_groups(diagram: Diagram, model: str = DEFAULT_MODEL) -> Opt
         valid_groups = _validate_group_suggestions(groups, diagram)
 
         if valid_groups:
-            print(f"AI suggested {len(valid_groups)} valid groups")
+            logger.info(f"AI suggested {len(valid_groups)} valid groups")
             return valid_groups
         else:
-            print(f"AI returned no valid groups")
+            logger.info(f"AI returned no valid groups")
             return None
 
     except json.JSONDecodeError as e:
-        print(f"AI semantic grouping failed - JSON parse error: {e}")
+        logger.exception(f"AI semantic grouping failed - JSON parse error: {e}")
         return None
     except Exception as e:
-        print(f"AI semantic grouping failed: {e}")
+        logger.exception(f"AI semantic grouping failed: {e}")
         return None
 
 
@@ -273,7 +276,7 @@ def apply_ai_suggested_groups(diagram: Diagram, ai_groups: List[dict]) -> Diagra
             if node.id in node_ids:
                 node.parent_id = group_id
 
-        print(f"  Created semantic group '{group_node.label}' with nodes: {node_ids}")
+        logger.info(f"  Created semantic group '{group_node.label}' with nodes: {node_ids}")
 
     # NOTE: Original edges are preserved - frontend handles dynamic redirection
     # based on collapse state. This ensures edges are visible when groups expand.
@@ -335,15 +338,15 @@ def apply_heuristic_grouping(diagram: Diagram, max_visible_nodes: int = 6) -> Di
     # Skip if already has groups
     has_groups = any(n.is_group for n in diagram.nodes)
     if has_groups:
-        print(f"Diagram already has groups, skipping heuristic grouping")
+        logger.info(f"Diagram already has groups, skipping heuristic grouping")
         return diagram
 
     # Skip if small enough
     if len(diagram.nodes) <= max_visible_nodes:
-        print(f"Diagram has {len(diagram.nodes)} nodes (≤{max_visible_nodes}), skipping grouping")
+        logger.info(f"Diagram has {len(diagram.nodes)} nodes (≤{max_visible_nodes}), skipping grouping")
         return diagram
 
-    print(f"Applying heuristic grouping to {len(diagram.nodes)} nodes")
+    logger.info(f"Applying heuristic grouping to {len(diagram.nodes)} nodes")
 
     # Categorize nodes by layer
     layer_nodes: Dict[str, List[Node]] = {layer: [] for layer in LAYER_DEFINITIONS}
@@ -366,10 +369,10 @@ def apply_heuristic_grouping(diagram: Diagram, max_visible_nodes: int = 6) -> Di
             layer_def = LAYER_DEFINITIONS[layer_name]
             group_node, child_ids = _create_layer_group(nodes, layer_name, layer_def)
             groups_created.append((group_node, child_ids))
-            print(f"  Created group '{group_node.label}' with {len(child_ids)} nodes")
+            logger.info(f"  Created group '{group_node.label}' with {len(child_ids)} nodes")
 
     if not groups_created:
-        print(f"No layers had 2+ nodes, skipping grouping")
+        logger.info(f"No layers had 2+ nodes, skipping grouping")
         return diagram
 
     # Add groups to diagram and update children
@@ -384,7 +387,7 @@ def apply_heuristic_grouping(diagram: Diagram, max_visible_nodes: int = 6) -> Di
     # based on collapse state. This ensures edges are visible when groups expand.
 
     visible_count = len([n for n in diagram.nodes if not n.parent_id])
-    print(f"Post-grouping: {visible_count} visible nodes (was {len(diagram.nodes) - len(groups_created)})")
+    logger.info(f"Post-grouping: {visible_count} visible nodes (was {len(diagram.nodes) - len(groups_created)})")
 
     return diagram
 
@@ -456,8 +459,8 @@ def process_diagram_groups(
         max_visible_nodes: Threshold below which no grouping is applied
         model: Claude model to use for AI grouping
     """
-    print(f"\n=== GROUP PROCESSING ===")
-    print(f"Input: {len(diagram.nodes)} nodes, {len(diagram.edges)} edges")
+    logger.info(f"\n=== GROUP PROCESSING ===")
+    logger.info(f"Input: {len(diagram.nodes)} nodes, {len(diagram.edges)} edges")
 
     # 1. Validate any existing groups
     diagram = validate_group_structure(diagram)
@@ -465,30 +468,30 @@ def process_diagram_groups(
     # 2. Skip if already has valid groups
     has_groups = any(n.is_group for n in diagram.nodes)
     if has_groups:
-        print(f"Diagram already has groups, skipping auto-grouping")
+        logger.info(f"Diagram already has groups, skipping auto-grouping")
         diagram = ensure_groups_collapsed(diagram)
         visible_nodes = [n for n in diagram.nodes if not n.parent_id]
         group_nodes = [n for n in diagram.nodes if n.is_group]
-        print(f"Output: {len(visible_nodes)} visible nodes, {len(group_nodes)} groups")
-        print(f"========================\n")
+        logger.info(f"Output: {len(visible_nodes)} visible nodes, {len(group_nodes)} groups")
+        logger.info(f"========================\n")
         return diagram
 
     # 3. Skip if small enough
     if len(diagram.nodes) <= max_visible_nodes:
-        print(f"Diagram has {len(diagram.nodes)} nodes (≤{max_visible_nodes}), skipping grouping")
-        print(f"========================\n")
+        logger.info(f"Diagram has {len(diagram.nodes)} nodes (≤{max_visible_nodes}), skipping grouping")
+        logger.info(f"========================\n")
         return diagram
 
     # 4. Try AI-based semantic grouping (primary approach)
-    print(f"Attempting AI semantic grouping for {len(diagram.nodes)} nodes...")
+    logger.info(f"Attempting AI semantic grouping for {len(diagram.nodes)} nodes...")
     ai_groups = suggest_semantic_groups(diagram, model)
 
     if ai_groups:
-        print(f"AI suggested {len(ai_groups)} semantic groups, applying...")
+        logger.info(f"AI suggested {len(ai_groups)} semantic groups, applying...")
         diagram = apply_ai_suggested_groups(diagram, ai_groups)
     else:
         # 5. Fall back to heuristic layer-based grouping
-        print(f"AI grouping returned no results, falling back to heuristic layer-based grouping")
+        logger.info(f"AI grouping returned no results, falling back to heuristic layer-based grouping")
         diagram = apply_heuristic_grouping(diagram, max_visible_nodes)
 
     # 6. Ensure groups start collapsed
@@ -496,7 +499,7 @@ def process_diagram_groups(
 
     visible_nodes = [n for n in diagram.nodes if not n.parent_id]
     group_nodes = [n for n in diagram.nodes if n.is_group]
-    print(f"Output: {len(visible_nodes)} visible nodes, {len(group_nodes)} groups")
-    print(f"========================\n")
+    logger.info(f"Output: {len(visible_nodes)} visible nodes, {len(group_nodes)} groups")
+    logger.info(f"========================\n")
 
     return diagram

@@ -6,6 +6,9 @@ from datetime import datetime, timezone
 from app.models import SessionState, Diagram, Message, DesignDocStatus, DiagramGenerationStatus, RepoAnalysisStatus
 from app.config.models import DEFAULT_MODEL
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class SessionManager:
     def __init__(self):
@@ -14,12 +17,12 @@ class SessionManager:
 
         if self.is_lambda:
             # Use DynamoDB for persistent storage in Lambda
-            print("SessionManager: Using DynamoDB storage (Lambda environment)")
+            logger.info("SessionManager: Using DynamoDB storage (Lambda environment)")
             from app.session.dynamodb_storage import DynamoDBSessionStorage
             self.storage = DynamoDBSessionStorage()
         else:
             # Use in-memory storage for local development
-            print("SessionManager: Using in-memory storage (local environment)")
+            logger.info("SessionManager: Using in-memory storage (local environment)")
             self.sessions: Dict[str, SessionState] = {}
             self.storage = None
 
