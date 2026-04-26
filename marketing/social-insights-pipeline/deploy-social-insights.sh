@@ -37,7 +37,8 @@ pip install anthropic requests certifi charset-normalizer idna urllib3 \
     --quiet --upgrade
 
 # Binary packages SECOND (overwrite any macOS .so files from pure-Python deps)
-pip install matplotlib Pillow "numpy<2" pydantic-core jiter \
+# cryptography is required by google-auth for service-account JWT signing (live GSC data).
+pip install matplotlib Pillow "numpy<2" pydantic-core jiter cryptography \
     -t /tmp/social-insights-deploy/ \
     --platform manylinux2014_x86_64 \
     --implementation cp \
@@ -59,8 +60,6 @@ rm -rf numpy/tests numpy/testing numpy/f2py 2>/dev/null || true
 rm -rf PIL/tests 2>/dev/null || true
 # fontTools is 21MB, only needed for PDF font subsetting (we only make PNGs)
 rm -rf fontTools 2>/dev/null || true
-# cryptography is 23MB, google-auth falls back to rsa package without it
-rm -rf cryptography cryptography.libs 2>/dev/null || true
 # Strip .so debug symbols
 find . -name "*.so" -exec strip --strip-debug {} \; 2>/dev/null || true
 

@@ -38,7 +38,7 @@ COUNTRY_NAMES = {
 }
 
 # Minimum days of data required to use live data instead of static fallback
-MIN_DAYS_FOR_LIVE = 7
+MIN_DAYS_FOR_LIVE = 1
 
 # ---------------------------------------------------------------------------
 # Google Search Console API client (lightweight: google-auth + requests)

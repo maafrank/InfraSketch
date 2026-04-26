@@ -1077,6 +1077,25 @@ def lambda_handler(event, context):
         category = INSIGHT_CATEGORIES[category_idx]
         print(f"Today's category: {category} (day {day_of_year}, idx {category_idx})")
 
+        if event.get("dry_run"):
+            from search_console_data import DAILY_TRENDS, GROWTH_METRICS, TOP_QUERIES, COUNTRIES
+            return {
+                "statusCode": 200,
+                "body": json.dumps({
+                    "dry_run": True,
+                    "category": category,
+                    "live_data_check": {
+                        "daily_trends_count": len(DAILY_TRENDS),
+                        "first_date": DAILY_TRENDS[0]["date"] if DAILY_TRENDS else None,
+                        "last_date": DAILY_TRENDS[-1]["date"] if DAILY_TRENDS else None,
+                        "total_impressions_90d": GROWTH_METRICS.get("total_impressions_90d"),
+                        "total_clicks_90d": GROWTH_METRICS.get("total_clicks_90d"),
+                        "unique_queries": len(TOP_QUERIES),
+                        "countries": len(COUNTRIES),
+                    },
+                }),
+            }
+
         # 2. Select 5 random charts for today's video
         selected_charts = select_charts_for_today(today)
         print(f"Selected charts: {selected_charts}")
