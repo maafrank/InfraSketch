@@ -13,6 +13,8 @@ import NodeTooltip from './NodeTooltip';
 import CustomNode from './CustomNode';
 import { getLayoutedElements } from '../utils/layout';
 import { MOBILE_BREAKPOINT } from '../constants/ui';
+import { useContextMenu } from '../hooks/useContextMenu';
+import { useNodeTooltip } from '../hooks/useNodeTooltip';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -153,12 +155,26 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [hoveredNode, setHoveredNode] = useState(null);
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-  const [contextMenu, setContextMenu] = useState(null);
   const [selectedEdge, setSelectedEdge] = useState(null);
-  const isTooltipHoveredRef = useRef(false);
-  const hideTooltipTimeoutRef = useRef(null);
+
+  const {
+    hoveredNode,
+    tooltipPosition,
+    handleNodeMouseEnter,
+    handleNodeMouseLeave,
+    handleTooltipMouseEnter,
+    handleTooltipMouseLeave,
+  } = useNodeTooltip();
+
+  const {
+    contextMenu,
+    openForNode: openContextMenuForNode,
+    openForEdge: openContextMenuForEdge,
+    close: closeContextMenu,
+    deleteNode: deleteNodeFromContextMenu,
+    ungroupNode: ungroupNodeFromContextMenu,
+    deleteEdge: deleteEdgeFromContextMenu,
+  } = useContextMenu({ onDeleteNode, onUngroupNodes, onDeleteEdge });
 
   // Drag-to-merge state
   const [dropTarget, setDropTarget] = useState(null);
@@ -390,97 +406,18 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
     return () => clearTimeout(timeoutId);
   }, [designDocOpen, chatPanelOpen, designDocWidth, chatPanelWidth, reactFlowInstance, nodes.length]);
 
-  const handleNodeMouseEnter = useCallback((event, node) => {
-    // Clear any pending hide timeout
-    if (hideTooltipTimeoutRef.current) {
-      clearTimeout(hideTooltipTimeoutRef.current);
-      hideTooltipTimeoutRef.current = null;
-    }
-
-    const rect = event.currentTarget.getBoundingClientRect();
-    setTooltipPosition({
-      x: rect.right + 10,
-      y: rect.top,
-    });
-    setHoveredNode(node);
-    isTooltipHoveredRef.current = false;
-  }, []);
-
-  const handleNodeMouseLeave = useCallback(() => {
-    // Give user time to move mouse to tooltip
-    hideTooltipTimeoutRef.current = setTimeout(() => {
-      // Check if mouse is now on tooltip using ref (not stale closure)
-      if (!isTooltipHoveredRef.current) {
-        setHoveredNode(null);
-      }
-    }, 200);
-  }, []);
-
-  const handleTooltipMouseEnter = useCallback(() => {
-    // Clear any pending hide timeout
-    if (hideTooltipTimeoutRef.current) {
-      clearTimeout(hideTooltipTimeoutRef.current);
-      hideTooltipTimeoutRef.current = null;
-    }
-    isTooltipHoveredRef.current = true;
-  }, []);
-
-  const handleTooltipMouseLeave = useCallback(() => {
-    isTooltipHoveredRef.current = false;
-    setHoveredNode(null);
-  }, []);
-
   const handleNodeClick = useCallback((event, node) => {
     onNodeClick(node);
   }, [onNodeClick]);
 
-  const handleNodeContextMenu = useCallback((event, node) => {
-    event.preventDefault();
-    setContextMenu({
-      nodeId: node.id,
-      x: event.clientX,
-      y: event.clientY,
-    });
-  }, []);
-
-  const handleDeleteNode = useCallback(() => {
-    if (contextMenu?.nodeId && onDeleteNode) {
-      onDeleteNode(contextMenu.nodeId);
-      setContextMenu(null);
-    }
-  }, [contextMenu, onDeleteNode]);
-
-  const handleUngroupNode = useCallback(() => {
-    if (contextMenu?.nodeId && onUngroupNodes) {
-      onUngroupNodes(contextMenu.nodeId);
-      setContextMenu(null);
-    }
-  }, [contextMenu, onUngroupNodes]);
-
-  const handleDeleteEdgeFromMenu = useCallback(() => {
-    if (contextMenu?.edgeId && onDeleteEdge) {
-      onDeleteEdge(contextMenu.edgeId);
-      setContextMenu(null);
-    }
-  }, [contextMenu, onDeleteEdge]);
-
   const handlePaneClick = useCallback(() => {
-    setContextMenu(null);
+    closeContextMenu();
     setSelectedEdge(null);
-  }, []);
+  }, [closeContextMenu]);
 
   const handleEdgeClick = useCallback((event, edge) => {
     event.stopPropagation();
     setSelectedEdge(edge.id);
-  }, []);
-
-  const handleEdgeContextMenu = useCallback((event, edge) => {
-    event.preventDefault();
-    setContextMenu({
-      edgeId: edge.id,
-      x: event.clientX,
-      y: event.clientY,
-    });
   }, []);
 
   const handleConnect = useCallback((connection) => {
@@ -666,9 +603,9 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
         onConnect={handleConnect}
         onEdgeUpdate={handleEdgeUpdate}
         onEdgeClick={handleEdgeClick}
-        onEdgeContextMenu={handleEdgeContextMenu}
+        onEdgeContextMenu={openContextMenuForEdge}
         onNodeClick={handleNodeClick}
-        onNodeContextMenu={handleNodeContextMenu}
+        onNodeContextMenu={openContextMenuForNode}
         onNodeMouseEnter={handleNodeMouseEnter}
         onNodeMouseLeave={handleNodeMouseLeave}
         onNodeDragStart={handleNodeDragStart}
@@ -900,14 +837,14 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
             return (
               <>
                 {isGroup && (
-                  <button onClick={handleUngroupNode}>Ungroup</button>
+                  <button onClick={ungroupNodeFromContextMenu}>Ungroup</button>
                 )}
-                <button onClick={handleDeleteNode}>Delete {isGroup ? 'Group' : 'Node'}</button>
+                <button onClick={deleteNodeFromContextMenu}>Delete {isGroup ? 'Group' : 'Node'}</button>
               </>
             );
           })()}
           {contextMenu.edgeId && (
-            <button onClick={handleDeleteEdgeFromMenu}>Delete Connection</button>
+            <button onClick={deleteEdgeFromContextMenu}>Delete Connection</button>
           )}
         </div>
       )}
