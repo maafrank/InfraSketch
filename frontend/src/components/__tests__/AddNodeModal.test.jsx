@@ -352,14 +352,17 @@ describe('AddNodeModal', () => {
       render(<AddNodeModal {...defaultProps} />);
 
       const cancelButton = screen.getByRole('button', { name: 'Cancel' });
-      expect(cancelButton).toHaveClass('button-secondary');
+      // shadcn/ui Button compiles variant="secondary" to a Tailwind class
+      // produced by buttonVariants() in components/ui/button-variants.js
+      expect(cancelButton.className).toMatch(/bg-secondary/);
     });
 
     it('renders Add Node as primary button', () => {
       render(<AddNodeModal {...defaultProps} />);
 
       const addButton = screen.getByRole('button', { name: 'Add Node' });
-      expect(addButton).toHaveClass('button-primary');
+      // variant="default" -> bg-primary
+      expect(addButton.className).toMatch(/bg-primary/);
     });
   });
 

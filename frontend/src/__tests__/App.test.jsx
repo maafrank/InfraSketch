@@ -68,6 +68,30 @@ vi.mock('../api/client', () => ({
   getUserSessions: vi.fn(() => Promise.resolve([])),
   renameSession: vi.fn(() => Promise.resolve({ success: true, name: 'Renamed' })),
   deleteSession: vi.fn(() => Promise.resolve({ success: true })),
+  // Newer endpoints that mounted child components (CreditBalance, Tutorial,
+  // GamificationHeader, etc.) consume but the original mock list missed.
+  getUserCredits: vi.fn(() => Promise.resolve({ credits_balance: 1000, plan: 'pro' })),
+  getCreditHistory: vi.fn(() => Promise.resolve({ entries: [] })),
+  getUserGamification: vi.fn(() => Promise.resolve({
+    xp: 0, level: 1, achievements: [], streak_days: 0, pending_notifications: [],
+  })),
+  getUserAchievements: vi.fn(() => Promise.resolve({ achievements: [], stats: {} })),
+  getUserPreferences: vi.fn(() => Promise.resolve({ tutorial_completed: true })),
+  completeTutorial: vi.fn(() => Promise.resolve({ success: true })),
+  resetTutorial: vi.fn(() => Promise.resolve({ success: true })),
+  redeemPromoCode: vi.fn(() => Promise.resolve({ success: true })),
+  validatePromoCode: vi.fn(() => Promise.resolve({ valid: true })),
+  updateStreakReminderPreference: vi.fn(() => Promise.resolve({ success: true })),
+  dismissGamificationNotifications: vi.fn(() => Promise.resolve({ success: true })),
+  getSubscriptionStatus: vi.fn(() => Promise.resolve({ subscribed: false })),
+  unsubscribeFromMarketing: vi.fn(() => Promise.resolve({ success: true })),
+  resubscribeToMarketing: vi.fn(() => Promise.resolve({ success: true })),
+  generateDiagramFromRepo: vi.fn(() => Promise.resolve({ session_id: 'repo-session-123', status: 'analyzing' })),
+  pollRepoAnalysisStatus: vi.fn(() => Promise.resolve({
+    success: true, diagram: { nodes: [], edges: [] }, messages: [],
+  })),
+  isGitHubUrl: vi.fn(() => false),
+  analyzeRepo: vi.fn(() => Promise.resolve({ session_id: 'repo-session-123', status: 'analyzing' })),
 }));
 
 // Mock html-to-image
@@ -292,10 +316,12 @@ describe('App', () => {
       expect(screen.getByTestId('chat-panel')).toBeInTheDocument();
     });
 
-    it('shows theme toggle button', () => {
+    it('does not render a theme toggle (terminal theme is always dark)', () => {
       renderApp('/');
 
-      expect(screen.getByTestId('theme-toggle')).toBeInTheDocument();
+      // ThemeToggle was removed in App.jsx - keeping this test as a guard
+      // against accidentally re-introducing it.
+      expect(screen.queryByTestId('theme-toggle')).not.toBeInTheDocument();
     });
 
     it('renders node palette when signed in', async () => {
