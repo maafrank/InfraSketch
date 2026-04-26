@@ -5,7 +5,7 @@ import json
 import logging
 import time
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import BaseModel
@@ -17,7 +17,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from app.agent.doc_generator import generate_design_document, generate_design_document_preview
 from app.agent.graph import agent_graph, generate_suggestions, process_diagram_groups
 from app.agent.name_generator import generate_session_name
-from app.api.deps import verify_session_access
+from app.api.deps import get_current_user, get_session_for_user, verify_session_access
 from app.api._helpers import (
     check_and_deduct_credits,
     generate_system_overview,
@@ -179,7 +179,9 @@ async def create_node_group(
     session_id: str,
     request: CreateGroupRequest,
     http_request: Request,
-    generate_ai_description: bool = True
+    generate_ai_description: bool = True,
+    user_id: str = Depends(get_current_user),
+    session: SessionState = Depends(get_session_for_user),
 ):
     """
     Create a collapsible group from multiple nodes (drag-to-merge feature).
@@ -195,9 +197,6 @@ async def create_node_group(
     Returns:
         Updated diagram with new group node
     """
-    user_id = getattr(http_request.state, "user_id", None)
-    session = verify_session_access(session_id, user_id, http_request)
-
     child_node_ids = request.child_node_ids
 
     # Validate: need at least 2 nodes to group
@@ -428,7 +427,9 @@ async def create_node_group(
 async def toggle_group_collapse(
     session_id: str,
     group_id: str,
-    http_request: Request
+    http_request: Request,
+    user_id: str = Depends(get_current_user),
+    session: SessionState = Depends(get_session_for_user),
 ):
     """
     Toggle the collapse state of a group node.
@@ -436,9 +437,6 @@ async def toggle_group_collapse(
     When collapsed: children are hidden, edges route through parent
     When expanded: children are shown, parent is hidden
     """
-    user_id = getattr(http_request.state, "user_id", None)
-    session = verify_session_access(session_id, user_id, http_request)
-
     # Find group node
     group_node = None
     for node in session.diagram.nodes:
@@ -482,16 +480,15 @@ async def toggle_group_collapse(
 async def ungroup_nodes(
     session_id: str,
     group_id: str,
-    http_request: Request
+    http_request: Request,
+    user_id: str = Depends(get_current_user),
+    session: SessionState = Depends(get_session_for_user),
 ):
     """
     Dissolve a group and restore individual nodes.
 
     Removes the parent group node and clears parent_id from all children.
     """
-    user_id = getattr(http_request.state, "user_id", None)
-    session = verify_session_access(session_id, user_id, http_request)
-
     # Find group node
     group_node = None
     for node in session.diagram.nodes:

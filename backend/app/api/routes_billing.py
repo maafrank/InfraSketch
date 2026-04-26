@@ -5,7 +5,7 @@ import json
 import logging
 import time
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import BaseModel
@@ -17,7 +17,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from app.agent.doc_generator import generate_design_document, generate_design_document_preview
 from app.agent.graph import agent_graph, generate_suggestions, process_diagram_groups
 from app.agent.name_generator import generate_session_name
-from app.api.deps import verify_session_access
+from app.api.deps import get_current_user, verify_session_access
 from app.api._helpers import (
     check_and_deduct_credits,
     generate_system_overview,
@@ -112,15 +112,14 @@ def _get_plan_from_clerk_id(plan_id: str) -> str:
 
 
 @router.post("/subscribe", response_model=SubscriptionStatus)
-async def subscribe(request: SubscribeRequest, http_request: Request):
+async def subscribe(request: SubscribeRequest, http_request: Request,
+    user_id: str = Depends(get_current_user)
+):
     """
     Subscribe a user to email notifications.
     Creates a new subscriber record if one doesn't exist.
     """
-    user_id = getattr(http_request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User authentication required")
-
+    
     try:
         storage = get_subscriber_storage()
         subscriber = storage.create_subscriber(user_id, request.email)
@@ -147,14 +146,13 @@ async def subscribe(request: SubscribeRequest, http_request: Request):
 
 
 @router.get("/subscription/status", response_model=SubscriptionStatus)
-async def get_subscription_status(http_request: Request):
+async def get_subscription_status(http_request: Request,
+    user_id: str = Depends(get_current_user)
+):
     """
     Get the current user's subscription status.
     """
-    user_id = getattr(http_request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User authentication required")
-
+    
     try:
         storage = get_subscriber_storage()
         subscriber = storage.get_subscriber(user_id)
@@ -175,14 +173,13 @@ async def get_subscription_status(http_request: Request):
 
 
 @router.post("/unsubscribe")
-async def unsubscribe_authenticated(http_request: Request):
+async def unsubscribe_authenticated(http_request: Request,
+    user_id: str = Depends(get_current_user)
+):
     """
     Unsubscribe the current authenticated user from emails.
     """
-    user_id = getattr(http_request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User authentication required")
-
+    
     try:
         storage = get_subscriber_storage()
         success = storage.unsubscribe(user_id)
@@ -213,14 +210,13 @@ async def unsubscribe_authenticated(http_request: Request):
 
 
 @router.post("/resubscribe")
-async def resubscribe_authenticated(http_request: Request):
+async def resubscribe_authenticated(http_request: Request,
+    user_id: str = Depends(get_current_user)
+):
     """
     Re-subscribe the current authenticated user to marketing emails.
     """
-    user_id = getattr(http_request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User authentication required")
-
+    
     try:
         storage = get_subscriber_storage()
         success = storage.resubscribe(user_id)
@@ -481,17 +477,16 @@ async def resubscribe_via_token(token: str, http_request: Request):
 
 
 @router.get("/user/credits")
-async def get_user_credits(http_request: Request):
+async def get_user_credits(http_request: Request,
+    user_id: str = Depends(get_current_user)
+):
     """
     Get current user's credit balance and subscription status.
 
     Returns:
         JSON with plan, credit balances, and subscription info
     """
-    user_id = getattr(http_request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User authentication required")
-
+    
     storage = get_user_credits_storage()
     credits = storage.get_or_create_credits(user_id)
 
@@ -508,7 +503,9 @@ async def get_user_credits(http_request: Request):
 
 
 @router.get("/user/credits/history")
-async def get_credit_history(http_request: Request, limit: int = 50):
+async def get_credit_history(http_request: Request, limit: int = 50,
+    user_id: str = Depends(get_current_user)
+):
     """
     Get user's credit transaction history.
 
@@ -518,10 +515,7 @@ async def get_credit_history(http_request: Request, limit: int = 50):
     Returns:
         JSON with list of transactions
     """
-    user_id = getattr(http_request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User authentication required")
-
+    
     storage = get_user_credits_storage()
     transactions = storage.get_transaction_history(user_id, limit=limit)
 
@@ -543,7 +537,9 @@ async def get_credit_history(http_request: Request, limit: int = 50):
 
 
 @router.post("/promo/redeem")
-async def redeem_promo(request: RedeemPromoRequest, http_request: Request):
+async def redeem_promo(request: RedeemPromoRequest, http_request: Request,
+    user_id: str = Depends(get_current_user)
+):
     """
     Redeem a promo code for credits.
 
@@ -553,10 +549,7 @@ async def redeem_promo(request: RedeemPromoRequest, http_request: Request):
     Returns:
         JSON with success status and credits granted
     """
-    user_id = getattr(http_request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User authentication required")
-
+    
     success, error, credits_granted = redeem_promo_code(request.code, user_id)
 
     if not success:
@@ -575,7 +568,9 @@ async def redeem_promo(request: RedeemPromoRequest, http_request: Request):
 
 
 @router.post("/promo/validate")
-async def validate_promo(request: RedeemPromoRequest, http_request: Request):
+async def validate_promo(request: RedeemPromoRequest, http_request: Request,
+    user_id: str = Depends(get_current_user)
+):
     """
     Validate a promo code without redeeming it.
 
@@ -585,10 +580,7 @@ async def validate_promo(request: RedeemPromoRequest, http_request: Request):
     Returns:
         JSON with validity status and code info
     """
-    user_id = getattr(http_request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User authentication required")
-
+    
     is_valid, error = validate_promo_code(request.code, user_id)
 
     if not is_valid:

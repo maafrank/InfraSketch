@@ -5,7 +5,7 @@ import json
 import logging
 import time
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import BaseModel
@@ -17,7 +17,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from app.agent.doc_generator import generate_design_document, generate_design_document_preview
 from app.agent.graph import agent_graph, generate_suggestions, process_diagram_groups
 from app.agent.name_generator import generate_session_name
-from app.api.deps import verify_session_access
+from app.api.deps import get_current_user, get_session_for_user, verify_session_access
 from app.api._helpers import (
     check_and_deduct_credits,
     generate_system_overview,
@@ -365,7 +365,9 @@ Feel free to explore the diagram and ask me anything!"""
 
 
 @router.post("/generate")
-async def generate_diagram(request: GenerateRequest, http_request: Request, background_tasks: BackgroundTasks):
+async def generate_diagram(request: GenerateRequest, http_request: Request, background_tasks: BackgroundTasks,
+    user_id: str = Depends(get_current_user)
+):
     """
     Start diagram generation asynchronously.
 
@@ -376,10 +378,7 @@ async def generate_diagram(request: GenerateRequest, http_request: Request, back
     user_ip = http_request.client.host if http_request.client else None
 
     # Extract user_id from request state (set by Clerk middleware)
-    user_id = getattr(http_request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User authentication required")
-
+    
     try:
         # Use specified model or default to Haiku (alias auto-updates to latest)
         model = request.model or DEFAULT_MODEL
@@ -453,7 +452,10 @@ async def generate_diagram(request: GenerateRequest, http_request: Request, back
 
 
 @router.get("/session/{session_id}/diagram/status")
-async def get_diagram_status(session_id: str, http_request: Request):
+async def get_diagram_status(session_id: str, http_request: Request,
+    user_id: str = Depends(get_current_user),
+    session: SessionState = Depends(get_session_for_user)
+):
     """
     Get the current status of diagram generation.
 
@@ -462,9 +464,7 @@ async def get_diagram_status(session_id: str, http_request: Request):
     Returns:
         JSON with status, elapsed_seconds, and diagram (when completed)
     """
-    user_id = getattr(http_request.state, "user_id", None)
-    session = verify_session_access(session_id, user_id, http_request)
-
+    
     status = session.diagram_generation_status
 
     response = {
@@ -501,13 +501,12 @@ async def get_diagram_status(session_id: str, http_request: Request):
 
 
 @router.post("/session/{session_id}/nodes", response_model=Diagram)
-async def add_node(session_id: str, node: Node, http_request: Request, background_tasks: BackgroundTasks):
+async def add_node(session_id: str, node: Node, http_request: Request, background_tasks: BackgroundTasks,
+    user_id: str = Depends(get_current_user)
+):
     """Add a new node to the diagram."""
     # Extract user_id and verify ownership
-    user_id = getattr(http_request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User authentication required")
-
+    
     session = session_manager.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -551,14 +550,15 @@ async def add_node(session_id: str, node: Node, http_request: Request, backgroun
 
 
 @router.delete("/session/{session_id}/nodes/{node_id}", response_model=Diagram)
-async def delete_node(session_id: str, node_id: str, http_request: Request):
+async def delete_node(session_id: str, node_id: str, http_request: Request,
+    user_id: str = Depends(get_current_user),
+    session: SessionState = Depends(get_session_for_user)
+):
     """Delete a node and its connected edges from the diagram.
 
     If the node is a group, all child nodes are also deleted (cascade delete).
     """
-    user_id = getattr(http_request.state, "user_id", None)
-    session = verify_session_access(session_id, user_id, http_request)
-
+    
     # Find the node to delete
     node_to_delete = next((n for n in session.diagram.nodes if n.id == node_id), None)
     if not node_to_delete:
@@ -604,11 +604,12 @@ async def delete_node(session_id: str, node_id: str, http_request: Request):
 
 
 @router.patch("/session/{session_id}/nodes/{node_id}", response_model=Diagram)
-async def update_node(session_id: str, node_id: str, updated_node: Node, http_request: Request):
+async def update_node(session_id: str, node_id: str, updated_node: Node, http_request: Request,
+    user_id: str = Depends(get_current_user),
+    session: SessionState = Depends(get_session_for_user)
+):
     """Update an existing node's properties."""
-    user_id = getattr(http_request.state, "user_id", None)
-    session = verify_session_access(session_id, user_id, http_request)
-
+    
     # Ensure IDs match
     if updated_node.id != node_id:
         raise HTTPException(status_code=400, detail="Node ID in body must match URL parameter")
@@ -631,11 +632,12 @@ async def update_node(session_id: str, node_id: str, updated_node: Node, http_re
 
 
 @router.post("/session/{session_id}/edges", response_model=Diagram)
-async def add_edge(session_id: str, edge: Edge, http_request: Request):
+async def add_edge(session_id: str, edge: Edge, http_request: Request,
+    user_id: str = Depends(get_current_user),
+    session: SessionState = Depends(get_session_for_user)
+):
     """Add a new edge to the diagram."""
-    user_id = getattr(http_request.state, "user_id", None)
-    session = verify_session_access(session_id, user_id, http_request)
-
+    
     # Validate source and target nodes exist
     node_ids = {n.id for n in session.diagram.nodes}
     if edge.source not in node_ids:
@@ -662,11 +664,12 @@ async def add_edge(session_id: str, edge: Edge, http_request: Request):
 
 
 @router.delete("/session/{session_id}/edges/{edge_id}", response_model=Diagram)
-async def delete_edge(session_id: str, edge_id: str, http_request: Request):
+async def delete_edge(session_id: str, edge_id: str, http_request: Request,
+    user_id: str = Depends(get_current_user),
+    session: SessionState = Depends(get_session_for_user)
+):
     """Delete an edge from the diagram."""
-    user_id = getattr(http_request.state, "user_id", None)
-    session = verify_session_access(session_id, user_id, http_request)
-
+    
     # Find and remove edge
     original_count = len(session.diagram.edges)
     session.diagram.edges = [e for e in session.diagram.edges if e.id != edge_id]
@@ -685,6 +688,9 @@ async def generate_node_description(
     session_id: str,
     node_id: str,
     http_request: Request
+,
+    user_id: str = Depends(get_current_user),
+    session: SessionState = Depends(get_session_for_user)
 ):
     """
     Generate AI-powered description for a group node.
@@ -699,9 +705,7 @@ async def generate_node_description(
     Returns:
         Updated node description and full diagram
     """
-    user_id = getattr(http_request.state, "user_id", None)
-    session = verify_session_access(session_id, user_id, http_request)
-
+    
     # Find the node
     target_node = None
     for node in session.diagram.nodes:
@@ -757,7 +761,9 @@ async def generate_node_description(
 
 
 @router.post("/analyze-repo")
-async def analyze_repo(request: AnalyzeRepoRequest, http_request: Request, background_tasks: BackgroundTasks):
+async def analyze_repo(request: AnalyzeRepoRequest, http_request: Request, background_tasks: BackgroundTasks,
+    user_id: str = Depends(get_current_user)
+):
     """
     Start GitHub repository analysis asynchronously.
 
@@ -780,10 +786,7 @@ async def analyze_repo(request: AnalyzeRepoRequest, http_request: Request, backg
     user_ip = http_request.client.host if http_request.client else None
 
     # Extract user_id from request state (set by Clerk middleware)
-    user_id = getattr(http_request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User authentication required")
-
+    
     try:
         # Validate GitHub URL format
         try:
@@ -867,7 +870,10 @@ async def analyze_repo(request: AnalyzeRepoRequest, http_request: Request, backg
 
 
 @router.get("/session/{session_id}/repo-analysis/status")
-async def get_repo_analysis_status(session_id: str, http_request: Request):
+async def get_repo_analysis_status(session_id: str, http_request: Request,
+    user_id: str = Depends(get_current_user),
+    session: SessionState = Depends(get_session_for_user)
+):
     """
     Get the current status of repository analysis.
 
@@ -877,9 +883,7 @@ async def get_repo_analysis_status(session_id: str, http_request: Request):
         JSON with status, phase, progress_message, elapsed_seconds,
         and diagram/messages when completed.
     """
-    user_id = getattr(http_request.state, "user_id", None)
-    session = verify_session_access(session_id, user_id, http_request)
-
+    
     status = session.repo_analysis_status
 
     response = {

@@ -5,7 +5,7 @@ import json
 import logging
 import time
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import BaseModel
@@ -17,7 +17,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from app.agent.doc_generator import generate_design_document, generate_design_document_preview
 from app.agent.graph import agent_graph, generate_suggestions, process_diagram_groups
 from app.agent.name_generator import generate_session_name
-from app.api.deps import verify_session_access
+from app.api.deps import get_current_user, get_session_for_user, verify_session_access
 from app.api._helpers import (
     check_and_deduct_credits,
     generate_system_overview,
@@ -446,7 +446,10 @@ async def generate_design_doc(session_id: str, request: ExportRequest, backgroun
 
 
 @router.get("/session/{session_id}/design-doc/status")
-async def get_design_doc_status(session_id: str, http_request: Request):
+async def get_design_doc_status(session_id: str, http_request: Request,
+    user_id: str = Depends(get_current_user),
+    session: SessionState = Depends(get_session_for_user)
+):
     """
     Get the current status of design document generation.
 
@@ -456,9 +459,7 @@ async def get_design_doc_status(session_id: str, http_request: Request):
     Returns:
         JSON with status information
     """
-    user_id = getattr(http_request.state, "user_id", None)
-    session = verify_session_access(session_id, user_id, http_request)
-
+    
     status = session.design_doc_status
 
     response = {

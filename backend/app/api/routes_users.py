@@ -5,7 +5,7 @@ import json
 import logging
 import time
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import BaseModel
@@ -17,7 +17,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from app.agent.doc_generator import generate_design_document, generate_design_document_preview
 from app.agent.graph import agent_graph, generate_suggestions, process_diagram_groups
 from app.agent.name_generator import generate_session_name
-from app.api.deps import verify_session_access
+from app.api.deps import get_current_user, verify_session_access
 from app.api._helpers import (
     check_and_deduct_credits,
     generate_system_overview,
@@ -100,17 +100,16 @@ class StreakReminderPreferenceRequest(BaseModel):
 
 
 @router.get("/user/sessions")
-async def get_user_sessions(http_request: Request):
+async def get_user_sessions(http_request: Request,
+    user_id: str = Depends(get_current_user)
+):
     """
     Get all sessions belonging to the authenticated user.
 
     Returns:
         List of sessions with metadata, sorted by most recent first
     """
-    user_id = getattr(http_request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User authentication required")
-
+    
     try:
         # Get all sessions for this user
         sessions = session_manager.get_user_sessions(user_id)
@@ -236,16 +235,15 @@ async def clerk_webhook(request: Request):
 
 
 @router.get("/user/preferences", response_model=UserPreferencesResponse)
-async def get_user_preferences(http_request: Request):
+async def get_user_preferences(http_request: Request,
+    user_id: str = Depends(get_current_user)
+):
     """
     Get the current user's preferences (tutorial status, etc.).
 
     Returns default preferences if none exist yet.
     """
-    user_id = getattr(http_request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User authentication required")
-
+    
     storage = get_user_preferences_storage()
     prefs = storage.get_or_create_preferences(user_id)
 
@@ -259,14 +257,13 @@ async def get_user_preferences(http_request: Request):
 
 
 @router.post("/user/tutorial/complete")
-async def complete_tutorial(http_request: Request):
+async def complete_tutorial(http_request: Request,
+    user_id: str = Depends(get_current_user)
+):
     """
     Mark the tutorial as completed for the current user.
     """
-    user_id = getattr(http_request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User authentication required")
-
+    
     storage = get_user_preferences_storage()
     success = storage.mark_tutorial_completed(user_id)
 
@@ -277,14 +274,13 @@ async def complete_tutorial(http_request: Request):
 
 
 @router.post("/user/tutorial/reset")
-async def reset_tutorial(http_request: Request):
+async def reset_tutorial(http_request: Request,
+    user_id: str = Depends(get_current_user)
+):
     """
     Reset the tutorial status so the user can replay it.
     """
-    user_id = getattr(http_request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User authentication required")
-
+    
     storage = get_user_preferences_storage()
     success = storage.reset_tutorial(user_id)
 
@@ -295,12 +291,11 @@ async def reset_tutorial(http_request: Request):
 
 
 @router.get("/user/gamification")
-async def get_user_gamification(http_request: Request):
+async def get_user_gamification(http_request: Request,
+    user_id: str = Depends(get_current_user)
+):
     """Get the user's gamification state (level, XP, streak, pending notifications)."""
-    user_id = getattr(http_request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User authentication required")
-
+    
     storage = get_gamification_storage()
     gamification = storage.get_or_create(user_id)
 
@@ -340,12 +335,11 @@ async def get_user_gamification(http_request: Request):
 
 
 @router.get("/user/gamification/achievements")
-async def get_user_achievements(http_request: Request):
+async def get_user_achievements(http_request: Request,
+    user_id: str = Depends(get_current_user)
+):
     """Get all achievement definitions with unlock status and progress."""
-    user_id = getattr(http_request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User authentication required")
-
+    
     storage = get_gamification_storage()
     gamification = storage.get_or_create(user_id)
 
@@ -376,12 +370,11 @@ async def get_user_achievements(http_request: Request):
 @router.post("/user/gamification/notifications/dismiss")
 async def dismiss_gamification_notifications(
     request: DismissNotificationsRequest, http_request: Request
+,
+    user_id: str = Depends(get_current_user)
 ):
     """Clear pending notifications after the user has seen them."""
-    user_id = getattr(http_request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User authentication required")
-
+    
     storage = get_gamification_storage()
     gamification = storage.get_or_create(user_id)
 
@@ -397,12 +390,11 @@ async def dismiss_gamification_notifications(
 @router.patch("/user/gamification/streak-reminders")
 async def update_streak_reminder_preference(
     request: StreakReminderPreferenceRequest, http_request: Request
+,
+    user_id: str = Depends(get_current_user)
 ):
     """Update whether the user receives streak reminder emails."""
-    user_id = getattr(http_request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User authentication required")
-
+    
     storage = get_gamification_storage()
     gamification = storage.get_or_create(user_id)
     gamification.streak_reminders_enabled = request.enabled

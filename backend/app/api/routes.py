@@ -5,7 +5,7 @@ import json
 import logging
 import time
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import BaseModel
@@ -17,7 +17,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from app.agent.doc_generator import generate_design_document, generate_design_document_preview
 from app.agent.graph import agent_graph, generate_suggestions, process_diagram_groups
 from app.agent.name_generator import generate_session_name
-from app.api.deps import verify_session_access
+from app.api.deps import get_current_user, verify_session_access
 from app.api._helpers import (
     check_and_deduct_credits,
     generate_system_overview,
@@ -84,16 +84,15 @@ router = APIRouter()
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest, http_request: Request, background_tasks: BackgroundTasks):
+async def chat(request: ChatRequest, http_request: Request, background_tasks: BackgroundTasks,
+    user_id: str = Depends(get_current_user)
+):
     """Continue conversation about diagram/node."""
     start_time = time.time()
     user_ip = http_request.client.host if http_request.client else None
 
     # Extract user_id from request state (set by Clerk middleware)
-    user_id = getattr(http_request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User authentication required")
-
+    
     try:
         # Get session
         session = session_manager.get_session(request.session_id)
@@ -241,13 +240,12 @@ async def chat(request: ChatRequest, http_request: Request, background_tasks: Ba
 
 
 @router.get("/session/{session_id}", response_model=SessionState)
-async def get_session(session_id: str, http_request: Request):
+async def get_session(session_id: str, http_request: Request,
+    user_id: str = Depends(get_current_user)
+):
     """Retrieve current session state."""
     # Extract user_id from request state (set by Clerk middleware)
-    user_id = getattr(http_request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User authentication required")
-
+    
     session = session_manager.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -260,12 +258,11 @@ async def get_session(session_id: str, http_request: Request):
 
 
 @router.patch("/session/{session_id}/name")
-async def rename_session(session_id: str, request: dict, http_request: Request):
+async def rename_session(session_id: str, request: dict, http_request: Request,
+    user_id: str = Depends(get_current_user)
+):
     """Rename a session."""
-    user_id = getattr(http_request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User authentication required")
-
+    
     session = session_manager.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -286,12 +283,11 @@ async def rename_session(session_id: str, request: dict, http_request: Request):
 
 
 @router.delete("/session/{session_id}")
-async def delete_session(session_id: str, http_request: Request):
+async def delete_session(session_id: str, http_request: Request,
+    user_id: str = Depends(get_current_user)
+):
     """Delete a session."""
-    user_id = getattr(http_request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User authentication required")
-
+    
     session = session_manager.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -315,12 +311,11 @@ async def delete_session(session_id: str, http_request: Request):
 
 
 @router.post("/session/create-blank")
-async def create_blank_session(http_request: Request):
+async def create_blank_session(http_request: Request,
+    user_id: str = Depends(get_current_user)
+):
     """Create a new blank session with empty diagram."""
-    user_id = getattr(http_request.state, "user_id", None)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User authentication required")
-
+    
     # Create empty diagram
     empty_diagram = Diagram(nodes=[], edges=[])
 
