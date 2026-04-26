@@ -31,10 +31,6 @@ import {
   updateNode,
   addEdge,
   deleteEdge,
-  generateDesignDoc,
-  pollDesignDocStatus,
-  updateDesignDoc,
-  exportDesignDoc,
   setClerkTokenGetter,
   getSession,
   createBlankSession,
@@ -49,6 +45,8 @@ import {
 } from './api/client';
 import './App.css';
 import { MOBILE_BREAKPOINT } from './constants/ui';
+import { useDesignDoc } from './hooks/useDesignDoc';
+import { base64ToBlob, downloadBlob } from './utils/download';
 
 // Settings icon for UserButton menu
 const SettingsIcon = () => (
@@ -97,12 +95,8 @@ function AppContent({ resumeMode = false, isMobile }) {
   const [preSelectedNodeType, setPreSelectedNodeType] = useState(null);
   const [applyLayoutFn, setApplyLayoutFn] = useState(null);
 
-  // Design doc state
-  const [designDoc, setDesignDoc] = useState(null);
-  const [designDocOpen, setDesignDocOpen] = useState(false);
-  const [designDocLoading, setDesignDocLoading] = useState(false);
-  const [designDocWidth, setDesignDocWidth] = useState(400);
-  const [designDocIsPreview, setDesignDocIsPreview] = useState(false);
+  // Design doc state - owned by useDesignDoc; deps wired below after the
+  // useState block so refreshCredits/processGamificationResult are in scope.
 
   // Chat panel state
   const [chatPanelWidth, setChatPanelWidth] = useState(400);
@@ -135,6 +129,31 @@ function AppContent({ resumeMode = false, isMobile }) {
   // Billing state
   const [insufficientCreditsError, setInsufficientCreditsError] = useState(null);
   const [refreshCredits, setRefreshCredits] = useState(null);
+
+  // Design-doc state + handlers (extracted from App.jsx for cohesion)
+  const designDocHook = useDesignDoc({
+    sessionId,
+    refreshCredits,
+    refreshGamification,
+    processGamificationResult,
+    setInsufficientCreditsError,
+  });
+  const {
+    designDoc,
+    designDocOpen,
+    designDocLoading,
+    designDocWidth,
+    designDocIsPreview,
+    setDesignDoc,
+    setDesignDocOpen,
+    handleCreateDesignDoc,
+    handleSaveDesignDoc,
+    handleExportDesignDoc,
+    handleCloseDesignDoc,
+    handleDesignDocWidthChange,
+    hydrateFromSession: hydrateDesignDocFromSession,
+    reset: resetDesignDoc,
+  } = designDocHook;
 
   // Auth - Set up token getter for API client
   const { getToken, isSignedIn } = useAuth();
@@ -222,7 +241,7 @@ function AppContent({ resumeMode = false, isMobile }) {
         }
       },
     });
-  }, [registerCallbacks, handleOpenAddNodeModalWithPrefill, navigate]);
+  }, [registerCallbacks, handleOpenAddNodeModalWithPrefill, navigate, setDesignDoc, setDesignDocOpen]);
 
   // Re-center diagram when sidebar opens/closes
   useEffect(() => {
@@ -246,17 +265,12 @@ function AppContent({ resumeMode = false, isMobile }) {
       setSessionName(sessionData.name);
       setDiagram(sessionData.diagram);
       setMessages(sessionData.messages || []);
-      setDesignDoc(sessionData.design_doc);
-      setDesignDocIsPreview(sessionData.design_doc_status?.is_preview === true);
+      hydrateDesignDocFromSession(sessionData);
 
       // Restore model from session (fallback to default if not present)
       if (sessionData.model) {
         setCurrentModel(sessionData.model);
       }
-
-      // Always close design doc panel when switching sessions
-      // Users can reopen it if they want to view the design doc
-      setDesignDocOpen(false);
 
     } catch (error) {
       console.error('Failed to load session:', error);
@@ -265,7 +279,7 @@ function AppContent({ resumeMode = false, isMobile }) {
     } finally {
       setLoading(false);
     }
-  }, [navigate]);
+  }, [navigate, hydrateDesignDocFromSession]);
 
   // Resume session from URL parameter
   useEffect(() => {
@@ -791,8 +805,7 @@ function AppContent({ resumeMode = false, isMobile }) {
     setDiagram(null);
     setSelectedNode(null);
     setMessages([]);
-    setDesignDoc(null);
-    setDesignDocOpen(false);
+    resetDesignDoc();
     setSessionName('Untitled Design');
     navigate('/');
   };
@@ -806,119 +819,14 @@ function AppContent({ resumeMode = false, isMobile }) {
     setDiagram(null);
     setSelectedNode(null);
     setMessages([]);
-    setDesignDoc(null);
-    setDesignDocIsPreview(false);
-    setDesignDocOpen(false);
+    resetDesignDoc();
     setSessionName('Untitled Design');
     navigate('/');
-  }, [navigate]);
-
-  const handleCreateDesignDoc = async () => {
-    if (!sessionId) return;
-
-    // If design doc already exists, just reopen the panel
-    if (designDoc) {
-      setDesignDocOpen(true);
-      return;
-    }
-
-    // Otherwise, generate a new design doc
-    setDesignDocLoading(true);
-    setDesignDocOpen(true); // Open panel immediately to show loading state
-
-    try {
-      // Start background generation
-      await generateDesignDoc(sessionId);
-
-      // Poll for completion
-      const result = await pollDesignDocStatus(sessionId);
-
-      if (result.success) {
-        setDesignDocIsPreview(result.is_preview === true);
-        setDesignDoc(result.design_doc);
-        // Refresh credit balance and gamification immediately after successful generation
-        if (refreshCredits) refreshCredits();
-        if (refreshGamification) refreshGamification();
-      } else {
-        throw new Error(result.error || 'Failed to generate design document');
-      }
-    } catch (error) {
-      console.error('Failed to generate design doc:', error);
-
-      // Handle feature locked (403) - free user has already used their per-session preview
-      if (error.response?.status === 403 && error.response.data?.error === 'feature_locked') {
-        setDesignDocOpen(false);
-        setInsufficientCreditsError({
-          required: 0,
-          available: 0,
-          featureLocked: true,
-          message: error.response.data.message || 'This feature requires a paid plan.',
-        });
-      // Handle insufficient credits (402)
-      } else if (error.response?.status === 402) {
-        const detail = error.response.data?.detail || {};
-        setInsufficientCreditsError({
-          required: detail.required || 10,
-          available: detail.available || 0,
-        });
-        setDesignDocOpen(false); // Close panel on credits error
-      } else {
-        alert('Failed to generate design document. Please try again.');
-        setDesignDocOpen(false); // Close panel on error
-      }
-    } finally {
-      setDesignDocLoading(false);
-    }
-  };
+  }, [navigate, resetDesignDoc]);
 
   const handleUpgradeFromPreview = useCallback(() => {
     navigate('/pricing');
   }, [navigate]);
-
-  const handleSaveDesignDoc = async (content) => {
-    if (!sessionId) return;
-
-    try {
-      await updateDesignDoc(sessionId, content);
-      setDesignDoc(content);
-    } catch (error) {
-      console.error('Failed to save design doc:', error);
-      throw error; // Re-throw so DesignDocPanel can handle it
-    }
-  };
-
-  const handleExportDesignDoc = async (format, diagramImage) => {
-    if (!sessionId) return;
-
-    try {
-      const response = await exportDesignDoc(sessionId, format, diagramImage);
-
-      // Download files
-      if (response.pdf) {
-        const pdfBlob = base64ToBlob(response.pdf.content, 'application/pdf');
-        downloadBlob(pdfBlob, response.pdf.filename);
-      }
-
-      if (response.markdown) {
-        const mdBlob = new Blob([response.markdown.content], { type: 'text/markdown' });
-        downloadBlob(mdBlob, response.markdown.filename);
-      }
-
-      if (response.diagram_png) {
-        const pngBlob = base64ToBlob(response.diagram_png.content, 'image/png');
-        downloadBlob(pngBlob, response.diagram_png.filename);
-      }
-
-      if (response.gamification) processGamificationResult(response.gamification);
-    } catch (error) {
-      console.error('Failed to export design doc:', error);
-      throw error; // Re-throw so DesignDocPanel can handle it
-    }
-  };
-
-  const handleCloseDesignDoc = () => {
-    setDesignDocOpen(false);
-  };
 
   const handleOpenNodePalette = (nodeType) => {
     // Always open the AddNodeModal, just like the "+ Add Node" button
@@ -931,11 +839,6 @@ function AppContent({ resumeMode = false, isMobile }) {
     setShowAddNodeModal(true);
     setNodePaletteOpen(false);
   };
-
-  // Wrap setDesignDocWidth in useCallback to prevent unnecessary re-renders
-  const handleDesignDocWidthChange = useCallback((width) => {
-    setDesignDocWidth(width);
-  }, []);
 
   // Wrap setChatPanelWidth in useCallback to prevent unnecessary re-renders
   const handleChatPanelWidthChange = useCallback((width) => {
@@ -962,29 +865,6 @@ function AppContent({ resumeMode = false, isMobile }) {
     // Reset after a brief delay to allow the effect to trigger
     setTimeout(() => setExamplePrompt(null), 100);
   }, [isMobile]);
-
-  // Helper function to convert base64 to blob
-  const base64ToBlob = useCallback((base64, mimeType) => {
-    const byteCharacters = atob(base64);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-    return new Blob([byteArray], { type: mimeType });
-  }, []);
-
-  // Helper function to download blob
-  const downloadBlob = useCallback((blob, filename) => {
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }, []);
 
   // Handle PNG export from floating button
   const handleExportPng = useCallback(async () => {
@@ -1041,7 +921,7 @@ function AppContent({ resumeMode = false, isMobile }) {
       console.error('Failed to export diagram:', error);
       alert('Failed to export diagram. Please try again.');
     }
-  }, [applyLayoutFn, base64ToBlob, downloadBlob]);
+  }, [applyLayoutFn]);
 
   return (
       <div className="app">
