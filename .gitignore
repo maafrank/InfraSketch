@@ -246,3 +246,6 @@ marketing/content-pipeline/.env
 marketing/content-pipeline/node_modules/
 marketing/content-pipeline/output/
 marketing/content-pipeline/voiceovers/
+
+# Generated conversion analysis reports (contain user_ids and prompt snippets)
+marketing/conversion-analysis-*.md
