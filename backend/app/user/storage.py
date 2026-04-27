@@ -140,6 +140,12 @@ class UserPreferencesStorage:
         prefs.tutorial_completed_at = None
         return self.save_preferences(prefs)
 
+    def set_auto_sync_enabled(self, user_id: str, enabled: bool) -> bool:
+        """Enable or disable auto-sync between diagram and design doc."""
+        prefs = self.get_or_create_preferences(user_id)
+        prefs.auto_sync_enabled = enabled
+        return self.save_preferences(prefs)
+
 
 # Singleton instance for Lambda environment
 _storage_instance: Optional[UserPreferencesStorage] = None

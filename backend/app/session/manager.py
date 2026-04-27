@@ -1,10 +1,12 @@
 from typing import Dict, Optional, List
+import copy
 import os
 import uuid
 import time
 from datetime import datetime, timezone
 from app.models import SessionState, Diagram, Message, DesignDocStatus, DiagramGenerationStatus, RepoAnalysisStatus
 from app.config.models import DEFAULT_MODEL
+from app.sync.context import current_mutation_provenance
 
 import logging
 logger = logging.getLogger(__name__)
@@ -125,16 +127,36 @@ class SessionManager:
         return sessions
 
     def update_diagram(self, session_id: str, diagram: Diagram) -> bool:
-        """Update diagram for a session."""
+        """Update diagram for a session.
+
+        The mutation's provenance is read from the `current_mutation_provenance`
+        contextvar (set by tools_node, the SyncEngine, or generation paths). It
+        controls whether SyncEngine.schedule schedules a follow-up sync.
+        """
         session = self.get_session(session_id)
         if not session:
             return False
-        session.diagram = diagram
 
-        # Save updated session
+        old_diagram = copy.deepcopy(session.diagram) if session.diagram else None
+        provenance = current_mutation_provenance.get()
+
+        session.diagram = diagram
+        session.diagram_revision += 1
+
         if self.is_lambda:
-            return self.storage.save_session(session)
-        return True
+            saved = self.storage.save_session(session)
+        else:
+            saved = True
+
+        if saved:
+            self._maybe_schedule_sync(
+                session,
+                side="diagram",
+                provenance=provenance,
+                old_diagram=old_diagram,
+                new_diagram=diagram,
+            )
+        return saved
 
     def add_message(self, session_id: str, message: Message) -> bool:
         """Add message to session history."""
@@ -161,16 +183,32 @@ class SessionManager:
         return True
 
     def update_design_doc(self, session_id: str, design_doc: str) -> bool:
-        """Update design document content for a session."""
+        """Update design document content for a session.
+
+        Provenance handling matches `update_diagram` (Phase 2 will use this for
+        doc -> diagram sync). For now, the design_doc_revision counter is bumped
+        so concurrency guards in the sync engine can detect mid-sync edits.
+        """
         session = self.get_session(session_id)
         if not session:
             return False
-        session.design_doc = design_doc
 
-        # Save updated session
+        provenance = current_mutation_provenance.get()
+        session.design_doc = design_doc
+        session.design_doc_revision += 1
+
         if self.is_lambda:
-            return self.storage.save_session(session)
-        return True
+            saved = self.storage.save_session(session)
+        else:
+            saved = True
+
+        if saved:
+            self._maybe_schedule_sync(
+                session,
+                side="design_doc",
+                provenance=provenance,
+            )
+        return saved
 
     def set_design_doc_status(self, session_id: str, status: str, error: Optional[str] = None, is_preview: Optional[bool] = None) -> bool:
         """Update design document generation status.
@@ -418,6 +456,87 @@ class SessionManager:
         if not session:
             return None
         return session.repo_analysis_status
+
+    def _maybe_schedule_sync(
+        self,
+        session: SessionState,
+        side: str,
+        provenance: str,
+        old_diagram: Optional[Diagram] = None,
+        new_diagram: Optional[Diagram] = None,
+    ) -> None:
+        """Hand off to SyncEngine.schedule. Imported lazily to avoid a circular import."""
+        try:
+            from app.sync.engine import schedule
+            schedule(session, side, provenance, old_diagram=old_diagram, new_diagram=new_diagram)
+        except Exception as e:
+            logger.exception(f"_maybe_schedule_sync failed: {e}")
+
+    def update_sync_status(self, session_id: str, **fields) -> bool:
+        """Update fields on session.sync_status. Pass only the fields you want to change.
+
+        Any field passed (including with a None value) overwrites the existing value.
+        Fields not passed are left untouched.
+        """
+        session = self.get_session(session_id)
+        if not session:
+            return False
+        valid = {"state", "direction", "sync_due_at", "started_at", "error", "completed_at", "last_run_summary"}
+        for name, value in fields.items():
+            if name in valid:
+                setattr(session.sync_status, name, value)
+        if self.is_lambda:
+            return self.storage.save_session(session)
+        return True
+
+    def mark_sync_succeeded(
+        self,
+        session_id: str,
+        diagram_revision: int,
+        design_doc_revision: int,
+        summary: str,
+    ) -> bool:
+        """Record a successful sync run. Bumps last_synced_* and resets failure counter."""
+        session = self.get_session(session_id)
+        if not session:
+            return False
+        session.last_synced_diagram_revision = diagram_revision
+        session.last_synced_design_doc_revision = design_doc_revision
+        session.sync_status.state = "idle"
+        session.sync_status.error = None
+        session.sync_status.last_run_summary = summary
+        session.sync_status.completed_at = time.time()
+        session.sync_status.sync_due_at = None
+        session.sync_status.consecutive_failures = 0
+        if self.is_lambda:
+            return self.storage.save_session(session)
+        return True
+
+    def mark_sync_failed(self, session_id: str, error: str) -> bool:
+        """Record a failed sync run. After MAX_CONSECUTIVE_FAILURES, scheduler stops scheduling."""
+        session = self.get_session(session_id)
+        if not session:
+            return False
+        session.sync_status.state = "failed"
+        session.sync_status.error = error
+        session.sync_status.completed_at = time.time()
+        session.sync_status.sync_due_at = None
+        session.sync_status.consecutive_failures += 1
+        if self.is_lambda:
+            return self.storage.save_session(session)
+        return True
+
+    def bump_last_synced_diagram_revision(self, session_id: str) -> bool:
+        """Mark the current diagram_revision as already-synced. Used after design-doc generation
+        so we don't immediately re-sync a freshly-generated doc against an unchanged diagram."""
+        session = self.get_session(session_id)
+        if not session:
+            return False
+        session.last_synced_diagram_revision = session.diagram_revision
+        session.last_synced_design_doc_revision = session.design_doc_revision
+        if self.is_lambda:
+            return self.storage.save_session(session)
+        return True
 
     def store_repo_analysis(self, session_id: str, analysis_data: dict) -> bool:
         """

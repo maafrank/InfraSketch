@@ -222,6 +222,16 @@ export const pollDesignDocStatus = createPoller({
   timeoutMs: POLL_TIMEOUTS_MS.designDoc,
 });
 
+export const triggerSync = async (sessionId, direction = 'auto') => {
+  const response = await client.post(`/session/${sessionId}/sync`, { direction });
+  return response.data;
+};
+
+export const updateAutoSyncPreference = async (enabled) => {
+  const response = await client.patch('/user/preferences/auto-sync', { enabled });
+  return response.data;
+};
+
 export const exportDesignDoc = async (sessionId, format = 'pdf', diagramImage = null) => {
   const response = await client.post(
     `/session/${sessionId}/design-doc/export?format=${format}`,

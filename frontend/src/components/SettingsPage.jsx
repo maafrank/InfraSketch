@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { SignedIn, SignedOut, SignInButton, UserButton, useAuth } from '@clerk/clerk-react';
 import { SubscriptionDetailsButton } from '@clerk/clerk-react/experimental';
 import { useTheme } from '../contexts/useTheme';
-import { resetTutorial, setClerkTokenGetter, getUserCredits, getCreditHistory, getUserGamification, updateStreakReminderPreference, getSubscriptionStatus, unsubscribeFromMarketing, resubscribeToMarketing } from '../api/client';
+import { resetTutorial, setClerkTokenGetter, getUserCredits, getCreditHistory, getUserGamification, updateStreakReminderPreference, getSubscriptionStatus, unsubscribeFromMarketing, resubscribeToMarketing, getUserPreferences, updateAutoSyncPreference } from '../api/client';
 import ThemeToggle from './ThemeToggle';
 import './SettingsPage.css';
 
@@ -36,6 +36,10 @@ export default function SettingsPage() {
   const [marketingEmailsEnabled, setMarketingEmailsEnabled] = useState(false);
   const [marketingEmailsLoading, setMarketingEmailsLoading] = useState(false);
 
+  // AI behavior preferences
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
+  const [autoSyncLoading, setAutoSyncLoading] = useState(false);
+
   // Fetch credits on mount
   const fetchCredits = useCallback(async () => {
     if (!isSignedIn) return;
@@ -58,20 +62,37 @@ export default function SettingsPage() {
     const fetchNotificationPrefs = async () => {
       if (!isSignedIn) return;
       try {
-        const [gamificationData, subscriptionData] = await Promise.all([
+        const [gamificationData, subscriptionData, userPrefs] = await Promise.all([
           getUserGamification(),
           getSubscriptionStatus(),
+          getUserPreferences(),
         ]);
         if (gamificationData.streak_reminders_enabled !== undefined) {
           setStreakRemindersEnabled(gamificationData.streak_reminders_enabled);
         }
         setMarketingEmailsEnabled(subscriptionData.subscribed);
+        if (userPrefs?.auto_sync_enabled !== undefined) {
+          setAutoSyncEnabled(userPrefs.auto_sync_enabled);
+        }
       } catch (error) {
         console.error('Failed to fetch notification preferences:', error);
       }
     };
     fetchNotificationPrefs();
   }, [isSignedIn]);
+
+  const handleAutoSyncToggle = async () => {
+    const newValue = !autoSyncEnabled;
+    setAutoSyncLoading(true);
+    try {
+      await updateAutoSyncPreference(newValue);
+      setAutoSyncEnabled(newValue);
+    } catch (error) {
+      console.error('Failed to update auto-sync preference:', error);
+    } finally {
+      setAutoSyncLoading(false);
+    }
+  };
 
   const handleStreakRemindersToggle = async () => {
     const newValue = !streakRemindersEnabled;
@@ -347,6 +368,34 @@ export default function SettingsPage() {
               </div>
             </div>
           </section>
+
+          {/* AI Behavior Section - hidden for free plan users */}
+          {credits && credits.plan !== 'free' && (
+            <section className="settings-section">
+              <h2>AI Behavior</h2>
+              <div className="settings-row">
+                <div>
+                  <h3>Auto-sync design doc</h3>
+                  <p className="settings-description">
+                    When you change the diagram (manually or through chat), the design document automatically updates the relevant sections to match. Each successful sync uses 2 credits.
+                  </p>
+                </div>
+                <div className="settings-row-control">
+                  <span className="theme-label">
+                    {autoSyncEnabled ? 'On' : 'Off'}
+                  </span>
+                  <button
+                    className={`settings-toggle ${autoSyncEnabled ? 'active' : ''}`}
+                    onClick={handleAutoSyncToggle}
+                    disabled={autoSyncLoading}
+                    aria-label="Toggle auto-sync between diagram and design doc"
+                  >
+                    <span className="settings-toggle-slider" />
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* Tutorial Section */}
           <section className="settings-section">

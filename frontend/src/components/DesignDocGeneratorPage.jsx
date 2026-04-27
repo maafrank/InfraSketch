@@ -31,64 +31,49 @@ const EXAMPLE_PROMPTS = [
 
 const SCREENSHOTS = [
   {
-    src: "/url-shortener-prompt-input.png",
-    alt: "Entering a prompt to design a URL shortening service",
-    caption: "Describe your system in natural language"
+    src: "/doc-page/08-doc-app-with-sync.png",
+    alt: "Full InfraSketch workspace with diagram, design doc, and auto-sync indicator",
+    caption: "Diagram and design doc, side by side — auto-syncing as you edit"
   },
   {
-    src: "/url-shortener-diagram-generated.png",
-    alt: "Generated URL shortener architecture diagram",
-    caption: "AI generates a complete architecture diagram"
+    src: "/doc-page/01-doc-panel-full.png",
+    alt: "Full design document panel with structured sections",
+    caption: "A real, structured design document — generated in under 2 minutes"
   },
   {
-    src: "/url-shortener-chat-add-loadbalancer.png",
-    alt: "Chat message requesting to add a load balancer",
-    caption: "Refine your design through conversation"
+    src: "/doc-page/03-doc-component-details.png",
+    alt: "Component Details section with Purpose, Type, Rationale, and Scaling for each component",
+    caption: "Component Details: purpose, type, rationale, scaling — for every node"
   },
   {
-    src: "/url-shortener-diagram-with-loadbalancer.png",
-    alt: "Updated diagram with load balancer added",
-    caption: "Watch your diagram update in real-time"
+    src: "/doc-page/04-doc-data-flow.png",
+    alt: "Data Flow section describing how data moves through the system",
+    caption: "Data Flow: concrete paths with latency and hit-rate targets"
   },
   {
-    src: "/url-shortener-design-doc-panel.png",
-    alt: "Generated system design document",
-    caption: "Generate comprehensive design documentation"
+    src: "/doc-page/05-doc-trade-offs.png",
+    alt: "Trade-offs and Alternatives section showing chosen vs considered options",
+    caption: "Trade-offs: chosen vs. considered, with rationale"
   },
   {
-    src: "/url-shortener-full-app-view.png",
-    alt: "Full application view with diagram, chat, and design doc",
-    caption: "Complete workspace with all panels"
+    src: "/doc-page/02-doc-executive-summary.png",
+    alt: "Executive Summary and System Overview sections",
+    caption: "Executive Summary plus Purpose, Goals, and Target Scale"
   },
   {
-    src: "/full-app-with-design-doc.png",
-    alt: "Full application with session history, design doc, and diagram",
-    caption: "Manage multiple designs with session history"
+    src: "/doc-page/09-doc-second-example.png",
+    alt: "Video streaming platform diagram with its design doc",
+    caption: "Same flow for any system: video streaming, e-commerce, anything"
   },
   {
-    src: "/tutorial.png",
-    alt: "Interactive tutorial showing 3 steps to get started",
-    caption: "Interactive tutorial guides you through the basics"
+    src: "/doc-page/06-doc-toolbar.png",
+    alt: "Rich text editor toolbar with Bold, Italic, H1, H2, list, and number controls",
+    caption: "Edit inline with a rich text editor — bold, headings, lists"
   },
   {
-    src: "/followup-questions.png",
-    alt: "AI-suggested follow-up questions after diagram generation",
-    caption: "Smart suggestions help you iterate on your design"
-  },
-  {
-    src: "/ecommerce-collapsed-groups.png",
-    alt: "E-commerce diagram with collapsed component groups",
-    caption: "Organize components into collapsible groups"
-  },
-  {
-    src: "/ecommerce-expanded.png",
-    alt: "E-commerce diagram with expanded groups",
-    caption: "Expand groups to see all components"
-  },
-  {
-    src: "/email-platform-model-selector.png",
-    alt: "Email platform with model selector",
-    caption: "Choose between Speed and Power models"
+    src: "/auto-sync-hero.png",
+    alt: "Sync indicator visible in the design doc panel after a diagram change",
+    caption: "Change the diagram, the doc auto-updates the relevant sections"
   }
 ];
 
@@ -96,38 +81,63 @@ const FEATURES = [
   {
     icon: "📄",
     title: "Auto-Generated Design Documents",
-    description: "Click one button to generate a comprehensive design document from your architecture diagram. No manual writing required."
+    description: "One click turns your architecture diagram into a comprehensive design document. No manual writing, no blank-page paralysis."
   },
   {
     icon: "🔄",
-    title: "Diagram + Doc Sync",
-    description: "Your design document stays in sync with your diagram. Update the architecture, regenerate the doc."
+    title: "Auto-Sync With Your Diagram",
+    description: "Add a node, swap a database, change a connection — the relevant sections of the doc update themselves. No regeneration. No stale specs."
+  },
+  {
+    icon: "🤖",
+    title: "AI Agent–Ready",
+    description: "Hand the doc to Claude Code, Cursor, or ChatGPT and let them implement it. Structured markdown with named components, explicit data flows, and clear trade-offs — exactly what agents need."
   },
   {
     icon: "💬",
     title: "Chat-Based Editing",
-    description: "Refine both diagram and documentation through natural conversation. Ask the AI to expand sections or add details."
+    description: "Refine both diagram and documentation through natural conversation. Ask the AI to expand a section, change a technology, or rethink a trade-off."
   },
   {
     icon: "📊",
     title: "12 Standard Sections",
-    description: "Executive summary, component details, data flow, security considerations, scalability, and implementation phases."
+    description: "Executive Summary, System Overview, Component Details, Data Flow, Infrastructure, Scalability, Security, Trade-offs, Implementation Phases — every section a real design doc needs."
   },
   {
     icon: "📤",
     title: "Export PDF & Markdown",
-    description: "Export your design document as a professional PDF or Markdown file. Perfect for wikis, PRDs, and presentations."
+    description: "Export as a professional PDF for stakeholders or Markdown for your wiki. The diagram is embedded in the PDF. Perfect for PRDs, RFCs, and onboarding docs."
+  }
+];
+
+// Sections to highlight in the new "What a generated doc actually looks like" gallery.
+const DOC_EXCERPTS = [
+  {
+    src: "/doc-page/02-doc-executive-summary.png",
+    title: "Executive Summary + System Overview",
+    description: "A 1-2 paragraph summary of system purpose, plus Purpose & Goals and Target Scale bullets.",
   },
   {
-    icon: "⚡",
-    title: "Minutes, Not Hours",
-    description: "Generate complete documentation in under 2 minutes. Traditional design docs take hours or days to write."
-  }
+    src: "/doc-page/03-doc-component-details.png",
+    title: "Component Details",
+    description: "Every component gets Purpose, Type, Rationale, and Scaling. No hand-waving.",
+  },
+  {
+    src: "/doc-page/04-doc-data-flow.png",
+    title: "Data Flow",
+    description: "Concrete request paths with cache hit-rate targets and latency budgets.",
+  },
+  {
+    src: "/doc-page/05-doc-trade-offs.png",
+    title: "Trade-offs & Alternatives",
+    description: "What was Chosen, what was Considered, and the Rationale for each decision.",
+  },
 ];
 
 const COMPARISON = [
   { feature: "AI Diagram Generation", infrasketch: true, eraser: true, lucidchart: false, miro: true },
   { feature: "Auto Design Document Generation", infrasketch: true, eraser: false, lucidchart: false, miro: false },
+  { feature: "Auto-Sync Diagram & Doc", infrasketch: true, eraser: false, lucidchart: false, miro: false },
   { feature: "Chat-Based Refinement", infrasketch: true, eraser: false, lucidchart: false, miro: false },
   { feature: "PDF Export", infrasketch: true, eraser: true, lucidchart: true, miro: true },
   { feature: "Markdown Export", infrasketch: true, eraser: true, lucidchart: false, miro: false },
@@ -156,7 +166,7 @@ const FAQS = [
   },
   {
     question: "How is this different from writing docs manually?",
-    answer: "Manual documentation takes hours and often gets out of sync with actual architecture. InfraSketch generates docs in under 2 minutes and keeps them aligned with your diagrams. Update the architecture, regenerate the doc."
+    answer: "Manual documentation takes hours and goes stale the moment you change the architecture. InfraSketch generates the initial doc in under 2 minutes — and then auto-syncs it. Add a node or change a connection, and the relevant sections of the doc update themselves. No regeneration. No diff-checking docs against diagrams."
   },
   {
     question: "What sections are included in generated docs?",
@@ -303,8 +313,7 @@ export default function DesignDocGeneratorPage() {
           Design Document Generator
         </h1>
         <p className="tool-hero-subtitle">
-          The only AI tool that generates both architecture diagrams AND comprehensive design documents.
-          Create professional documentation in minutes, not hours.
+          Generate a real, structured design doc from your architecture in under 2 minutes — then keep iterating. Change the diagram and the doc auto-syncs the affected sections, so your AI agent always has fresh context.
         </p>
 
         {/* Main Input Form */}
@@ -385,10 +394,45 @@ export default function DesignDocGeneratorPage() {
       <div className="tool-section tool-section-highlight">
         <h2>Why InfraSketch is Different</h2>
         <p className="tool-highlight-text">
-          Other tools generate diagrams. InfraSketch generates diagrams <strong>and</strong> documentation.
-          Describe your system, get a complete architecture diagram, then click one button to generate
-          a professional design document with 12 comprehensive sections.
+          Other tools generate diagrams. InfraSketch generates a diagram <strong>and</strong> a real design doc — and keeps them in sync as you iterate. The diagram is for your team. The doc is for your AI agent. Both stay current automatically.
         </p>
+      </div>
+
+      {/* Doc Excerpt Gallery: shows what the generated content actually looks like */}
+      <div className="tool-section">
+        <h2>What a generated design doc actually looks like</h2>
+        <p className="doc-excerpts-intro">
+          Real screenshots from a generated URL-shortener doc. No mocks, no marketing fluff. Click any image to see it full-size.
+        </p>
+        <div className="doc-excerpts-grid">
+          {DOC_EXCERPTS.map((excerpt, index) => {
+            const screenshotIndex = SCREENSHOTS.findIndex(s => s.src === excerpt.src);
+            return (
+              <div key={index} className="doc-excerpt-card">
+                <button
+                  type="button"
+                  className="doc-excerpt-image-button"
+                  onClick={() => {
+                    if (screenshotIndex >= 0) {
+                      setCurrentScreenshot(screenshotIndex);
+                      setLightboxOpen(true);
+                    }
+                  }}
+                  aria-label={`View ${excerpt.title} full size`}
+                >
+                  <img
+                    src={excerpt.src}
+                    alt={excerpt.title}
+                    className="doc-excerpt-image"
+                    loading="lazy"
+                  />
+                </button>
+                <h3 className="doc-excerpt-title">{excerpt.title}</h3>
+                <p className="doc-excerpt-description">{excerpt.description}</p>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Competitor Comparison Table */}
@@ -529,8 +573,8 @@ export default function DesignDocGeneratorPage() {
 
       {/* CTA Section */}
       <div className="tool-section tool-cta-section">
-        <h2>Ready to Generate Your Design Document?</h2>
-        <p>Create your first diagram and design doc in under 5 minutes. No signup required.</p>
+        <h2>Stop writing design docs. Start shipping.</h2>
+        <p>Generate your first diagram and design doc in under 5 minutes. Watch them stay in sync as you iterate. Hand the doc to your AI agent and let it build.</p>
         <Link to="/" className="tool-cta-button">
           Start Free
         </Link>

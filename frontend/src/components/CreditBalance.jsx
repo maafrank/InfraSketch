@@ -7,7 +7,7 @@ import './CreditBalance.css';
  * CreditBalance - Shows credit balance in header.
  * Displays current credits and links to upgrade when low.
  */
-export default function CreditBalance({ onUpgradeClick, onRefresh }) {
+export default function CreditBalance({ onUpgradeClick, onRefresh, onCreditsChange }) {
   const { getToken, isSignedIn } = useAuth();
   const [credits, setCredits] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -33,13 +33,14 @@ export default function CreditBalance({ onUpgradeClick, onRefresh }) {
       const data = await getUserCredits();
       setCredits(data);
       setError(null);
+      if (onCreditsChange) onCreditsChange(data);
     } catch (err) {
       console.error('Failed to fetch credits:', err);
       setError('Failed to load credits');
     } finally {
       setLoading(false);
     }
-  }, [isSignedIn, getToken]);
+  }, [isSignedIn, getToken, onCreditsChange]);
 
   // Initial fetch and periodic refresh
   useEffect(() => {

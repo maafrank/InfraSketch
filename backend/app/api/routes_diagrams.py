@@ -86,6 +86,8 @@ router = APIRouter()
 
 def _generate_diagram_background(session_id: str, prompt: str, model: str, user_ip: str):
     """Background task to generate diagram asynchronously."""
+    from app.sync.context import current_mutation_provenance
+
     start_time = time.time()
 
     try:
@@ -105,8 +107,12 @@ def _generate_diagram_background(session_id: str, prompt: str, model: str, user_
         # Extract diagram from result
         diagram = result["diagram"]
 
-        # Update session with generated diagram
-        session_manager.update_diagram(session_id, diagram)
+        # Update session with generated diagram (provenance="generation" suppresses sync scheduling)
+        token = current_mutation_provenance.set("generation")
+        try:
+            session_manager.update_diagram(session_id, diagram)
+        finally:
+            current_mutation_provenance.reset(token)
 
         # Add messages to session (user + formatted assistant overview)
         session_manager.add_message(

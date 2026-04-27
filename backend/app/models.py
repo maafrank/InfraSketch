@@ -78,6 +78,18 @@ class RepoAnalysisStatus(BaseModel):
     completed_at: Optional[float] = None  # Unix timestamp
 
 
+class SyncStatus(BaseModel):
+    """Status of automatic diagram <-> design-doc sync for this session."""
+    state: Literal["idle", "pending", "running", "failed"] = "idle"
+    direction: Optional[Literal["diagram_to_doc", "doc_to_diagram"]] = None
+    sync_due_at: Optional[float] = None  # Unix timestamp when the debounced sync should fire
+    started_at: Optional[float] = None
+    completed_at: Optional[float] = None
+    error: Optional[str] = None
+    last_run_summary: Optional[str] = None  # Human-readable summary of last successful run
+    consecutive_failures: int = 0
+
+
 class SessionState(BaseModel):
     session_id: str
     user_id: str  # Clerk user ID - links session to authenticated user
@@ -96,6 +108,13 @@ class SessionState(BaseModel):
     created_at: Optional[datetime] = None  # When session was created (for sorting)
     name: Optional[str] = None  # Concise session name (e.g., "E-commerce Platform")
     name_generated: bool = False  # Prevents re-generating name once set
+
+    # Bidirectional auto-sync (diagram <-> design doc)
+    diagram_revision: int = 0  # Bumped on every diagram mutation
+    design_doc_revision: int = 0  # Bumped on every design-doc mutation
+    last_synced_diagram_revision: int = 0  # diagram_revision at last successful sync
+    last_synced_design_doc_revision: int = 0  # design_doc_revision at last successful sync
+    sync_status: SyncStatus = Field(default_factory=SyncStatus)
 
 
 class GenerateRequest(BaseModel):

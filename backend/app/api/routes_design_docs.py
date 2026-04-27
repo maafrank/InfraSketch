@@ -89,6 +89,8 @@ class ExportRequest(BaseModel):
 
 def _generate_design_doc_preview_background(session_id: str, user_ip: str):
     """Background task to generate the Executive-Summary-only preview for free users."""
+    from app.sync.context import current_mutation_provenance
+
     start_time = time.time()
 
     try:
@@ -113,7 +115,11 @@ def _generate_design_doc_preview_background(session_id: str, user_ip: str):
             session.model
         )
 
-        session_manager.update_design_doc(session_id, markdown_content)
+        token = current_mutation_provenance.set("generation")
+        try:
+            session_manager.update_design_doc(session_id, markdown_content)
+        finally:
+            current_mutation_provenance.reset(token)
         session_manager.mark_design_doc_preview_used(session_id)
         session_manager.set_design_doc_status(session_id, "completed", is_preview=True)
 
@@ -139,6 +145,8 @@ def _generate_design_doc_preview_background(session_id: str, user_ip: str):
 
 def _generate_design_doc_background(session_id: str, user_ip: str):
     """Background task to generate design document."""
+    from app.sync.context import current_mutation_provenance
+
     start_time = time.time()
 
     try:
@@ -166,8 +174,16 @@ def _generate_design_doc_background(session_id: str, user_ip: str):
             session.model
         )
 
-        # Store in session state
-        session_manager.update_design_doc(session_id, markdown_content)
+        # Store in session state with provenance="generation" so this initial doc creation
+        # doesn't trigger a doc->diagram sync (Phase 2). Then mark the current diagram_revision
+        # as already synced so a freshly-generated doc doesn't immediately trigger a
+        # diagram->doc sync against itself.
+        token = current_mutation_provenance.set("generation")
+        try:
+            session_manager.update_design_doc(session_id, markdown_content)
+        finally:
+            current_mutation_provenance.reset(token)
+        session_manager.bump_last_synced_diagram_revision(session_id)
         session_manager.set_design_doc_status(session_id, "completed")
 
         # Log design doc generation event
@@ -534,6 +550,61 @@ async def update_design_doc(session_id: str, request: DesignDocUpdateRequest, ht
             user_ip=user_ip,
         )
         raise HTTPException(status_code=500, detail=f"Failed to update design document: {str(e)}")
+
+
+class SyncRequest(BaseModel):
+    direction: Optional[str] = "auto"  # "auto" | "diagram_to_doc"
+
+
+@router.post("/session/{session_id}/sync")
+async def trigger_sync(session_id: str, request: SyncRequest, http_request: Request):
+    """Manually trigger a diagram <-> design-doc sync, bypassing the debounce window.
+
+    Phase 1: only diagram_to_doc is supported.
+    """
+    user_id = getattr(http_request.state, "user_id", None)
+    session = verify_session_access(session_id, user_id, http_request)
+
+    if not session.design_doc:
+        raise HTTPException(status_code=400, detail="Session has no design document to sync")
+
+    if session.sync_status.state == "running":
+        return JSONResponse(content={"status": "already_running"})
+
+    direction = request.direction or "auto"
+    if direction not in ("auto", "diagram_to_doc"):
+        raise HTTPException(status_code=400, detail=f"Unsupported sync direction: {direction}")
+
+    session_manager.update_sync_status(
+        session_id,
+        state="pending",
+        direction="diagram_to_doc",
+        sync_due_at=time.time(),  # fire immediately
+    )
+
+    import os
+    is_lambda = os.environ.get("AWS_LAMBDA_FUNCTION_NAME") is not None
+    if is_lambda:
+        import boto3
+        import json as json_lib
+        try:
+            boto3.client("lambda").invoke(
+                FunctionName=os.environ["AWS_LAMBDA_FUNCTION_NAME"],
+                InvocationType="Event",
+                Payload=json_lib.dumps({
+                    "async_task": "sync_diagram_to_doc",
+                    "session_id": session_id,
+                }),
+            )
+        except Exception as e:
+            logger.exception(f"Failed to dispatch sync Lambda: {e}")
+            raise HTTPException(status_code=500, detail="Failed to schedule sync")
+    else:
+        from app.sync.engine import run_diagram_to_doc
+        import threading
+        threading.Thread(target=run_diagram_to_doc, args=(session_id,), daemon=True).start()
+
+    return JSONResponse(content={"status": "scheduled", "direction": "diagram_to_doc"})
 
 
 @router.post("/session/{session_id}/design-doc/export")

@@ -13,6 +13,7 @@ from langgraph.graph import StateGraph, END
 
 from app.agent.state import InfraSketchState
 from app.agent.tools import all_tools
+from app.sync.context import current_mutation_provenance
 from app.agent.prompts import (
     SYSTEM_PROMPT,
     CONVERSATION_PROMPT,
@@ -280,11 +281,16 @@ def tools_node(state: InfraSketchState) -> dict:
             logger.info(f"✗ Unknown tool")
         else:
             try:
-                # Execute the tool
+                # Execute the tool with provenance="agent" so any session_manager.update_*
+                # call inside the tool flags this mutation as agent-driven (not sync-driven),
+                # making it eligible to schedule a follow-up auto-sync.
                 tool_func = tool_map[tool_name]
-                # Inject session_id into args (required by all tools)
                 tool_args["session_id"] = state.session_id
-                result = tool_func.invoke(tool_args)
+                token = current_mutation_provenance.set("agent")
+                try:
+                    result = tool_func.invoke(tool_args)
+                finally:
+                    current_mutation_provenance.reset(token)
                 logger.info(f"✓ Result: {result}")
             except Exception as e:
                 result = {"error": str(e)}

@@ -129,6 +129,12 @@ function AppContent({ resumeMode = false, isMobile }) {
   // Billing state
   const [insufficientCreditsError, setInsufficientCreditsError] = useState(null);
   const [refreshCredits, setRefreshCredits] = useState(null);
+  const [userCredits, setUserCredits] = useState(null);
+  // Per-session guard so we don't re-pop the design-doc paywall after the user dismisses it.
+  const [paywallShownForSessions, setPaywallShownForSessions] = useState(() => new Set());
+
+  // Auto-sync (diagram <-> design doc) status, hydrated from session GET responses.
+  const [syncStatus, setSyncStatus] = useState({ state: 'idle' });
 
   // Design-doc state + handlers (extracted from App.jsx for cohesion)
   const designDocHook = useDesignDoc({
@@ -188,7 +194,7 @@ function AppContent({ resumeMode = false, isMobile }) {
   }, [isSignedIn]);
 
   // Get tutorial context and register callbacks
-  const { registerCallbacks } = useTutorial();
+  const { registerCallbacks, isActive: tutorialActive } = useTutorial();
 
   // Callback to open add node modal with prefill data (for tutorial)
   const handleOpenAddNodeModalWithPrefill = useCallback((prefillData) => {
@@ -266,6 +272,9 @@ function AppContent({ resumeMode = false, isMobile }) {
       setDiagram(sessionData.diagram);
       setMessages(sessionData.messages || []);
       hydrateDesignDocFromSession(sessionData);
+      if (sessionData.sync_status) {
+        setSyncStatus(sessionData.sync_status);
+      }
 
       // Restore model from session (fallback to default if not present)
       if (sessionData.model) {
@@ -287,6 +296,53 @@ function AppContent({ resumeMode = false, isMobile }) {
       loadSession(urlSessionId);
     }
   }, [resumeMode, urlSessionId, sessionId, isSignedIn, loadSession]);
+
+  // After any diagram change, briefly check whether the backend scheduled a sync.
+  // The schedule decision lives server-side, so the frontend has to read it back.
+  useEffect(() => {
+    if (!sessionId || !diagram) return;
+    const handle = setTimeout(async () => {
+      try {
+        const data = await getSession(sessionId);
+        if (data.sync_status) {
+          setSyncStatus(data.sync_status);
+        }
+      } catch (err) {
+        // Non-fatal: polling effect below will recover state on the next sync run.
+        console.debug('Sync-status hydrate after diagram change failed:', err);
+      }
+    }, 1500);
+    return () => clearTimeout(handle);
+  }, [sessionId, diagram]);
+
+  // Poll sync_status when a sync is pending or running. When it transitions to
+  // idle, refresh the design doc so any sync-driven section updates show up.
+  useEffect(() => {
+    if (!sessionId) return;
+    const active = syncStatus.state === 'pending' || syncStatus.state === 'running';
+    if (!active) return;
+
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const data = await getSession(sessionId);
+        if (cancelled) return;
+        const next = data.sync_status || { state: 'idle' };
+        const wasRunning = syncStatus.state === 'running';
+        setSyncStatus(next);
+        if (wasRunning && next.state !== 'running' && data.design_doc) {
+          setDesignDoc(data.design_doc);
+        }
+      } catch (err) {
+        console.error('Failed to poll sync status:', err);
+      }
+    };
+    const interval = setInterval(poll, 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [sessionId, syncStatus.state, setDesignDoc]);
 
   const handleNodeClick = useCallback((node) => {
     // Only add context message if selecting a different node
@@ -421,6 +477,31 @@ function AppContent({ resumeMode = false, isMobile }) {
           // Refresh credit balance and gamification immediately after successful generation
           if (refreshCredits) refreshCredits();
           if (refreshGamification) refreshGamification();
+
+          // Auto-pop the design-doc paywall for free users right after their first
+          // diagram lands. This is the highest-leverage conversion moment: they just
+          // saw the product work and the paid feature (full design doc) is one
+          // section deeper. Guards: free plan must be confirmed (don't fire during
+          // the credits-fetch race window), once per session, never during the
+          // tutorial, and skip if the doc is already open or generated.
+          const planIsConfirmedFree = userCredits?.plan === 'free';
+          const alreadyShown = newSessionId && paywallShownForSessions.has(newSessionId);
+          if (
+            planIsConfirmedFree
+            && !tutorialActive
+            && !designDocOpen
+            && !designDoc
+            && newSessionId
+            && !alreadyShown
+          ) {
+            setPaywallShownForSessions((prev) => {
+              const next = new Set(prev);
+              next.add(newSessionId);
+              return next;
+            });
+            // Defer one tick so the diagram render completes before the panel opens.
+            setTimeout(() => { handleCreateDesignDoc(); }, 250);
+          }
         } else {
           throw new Error(result.error || 'Failed to generate diagram');
         }
@@ -985,6 +1066,7 @@ function AppContent({ resumeMode = false, isMobile }) {
             <CreditBalance
               onUpgradeClick={() => navigate('/pricing')}
               onRefresh={(fn) => setRefreshCredits(() => fn)}
+              onCreditsChange={setUserCredits}
             />
           </SignedIn>
           <div className="auth-buttons">
@@ -1049,6 +1131,8 @@ function AppContent({ resumeMode = false, isMobile }) {
             onWidthChange={handleDesignDocWidthChange}
             onApplyLayout={applyLayoutFn}
             sessionHistorySidebarWidth={sessionHistoryOpen ? sessionHistorySidebarWidth : 0}
+            syncStatus={syncStatus}
+            onCreditsUpdated={refreshCredits}
           />
         )}
 

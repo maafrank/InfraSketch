@@ -6,6 +6,7 @@ import { addWatermark } from '../utils/watermark';
 import { marked } from 'marked';
 import TurndownService from 'turndown';
 import { MOBILE_BREAKPOINT } from '../constants/ui';
+import { redeemPromoCode } from '../api/client';
 
 // Initialize markdown-to-HTML converter
 marked.setOptions({
@@ -19,15 +20,15 @@ const turndownService = new TurndownService({
   codeBlockStyle: 'fenced',
 });
 
-const LOCKED_SECTION_TITLES = [
-  'System Overview',
-  'Architecture Diagram',
-  'Component Details',
-  'Data Flow',
-  'Scalability & Reliability',
-  'Security Considerations',
-  'Trade-offs & Alternatives',
-  'Implementation Phases',
+const LOCKED_SECTIONS = [
+  { title: 'System Overview', teaser: 'High-level architecture and the technology choices behind it.' },
+  { title: 'Architecture Diagram', teaser: 'Annotated walkthrough of the diagram you just created.' },
+  { title: 'Component Details', teaser: 'Each service: responsibility, scaling profile, and failure modes.' },
+  { title: 'Data Flow', teaser: 'How a request propagates through your system end-to-end.' },
+  { title: 'Scalability & Reliability', teaser: 'Bottlenecks at 10x and 100x current traffic, and how to absorb them.' },
+  { title: 'Security Considerations', teaser: 'Auth flow, secrets management, and the threat surface to plan for.' },
+  { title: 'Trade-offs & Alternatives', teaser: 'Why this design over the obvious alternatives, with the cost of each.' },
+  { title: 'Implementation Phases', teaser: 'Concrete rollout order with dependencies and milestones.' },
 ];
 
 export default function DesignDocPanel({
@@ -42,6 +43,8 @@ export default function DesignDocPanel({
   onWidthChange,
   onApplyLayout,
   sessionHistorySidebarWidth = 0,
+  syncStatus = null,
+  onCreditsUpdated,
 }) {
   const [width, setWidth] = useState(400); // Default width
   const [isResizing, setIsResizing] = useState(false);
@@ -49,6 +52,28 @@ export default function DesignDocPanel({
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saving', 'saved', 'error'
   const [saveTimer, setSaveTimer] = useState(null);
   const [exportLoading, setExportLoading] = useState(false);
+  const [promoCode, setPromoCode] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoError, setPromoError] = useState(null);
+  const [promoSuccess, setPromoSuccess] = useState(null);
+
+  const handlePromoSubmit = useCallback(async (e) => {
+    e.preventDefault();
+    if (!promoCode.trim()) return;
+    setPromoLoading(true);
+    setPromoError(null);
+    setPromoSuccess(null);
+    try {
+      const result = await redeemPromoCode(promoCode.trim());
+      setPromoSuccess(`+${result.credits_granted} credits added — balance: ${result.new_balance}`);
+      setPromoCode('');
+      if (onCreditsUpdated) onCreditsUpdated();
+    } catch (err) {
+      setPromoError(err.response?.data?.detail || err.response?.data?.message || 'Invalid promo code');
+    } finally {
+      setPromoLoading(false);
+    }
+  }, [promoCode, onCreditsUpdated]);
 
   // Detect mobile viewport
   useEffect(() => {
@@ -305,6 +330,9 @@ export default function DesignDocPanel({
   };
 
   const getSaveStatusText = () => {
+    if (syncStatus?.state === 'running') return '● Syncing with diagram...';
+    if (syncStatus?.state === 'pending') return '● Auto-sync queued';
+    if (syncStatus?.state === 'failed') return '✗ Sync failed';
     switch (saveStatus) {
       case 'saving':
         return '● Saving...';
@@ -320,6 +348,10 @@ export default function DesignDocPanel({
   };
 
   const getSaveStatusClass = () => {
+    if (syncStatus?.state === 'running' || syncStatus?.state === 'pending') {
+      return 'save-status saving';
+    }
+    if (syncStatus?.state === 'failed') return 'save-status error';
     switch (saveStatus) {
       case 'saving':
       case 'editing':
@@ -423,16 +455,38 @@ export default function DesignDocPanel({
                 <div className="design-doc-locked-banner">
                   <div className="design-doc-locked-banner-text">
                     <strong>The rest of your design doc is locked.</strong>
-                    <span>Upgrade to Starter ($1/mo) to generate component details, data flow, scaling, security, trade-offs, and implementation phases for your diagram.</span>
+                    <span>Upgrade to Starter ($1/mo) to unlock all 8 sections below for your diagram.</span>
                   </div>
                   <button className="design-doc-locked-button" onClick={onUpgrade}>
                     Upgrade to unlock
                   </button>
                 </div>
-                <div className="design-doc-locked-blur" aria-hidden="true">
-                  {LOCKED_SECTION_TITLES.map((title) => (
+                <form className="design-doc-locked-promo" onSubmit={handlePromoSubmit}>
+                  <span className="design-doc-locked-promo-label">Or redeem code <code>FREE100</code> for 100 credits:</span>
+                  <input
+                    type="text"
+                    value={promoCode}
+                    onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                    placeholder="Enter code"
+                    className="design-doc-locked-promo-input"
+                    disabled={promoLoading}
+                    aria-label="Promo code"
+                  />
+                  <button
+                    type="submit"
+                    className="design-doc-locked-promo-submit"
+                    disabled={promoLoading || !promoCode.trim()}
+                  >
+                    {promoLoading ? '...' : 'Apply'}
+                  </button>
+                  {promoError && <span className="design-doc-locked-promo-error">{promoError}</span>}
+                  {promoSuccess && <span className="design-doc-locked-promo-success">{promoSuccess}</span>}
+                </form>
+                <div className="design-doc-locked-blur">
+                  {LOCKED_SECTIONS.map(({ title, teaser }) => (
                     <div className="design-doc-locked-section" key={title}>
                       <h2>{title}</h2>
+                      <p className="design-doc-locked-teaser">{teaser}</p>
                       <div className="design-doc-locked-line" style={{ width: '92%' }} />
                       <div className="design-doc-locked-line" style={{ width: '78%' }} />
                       <div className="design-doc-locked-line" style={{ width: '85%' }} />

@@ -89,6 +89,11 @@ class UserPreferencesResponse(BaseModel):
     user_id: str
     tutorial_completed: bool
     tutorial_completed_at: Optional[str] = None
+    auto_sync_enabled: bool = True
+
+
+class AutoSyncPreferenceRequest(BaseModel):
+    enabled: bool
 
 
 class DismissNotificationsRequest(BaseModel):
@@ -253,7 +258,21 @@ async def get_user_preferences(http_request: Request,
         tutorial_completed_at=(
             prefs.tutorial_completed_at.isoformat() if prefs.tutorial_completed_at else None
         ),
+        auto_sync_enabled=prefs.auto_sync_enabled,
     )
+
+
+@router.patch("/user/preferences/auto-sync")
+async def update_auto_sync_preference(
+    request: AutoSyncPreferenceRequest, http_request: Request,
+    user_id: str = Depends(get_current_user)
+):
+    """Enable or disable automatic diagram <-> design-doc sync."""
+    storage = get_user_preferences_storage()
+    success = storage.set_auto_sync_enabled(user_id, request.enabled)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to update auto-sync preference")
+    return {"success": True, "auto_sync_enabled": request.enabled}
 
 
 @router.post("/user/tutorial/complete")

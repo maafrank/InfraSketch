@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useScrollAnimation, useStaggeredAnimation } from '../hooks/useScrollAnimation';
-import { Twitter, ShoppingCart, Link, Tv, Pencil, MessageSquare, Brain, FileText, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Twitter, ShoppingCart, Link, Tv, Pencil, MessageSquare, Brain, FileText, RefreshCw, Bot, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { FaYoutube, FaTiktok, FaInstagram, FaFacebook, FaXTwitter, FaThreads, FaLinkedin, FaDev } from 'react-icons/fa6';
 import { Link as RouterLink } from 'react-router-dom';
 import Footer from './shared/Footer';
@@ -37,19 +37,19 @@ const FEATURES = [
     description: "Skip the drag-and-drop. Describe what you're building and get a complete architecture diagram, with all the components and connections, in seconds."
   },
   {
+    icon: FileText,
+    title: "A Design Doc Your AI Can Build From",
+    description: "Component details, data flows, scalability notes, security trade-offs. A real markdown spec, not a screenshot. Hand it to Claude Code, Cursor, or ChatGPT and let them ship."
+  },
+  {
+    icon: RefreshCw,
+    title: "Auto-Sync, Always Current",
+    description: "Add a cache, swap a database, change a connection — and the design doc updates the relevant sections automatically. No stale specs. No diffing diagrams against docs."
+  },
+  {
     icon: MessageSquare,
     title: "Chat to Iterate",
     description: "Say 'add a cache layer' or 'what if we need 10x scale?' and the diagram updates live. Iterate as fast as you can think."
-  },
-  {
-    icon: Brain,
-    title: "Understand Every Component",
-    description: "Click any node to ask why it's there, what the tradeoffs are, or what alternatives exist. Learn while you design."
-  },
-  {
-    icon: FileText,
-    title: "Export & Build",
-    description: "Generate a design doc with component details, data flows, and implementation notes. Share it with your team or use it to start building."
   }
 ];
 
@@ -195,6 +195,7 @@ export default function LandingPage({ onGenerate, loading }) {
   const problemAnimation = useScrollAnimation();
   const featuresAnimation = useScrollAnimation();
   const showcaseAnimation = useScrollAnimation();
+  const takeHomeAnimation = useScrollAnimation();
   const howItWorksAnimation = useScrollAnimation();
   const featuredOnAnimation = useScrollAnimation();
   const followUsAnimation = useScrollAnimation();
@@ -202,6 +203,7 @@ export default function LandingPage({ onGenerate, loading }) {
 
   // Staggered animations for cards
   const featureCards = useStaggeredAnimation(FEATURES.length, { staggerDelay: 100 });
+  const takeHomeCards = useStaggeredAnimation(3, { staggerDelay: 120 });
   const stepCards = useStaggeredAnimation(3, { staggerDelay: 150 });
 
   // Auto-rotate screenshots every 4 seconds (pauses when lightbox is open)
@@ -354,7 +356,7 @@ export default function LandingPage({ onGenerate, loading }) {
             Watch It Come to Life.
           </h1>
           <p className="hero-subtitle">
-            Describe your system in plain English. Get an architecture diagram in seconds. Refine it through conversation, then export a design doc your team can actually use.
+            Describe your system in plain English. Get an architecture diagram in seconds, plus a complete design doc your AI agents can actually build from. Change one, the other updates itself.
           </p>
           <p className="hero-cta">No drag-and-drop. No blank canvas. Just describe what you need.</p>
           <p className="hero-secondary">Used by engineers for prototyping, by students for learning, and by candidates prepping for system design interviews.</p>
@@ -507,6 +509,65 @@ export default function LandingPage({ onGenerate, loading }) {
         </div>
       </div>
 
+      {/* Take-Home Pivot Section: sells the design doc as the real value */}
+      <div
+        ref={takeHomeAnimation.ref}
+        className={`take-home-section scroll-animate ${takeHomeAnimation.isVisible ? 'visible' : ''}`}
+      >
+        <h2 className="take-home-heading">But here's what you actually take home.</h2>
+        <p className="take-home-subhead">
+          The diagram gets you to a clear architecture in minutes. The design doc gets you to shipped code.
+        </p>
+        <div className="take-home-hero-image">
+          <img
+            src="/auto-sync-hero.png"
+            alt="Design doc auto-syncing with diagram in InfraSketch — sync indicator visible"
+            loading="lazy"
+          />
+          <p className="take-home-hero-caption">
+            ↑ Bottom-left of the doc panel: "Syncing with diagram..." right after a CDN was added in chat.
+          </p>
+        </div>
+        <div className="take-home-grid">
+          <div
+            ref={takeHomeCards[0].ref}
+            className={`take-home-card scroll-animate ${takeHomeCards[0].isVisible ? 'visible' : ''}`}
+            style={takeHomeCards[0].style}
+          >
+            <div className="take-home-icon"><FileText size={36} /></div>
+            <h3 className="take-home-card-title">A real design doc</h3>
+            <p className="take-home-card-description">
+              Component details, data flows, trade-offs, scalability and security sections. Structured markdown, not a screenshot. Edit it inline, export to PDF or Markdown.
+            </p>
+          </div>
+          <div
+            ref={takeHomeCards[1].ref}
+            className={`take-home-card scroll-animate ${takeHomeCards[1].isVisible ? 'visible' : ''}`}
+            style={takeHomeCards[1].style}
+          >
+            <div className="take-home-icon"><Bot size={36} /></div>
+            <h3 className="take-home-card-title">Built for AI agents</h3>
+            <p className="take-home-card-description">
+              Hand it to Claude Code, Cursor, or ChatGPT and let them implement it. The doc speaks their language: clear sections, named components, explicit data flows.
+            </p>
+          </div>
+          <div
+            ref={takeHomeCards[2].ref}
+            className={`take-home-card scroll-animate ${takeHomeCards[2].isVisible ? 'visible' : ''}`}
+            style={takeHomeCards[2].style}
+          >
+            <div className="take-home-icon"><RefreshCw size={36} /></div>
+            <h3 className="take-home-card-title">Auto-syncs with your diagram</h3>
+            <p className="take-home-card-description">
+              Add a cache, swap a database, change a connection — the relevant sections of the doc update themselves. No stale specs. Your agent always has fresh context.
+            </p>
+          </div>
+        </div>
+        <p className="take-home-callout">
+          Diagrams for humans. Design docs for LLMs. Both, kept in sync.
+        </p>
+      </div>
+
       {/* How It Works */}
       <div
         ref={howItWorksAnimation.ref}
@@ -542,9 +603,9 @@ export default function LandingPage({ onGenerate, loading }) {
             style={stepCards[2].style}
           >
             <div className="step-number">3</div>
-            <h3 className="step-title">Export & Build</h3>
+            <h3 className="step-title">Hand It To Your AI Agent</h3>
             <p className="step-description">
-              Export a full design doc, ready to share with your team, attach to a ticket, or use as a blueprint. From idea to document in minutes.
+              Export the design doc and hand it to Claude Code, Cursor, or ChatGPT to start building. Keep iterating on the diagram — the doc auto-syncs, so your agent always has the latest spec.
             </p>
           </div>
         </div>

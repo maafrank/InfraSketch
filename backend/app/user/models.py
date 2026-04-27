@@ -10,5 +10,6 @@ class UserPreferences(BaseModel):
     user_id: str  # Clerk user ID (partition key)
     tutorial_completed: bool = False  # Whether user has completed the tutorial
     tutorial_completed_at: Optional[datetime] = None  # When tutorial was completed
+    auto_sync_enabled: bool = True  # Auto-sync diagram changes to design doc (paid plans only)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

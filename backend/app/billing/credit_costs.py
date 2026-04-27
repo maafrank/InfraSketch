@@ -13,6 +13,7 @@ CREDIT_COSTS = {
     "design_doc_generation": {"base": 10},
     "design_doc_export": {"base": 2},
     "repo_analysis": {"base": 10},  # Higher cost due to multiple API calls + diagram generation
+    "diagram_to_doc_sync": {"base": 2},  # Auto-sync diagram changes into the design doc
 }
 
 # Plan configurations
