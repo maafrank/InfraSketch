@@ -249,3 +249,6 @@ marketing/content-pipeline/voiceovers/
 
 # Generated conversion analysis reports (contain user_ids and prompt snippets)
 marketing/conversion-analysis-*.md
+
+# Local Claude Code state (settings, transcripts, scheduled-task lock)
+.claude/
