@@ -1133,6 +1133,7 @@ function AppContent({ resumeMode = false, isMobile }) {
             sessionHistorySidebarWidth={sessionHistoryOpen ? sessionHistorySidebarWidth : 0}
             syncStatus={syncStatus}
             onCreditsUpdated={refreshCredits}
+            onRegenerate={() => handleCreateDesignDoc(true)}
           />
         )}
 

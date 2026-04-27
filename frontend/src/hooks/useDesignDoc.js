@@ -26,12 +26,19 @@ export function useDesignDoc({
   const [designDocWidth, setDesignDocWidth] = useState(PANEL_WIDTHS.designDoc.default);
   const [designDocIsPreview, setDesignDocIsPreview] = useState(false);
 
-  const handleCreateDesignDoc = useCallback(async () => {
+  const handleCreateDesignDoc = useCallback(async (force = false) => {
     if (!sessionId) return;
 
-    if (designDoc) {
+    // Short-circuit when a doc already exists, unless the caller is forcing a
+    // fresh regeneration (e.g. after a FREEDESIGN promo redemption that just
+    // unlocked the full doc path for a free user).
+    if (designDoc && !force) {
       setDesignDocOpen(true);
       return;
+    }
+    if (force) {
+      setDesignDoc(null);
+      setDesignDocIsPreview(false);
     }
 
     setDesignDocLoading(true);

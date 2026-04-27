@@ -45,6 +45,7 @@ export default function DesignDocPanel({
   sessionHistorySidebarWidth = 0,
   syncStatus = null,
   onCreditsUpdated,
+  onRegenerate,
 }) {
   const [width, setWidth] = useState(400); // Default width
   const [isResizing, setIsResizing] = useState(false);
@@ -65,27 +66,37 @@ export default function DesignDocPanel({
     setPromoSuccess(null);
     try {
       const result = await redeemPromoCode(promoCode.trim());
-      // Adaptive message: prefer the backend-provided message when present, otherwise
-      // construct one from whichever grant the code conferred.
+      const grantedDoc = result.design_docs_granted > 0;
+      // When the redemption granted a free design doc, we auto-regenerate the
+      // panel so the user goes straight from "redeem" to "see the full doc"
+      // without hunting for a Generate button. The grant lives on the user, so
+      // it'll be consumed by the regeneration's gate check.
       let msg;
-      if (result.message) {
+      if (grantedDoc && onRegenerate) {
+        msg = 'Code applied — generating your full design doc...';
+      } else if (result.message) {
         msg = result.message;
-      } else if (result.design_docs_granted > 0 && result.credits_granted > 0) {
+      } else if (grantedDoc && result.credits_granted > 0) {
         msg = `+${result.credits_granted} credits and 1 free design doc unlocked.`;
-      } else if (result.design_docs_granted > 0) {
-        msg = `Code applied. Click Generate to use your free design doc.`;
+      } else if (grantedDoc) {
+        msg = 'Code applied. Click Generate to use your free design doc.';
       } else {
         msg = `+${result.credits_granted} credits added (balance: ${result.new_balance}).`;
       }
       setPromoSuccess(msg);
       setPromoCode('');
       if (onCreditsUpdated) onCreditsUpdated();
+      if (grantedDoc && onRegenerate) {
+        // Defer one tick so the success message paints before the regen
+        // loading overlay replaces it.
+        setTimeout(() => { onRegenerate(); }, 400);
+      }
     } catch (err) {
       setPromoError(err.response?.data?.detail || err.response?.data?.message || 'Invalid promo code');
     } finally {
       setPromoLoading(false);
     }
-  }, [promoCode, onCreditsUpdated]);
+  }, [promoCode, onCreditsUpdated, onRegenerate]);
 
   // Detect mobile viewport
   useEffect(() => {
