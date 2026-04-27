@@ -44,7 +44,7 @@ class TestPromoRedeem:
 
     def test_invalid_code_returns_400(self, client, mock_user_credits_storage):
         with patch("app.api.routes_billing.redeem_promo_code") as mock_redeem:
-            mock_redeem.return_value = (False, "Code not found", 0)
+            mock_redeem.return_value = (False, "Code not found", 0, 0)
             response = client.post("/api/promo/redeem", json={"code": "DOESNTEXIST"})
 
         assert response.status_code == 400
@@ -52,15 +52,33 @@ class TestPromoRedeem:
 
     def test_successful_redeem_returns_credits(self, client, mock_user_credits_storage):
         with patch("app.api.routes_billing.redeem_promo_code") as mock_redeem:
-            mock_redeem.return_value = (True, None, 100)
+            mock_redeem.return_value = (True, None, 100, 0)
             response = client.post("/api/promo/redeem", json={"code": "WELCOME100"})
 
         assert response.status_code == 200
         body = response.json()
         assert body["success"] is True
         assert body["credits_granted"] == 100
+        assert body["design_docs_granted"] == 0
         assert body["new_balance"] == 10000  # from mock_user_credits_storage default
+        assert "100 credits" in body["message"]
         mock_redeem.assert_called_once_with("WELCOME100", "local-dev-user")
+
+    def test_freedesign_redeem_grants_design_doc(self, client, mock_user_credits_storage):
+        # Simulate FREEDESIGN: zero credits granted, one design-doc grant.
+        mock_user_credits_storage.get_credits.return_value.free_design_docs_remaining = 1
+        with patch("app.api.routes_billing.redeem_promo_code") as mock_redeem:
+            mock_redeem.return_value = (True, None, 0, 1)
+            response = client.post("/api/promo/redeem", json={"code": "FREEDESIGN"})
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["success"] is True
+        assert body["credits_granted"] == 0
+        assert body["design_docs_granted"] == 1
+        assert body["free_design_docs_remaining"] == 1
+        assert "free design doc" in body["message"]
+        mock_redeem.assert_called_once_with("FREEDESIGN", "local-dev-user")
 
 
 class TestPromoValidate:
@@ -80,13 +98,27 @@ class TestPromoValidate:
         with patch("app.api.routes_billing.validate_promo_code") as mock_validate, \
              patch("app.api.routes_billing.get_promo_code_info") as mock_info:
             mock_validate.return_value = (True, None)
-            mock_info.return_value = {"credits": 250}
+            mock_info.return_value = {"credits": 250, "grants_design_doc": 0}
             response = client.post("/api/promo/validate", json={"code": "GOOD"})
 
         assert response.status_code == 200
         body = response.json()
         assert body["valid"] is True
         assert body["credits"] == 250
+        assert body["design_docs_granted"] == 0
+
+    def test_valid_freedesign_returns_grant_metadata(self, client):
+        with patch("app.api.routes_billing.validate_promo_code") as mock_validate, \
+             patch("app.api.routes_billing.get_promo_code_info") as mock_info:
+            mock_validate.return_value = (True, None)
+            mock_info.return_value = {"credits": 0, "grants_design_doc": 1}
+            response = client.post("/api/promo/validate", json={"code": "FREEDESIGN"})
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["valid"] is True
+        assert body["credits"] == 0
+        assert body["design_docs_granted"] == 1
 
 
 class TestClerkBillingWebhook:

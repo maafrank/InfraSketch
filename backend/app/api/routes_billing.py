@@ -550,7 +550,9 @@ async def redeem_promo(request: RedeemPromoRequest, http_request: Request,
         JSON with success status and credits granted
     """
 
-    success, error, credits_granted = redeem_promo_code(request.code, user_id)
+    success, error, credits_granted, design_docs_granted = redeem_promo_code(
+        request.code, user_id
+    )
 
     if not success:
         raise HTTPException(status_code=400, detail=error)
@@ -559,11 +561,29 @@ async def redeem_promo(request: RedeemPromoRequest, http_request: Request,
     storage = get_user_credits_storage()
     updated_credits = storage.get_credits(user_id)
 
+    if design_docs_granted > 0 and credits_granted > 0:
+        message = (
+            f"Successfully redeemed {credits_granted} credits and "
+            f"{design_docs_granted} free design doc!"
+        )
+    elif design_docs_granted > 0:
+        plural = "s" if design_docs_granted != 1 else ""
+        message = (
+            f"Code applied — you've unlocked {design_docs_granted} free "
+            f"design doc{plural}. Click Generate to use it."
+        )
+    else:
+        message = f"Successfully redeemed {credits_granted} credits!"
+
     return {
         "success": True,
         "credits_granted": credits_granted,
+        "design_docs_granted": design_docs_granted,
         "new_balance": updated_credits.credits_balance if updated_credits else credits_granted,
-        "message": f"Successfully redeemed {credits_granted} credits!",
+        "free_design_docs_remaining": (
+            updated_credits.free_design_docs_remaining if updated_credits else design_docs_granted
+        ),
+        "message": message,
     }
 
 
@@ -595,6 +615,7 @@ async def validate_promo(request: RedeemPromoRequest, http_request: Request,
     return {
         "valid": True,
         "credits": code_info["credits"] if code_info else 0,
+        "design_docs_granted": code_info.get("grants_design_doc", 0) if code_info else 0,
     }
 
 

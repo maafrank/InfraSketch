@@ -367,13 +367,36 @@ async def generate_design_doc(session_id: str, request: ExportRequest, backgroun
         # Verify access
         session = verify_session_access(session_id, user_id, http_request)
 
-        # Determine free vs paid plan to decide preview vs full generation
+        # Three-way branch:
+        #   - is_preview_path:   free user with no grant — generate Executive Summary only
+        #   - is_grant_path:     free user with a FREEDESIGN grant — full doc, no credit deduction
+        #   - else:              paid user — full doc, credits deducted
         is_preview_path = False
+        is_grant_path = False
         if user_id:
             credits_storage = get_user_credits_storage()
             user_credits = credits_storage.get_or_create_credits(user_id)
             if user_credits.plan not in DESIGN_DOC_PLANS:
-                if session.design_doc_preview_used:
+                if user_credits.free_design_docs_remaining > 0:
+                    # Consume the grant up-front (matches paid-credit deduction
+                    # semantics: no refund on background-task failure).
+                    consumed, _credits = credits_storage.consume_design_doc_grant(user_id)
+                    if consumed:
+                        is_grant_path = True
+                    else:
+                        # Race lost — fall through to preview/locked check.
+                        if session.design_doc_preview_used:
+                            return JSONResponse(
+                                status_code=403,
+                                content={
+                                    "error": "feature_locked",
+                                    "feature": "design_doc_generation",
+                                    "required_plan": "starter",
+                                    "message": "You've already previewed the design doc for this diagram. Upgrade to Starter ($1/mo) to generate the full design document.",
+                                },
+                            )
+                        is_preview_path = True
+                elif session.design_doc_preview_used:
                     return JSONResponse(
                         status_code=403,
                         content={
@@ -383,7 +406,8 @@ async def generate_design_doc(session_id: str, request: ExportRequest, backgroun
                             "message": "You've already previewed the design doc for this diagram. Upgrade to Starter ($1/mo) to generate the full design document.",
                         },
                     )
-                is_preview_path = True
+                else:
+                    is_preview_path = True
 
         # Check if already generating (before deducting credits to avoid double-charge)
         if session.design_doc_status.status == "generating":
@@ -398,6 +422,12 @@ async def generate_design_doc(session_id: str, request: ExportRequest, backgroun
             async_task_name = "generate_design_doc_preview"
             background_fn = _generate_design_doc_preview_background
             log_message = f"Starting preview generation for session {session_id}"
+        elif is_grant_path:
+            # FREEDESIGN grant: full doc, no credit deduction (grant already consumed above).
+            session_manager.set_design_doc_status(session_id, "generating", is_preview=False)
+            async_task_name = "generate_design_doc"
+            background_fn = _generate_design_doc_background
+            log_message = f"Starting full generation (grant) for session {session_id}"
         else:
             # Paid full generation
             await check_and_deduct_credits(

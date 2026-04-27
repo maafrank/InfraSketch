@@ -301,3 +301,84 @@ class TestExportDesignDoc:
         args = mock_process_action.call_args[0]
         assert args[1] == "export_completed"
         assert args[2] == {"format": "pdf"}
+
+
+class TestDesignDocFreeTierGate:
+    """Tests for the free-tier gate at routes_design_docs.py.
+
+    Three paths from a free user's POST to /design-doc/generate:
+      1. No grant, preview not used  -> preview path (is_preview=True)
+      2. Grant available             -> full doc path, grant decrements
+      3. No grant, preview already used -> 403 feature_locked
+    """
+
+    @staticmethod
+    def _free_user_credits(free_design_docs_remaining=0):
+        from datetime import datetime
+        from app.billing.models import UserCredits
+        return UserCredits(
+            user_id="local-dev-user",
+            plan="free",
+            credits_balance=10,
+            credits_monthly_allowance=10,
+            credits_used_this_period=0,
+            free_design_docs_remaining=free_design_docs_remaining,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
+        )
+
+    def test_free_user_without_grant_uses_preview(
+        self, client_with_session, mock_user_credits_storage
+    ):
+        client, session_id = client_with_session
+        free_credits = self._free_user_credits(free_design_docs_remaining=0)
+        mock_user_credits_storage.get_or_create_credits.return_value = free_credits
+
+        response = client.post(
+            f"/api/session/{session_id}/design-doc/generate", json={}
+        )
+
+        assert response.status_code == 200
+        mock_user_credits_storage.consume_design_doc_grant.assert_not_called()
+        from app.session.manager import session_manager
+        session = session_manager.get_session(session_id)
+        assert session.design_doc_status.is_preview is True
+
+    def test_free_user_with_grant_consumes_and_runs_full(
+        self, client_with_session, mock_user_credits_storage
+    ):
+        client, session_id = client_with_session
+        free_credits = self._free_user_credits(free_design_docs_remaining=1)
+        mock_user_credits_storage.get_or_create_credits.return_value = free_credits
+        consumed_credits = self._free_user_credits(free_design_docs_remaining=0)
+        mock_user_credits_storage.consume_design_doc_grant.return_value = (True, consumed_credits)
+
+        response = client.post(
+            f"/api/session/{session_id}/design-doc/generate", json={}
+        )
+
+        assert response.status_code == 200
+        mock_user_credits_storage.consume_design_doc_grant.assert_called_once_with("local-dev-user")
+        from app.session.manager import session_manager
+        session = session_manager.get_session(session_id)
+        assert session.design_doc_status.is_preview is False
+
+    def test_free_user_with_preview_used_returns_403(
+        self, client_with_session, mock_user_credits_storage
+    ):
+        client, session_id = client_with_session
+        free_credits = self._free_user_credits(free_design_docs_remaining=0)
+        mock_user_credits_storage.get_or_create_credits.return_value = free_credits
+
+        # Mark this session as having already used its preview.
+        from app.session.manager import session_manager
+        session_manager.mark_design_doc_preview_used(session_id)
+
+        response = client.post(
+            f"/api/session/{session_id}/design-doc/generate", json={}
+        )
+
+        assert response.status_code == 403
+        body = response.json()
+        assert body["error"] == "feature_locked"
+        assert body["feature"] == "design_doc_generation"

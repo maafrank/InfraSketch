@@ -65,7 +65,19 @@ export default function DesignDocPanel({
     setPromoSuccess(null);
     try {
       const result = await redeemPromoCode(promoCode.trim());
-      setPromoSuccess(`+${result.credits_granted} credits added — balance: ${result.new_balance}`);
+      // Adaptive message: prefer the backend-provided message when present, otherwise
+      // construct one from whichever grant the code conferred.
+      let msg;
+      if (result.message) {
+        msg = result.message;
+      } else if (result.design_docs_granted > 0 && result.credits_granted > 0) {
+        msg = `+${result.credits_granted} credits and 1 free design doc unlocked.`;
+      } else if (result.design_docs_granted > 0) {
+        msg = `Code applied. Click Generate to use your free design doc.`;
+      } else {
+        msg = `+${result.credits_granted} credits added (balance: ${result.new_balance}).`;
+      }
+      setPromoSuccess(msg);
       setPromoCode('');
       if (onCreditsUpdated) onCreditsUpdated();
     } catch (err) {
@@ -462,7 +474,7 @@ export default function DesignDocPanel({
                   </button>
                 </div>
                 <form className="design-doc-locked-promo" onSubmit={handlePromoSubmit}>
-                  <span className="design-doc-locked-promo-label">Or redeem code <code>FREE100</code> for 100 credits:</span>
+                  <span className="design-doc-locked-promo-label">Or redeem code <code>FREEDESIGN</code> for one free design doc:</span>
                   <input
                     type="text"
                     value={promoCode}

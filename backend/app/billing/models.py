@@ -30,6 +30,10 @@ class UserCredits(BaseModel):
     # Promo codes redeemed (to prevent re-use)
     redeemed_promo_codes: List[str] = Field(default_factory=list)
 
+    # Non-credit feature grants. One-shot per redemption — a grant unlocks a single
+    # full design-doc generation for a free user, bypassing the plan-gate.
+    free_design_docs_remaining: int = 0
+
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -59,6 +63,9 @@ class PromoCode(BaseModel):
     max_uses: Optional[int] = None
     current_uses: int = 0
     is_active: bool = True
+    # One-shot feature grants. A code can stack credits + grants; FREEDESIGN
+    # is grants-only (credits=0, grants_design_doc=1).
+    grants_design_doc: int = 0
 
 
 class CreditCheckResult(BaseModel):

@@ -250,6 +250,53 @@ class UserCreditsStorage:
 
         return credits
 
+    def add_design_doc_grants(
+        self,
+        user_id: str,
+        count: int,
+        reason: str,
+        metadata: Optional[dict] = None,
+    ) -> UserCredits:
+        """Grant one-shot design-doc generations to a user (e.g. FREEDESIGN promo)."""
+        credits = self.get_or_create_credits(user_id)
+        credits.free_design_docs_remaining += count
+        self.save_credits(credits)
+
+        self._log_transaction(
+            user_id=user_id,
+            txn_type="grant",
+            amount=0,
+            balance_after=credits.credits_balance,
+            action=reason,
+            metadata={**(metadata or {}), "design_docs_granted": count},
+        )
+
+        return credits
+
+    def consume_design_doc_grant(self, user_id: str) -> Tuple[bool, UserCredits]:
+        """
+        Decrement one design-doc grant. Caller is expected to have already
+        verified `free_design_docs_remaining > 0` to avoid races; this is a
+        belt-and-suspenders check returning False if the balance is exhausted.
+        """
+        credits = self.get_or_create_credits(user_id)
+        if credits.free_design_docs_remaining <= 0:
+            return (False, credits)
+
+        credits.free_design_docs_remaining -= 1
+        self.save_credits(credits)
+
+        self._log_transaction(
+            user_id=user_id,
+            txn_type="deduction",
+            amount=0,
+            balance_after=credits.credits_balance,
+            action="design_doc_grant_consumed",
+            metadata={"grant_type": "design_doc"},
+        )
+
+        return (True, credits)
+
     def reset_monthly_credits(self, user_id: str) -> UserCredits:
         """Reset credits to monthly allowance (called on billing cycle)."""
         credits = self.get_or_create_credits(user_id)

@@ -34,6 +34,16 @@ PROMO_CODES = {
         expires_at=None,
         max_uses=None,
     ),
+    # Grants one full design-doc generation to a free user (bypasses the
+    # plan-gate at routes_design_docs without granting credits). Cap with
+    # max_uses / expires_at if abuse appears.
+    "FREEDESIGN": PromoCode(
+        code="FREEDESIGN",
+        credits=0,
+        grants_design_doc=1,
+        expires_at=None,
+        max_uses=None,
+    ),
 }
 
 
@@ -76,7 +86,7 @@ def validate_promo_code(code: str, user_id: str) -> Tuple[bool, Optional[str]]:
     return (True, None)
 
 
-def redeem_promo_code(code: str, user_id: str) -> Tuple[bool, Optional[str], int]:
+def redeem_promo_code(code: str, user_id: str) -> Tuple[bool, Optional[str], int, int]:
     """
     Redeem a promo code for a user.
 
@@ -85,25 +95,35 @@ def redeem_promo_code(code: str, user_id: str) -> Tuple[bool, Optional[str], int
         user_id: The user redeeming the code
 
     Returns:
-        Tuple of (success, error_message, credits_granted)
+        Tuple of (success, error_message, credits_granted, design_docs_granted)
     """
     code_upper = code.upper().strip()
 
     # Validate first
     is_valid, error = validate_promo_code(code_upper, user_id)
     if not is_valid:
-        return (False, error, 0)
+        return (False, error, 0, 0)
 
     promo = PROMO_CODES[code_upper]
     storage = get_user_credits_storage()
 
-    # Add credits to user
-    storage.add_credits(
-        user_id=user_id,
-        amount=promo.credits,
-        reason="promo_code",
-        metadata={"promo_code": code_upper},
-    )
+    # Apply credit grants (no-op when promo.credits == 0).
+    if promo.credits > 0:
+        storage.add_credits(
+            user_id=user_id,
+            amount=promo.credits,
+            reason="promo_code",
+            metadata={"promo_code": code_upper},
+        )
+
+    # Apply design-doc grants (no-op when promo.grants_design_doc == 0).
+    if promo.grants_design_doc > 0:
+        storage.add_design_doc_grants(
+            user_id=user_id,
+            count=promo.grants_design_doc,
+            reason="promo_code",
+            metadata={"promo_code": code_upper},
+        )
 
     # Mark as redeemed
     storage.mark_promo_redeemed(user_id, code_upper)
@@ -111,7 +131,7 @@ def redeem_promo_code(code: str, user_id: str) -> Tuple[bool, Optional[str], int
     # Increment usage counter (in-memory, would need DynamoDB for persistence)
     promo.current_uses += 1
 
-    return (True, None, promo.credits)
+    return (True, None, promo.credits, promo.grants_design_doc)
 
 
 def get_promo_code_info(code: str) -> Optional[dict]:
@@ -124,6 +144,7 @@ def get_promo_code_info(code: str) -> Optional[dict]:
     return {
         "code": promo.code,
         "credits": promo.credits,
+        "grants_design_doc": promo.grants_design_doc,
         "expires_at": promo.expires_at.isoformat() if promo.expires_at else None,
         "is_active": promo.is_active,
     }
