@@ -33,6 +33,7 @@ import InfraSketchVsWhimsicalPage from './components/InfraSketchVsWhimsicalPage.
 import InfraSketchVsChatGPTPage from './components/InfraSketchVsChatGPTPage.jsx'
 import MLSystemDesignToolPage from './components/MLSystemDesignToolPage.jsx'
 import LLMArchitectureToolPage from './components/LLMArchitectureToolPage.jsx'
+import NotFoundPage from './components/NotFoundPage.jsx'
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
@@ -76,6 +77,7 @@ const AppRoot = (
                 <Route path="/compare/chatgpt" element={<InfraSketchVsChatGPTPage />} />
                 <Route path="/tools/ml-system-design-tool" element={<MLSystemDesignToolPage />} />
                 <Route path="/tools/llm-architecture-tool" element={<LLMArchitectureToolPage />} />
+                <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </BrowserRouter>
           </ThemeProvider>

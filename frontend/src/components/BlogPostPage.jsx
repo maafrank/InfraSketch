@@ -102,6 +102,10 @@ export default function BlogPostPage() {
   if (error || !post) {
     return (
       <div className="blog-post-page">
+        <Helmet>
+          <title>Post Not Found | InfraSketch</title>
+          <meta name="robots" content="noindex,nofollow" />
+        </Helmet>
         <Header />
         <div className="blog-post-header">
           <h1>Post Not Found</h1>

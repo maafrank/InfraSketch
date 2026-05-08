@@ -2,6 +2,8 @@ User-agent: *
 Allow: /
 Disallow: /session/
 Disallow: /history
+Disallow: /settings
+Disallow: /achievements
 
 # AI crawlers
 User-agent: GPTBot

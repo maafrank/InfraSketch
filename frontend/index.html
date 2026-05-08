@@ -12,25 +12,21 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
-    <!-- SEO Meta Tags -->
-    <title>AI System Design Tool | Generate Diagrams & Design Docs | InfraSketch</title>
-    <meta name="description" content="Free AI system design tool that generates architecture diagrams AND comprehensive design documents from plain English. Chat to refine designs. Used by engineers at top tech companies.">
-    <meta name="keywords" content="ai system design tool, system design tool, AI diagram generator, architecture diagram generator, design doc generator, system design documentation, system design interview prep, ai architecture generator, aws architecture diagram generator, microservices design, cloud architecture tool, system architecture diagram, machine learning system design, LLM system design architecture, RAG system design, MLOps architecture, AI pipeline design, model serving system design, feature store design, vector database architecture, agentic AI system design">
+    <!--
+      SEO Meta Tags
+      Per-page <title>, <meta description>, <link canonical>, og:*, twitter:* are
+      injected by react-helmet-async on every prerendered route (see scripts/prerender.js)
+      and at runtime in the SPA. The defaults below are only used by user-agents that
+      hit a non-prerendered URL and don't run JS. og:url is intentionally NOT defaulted
+      here so the per-page Helmet value is the only signal.
+    -->
+    <title>InfraSketch</title>
     <link rel="alternate" type="application/rss+xml" title="InfraSketch Blog RSS Feed" href="https://infrasketch.net/blog/feed.xml">
 
-    <!-- Open Graph (Facebook, LinkedIn) -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://infrasketch.net/">
-    <meta property="og:title" content="InfraSketch - AI System Design Tool with Auto Design Docs">
-    <meta property="og:description" content="The only AI tool that generates both architecture diagrams AND design documents from plain English. Chat to refine. Free to use.">
-    <meta property="og:image" content="https://infrasketch.net/full-app-with-design-doc.png">
+    <!-- og:* and twitter:* are injected per route by react-helmet-async (and frozen
+         into prerendered HTML by scripts/prerender.js). Only og:site_name is constant
+         across pages and safe to default here. -->
     <meta property="og:site_name" content="InfraSketch">
-
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="InfraSketch - AI System Design Tool with Auto Design Docs">
-    <meta name="twitter:description" content="The only AI tool that generates both architecture diagrams AND design documents from plain English. Chat to refine.">
-    <meta name="twitter:image" content="https://infrasketch.net/full-app-with-design-doc.png">
 
     <!-- Schema.org JSON-LD -->
     <script type="application/ld+json">
