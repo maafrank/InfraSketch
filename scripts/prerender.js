@@ -80,10 +80,14 @@ function startVitePreview() {
       { cwd: FRONTEND, stdio: ['ignore', 'pipe', 'pipe'] }
     );
     let resolved = false;
+    // Vite emits ANSI color codes on Linux CI runners even when stdio is piped,
+    // inserting escapes between "Local" and ":" that break a naive regex.
+    const ANSI_RE = /\x1b\[[0-9;]*m/g;
     const onLine = (chunk) => {
       const text = chunk.toString();
+      const clean = text.replace(ANSI_RE, '');
       process.stdout.write(`[vite] ${text}`);
-      if (!resolved && /Local:\s+http:\/\/localhost/.test(text)) {
+      if (!resolved && /Local:\s+http:\/\/localhost/.test(clean)) {
         resolved = true;
         resolve(child);
       }
