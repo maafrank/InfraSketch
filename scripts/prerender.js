@@ -213,7 +213,13 @@ async function main() {
   await waitForReady(ORIGIN);
   console.log('[prerender] vite preview ready');
 
-  const browser = await puppeteer.launch({ headless: 'new' });
+  const browser = await puppeteer.launch({
+    headless: 'new',
+    // --no-sandbox is required on Ubuntu 23.10+ / GitHub Actions runners where
+    // AppArmor blocks Chromium's unprivileged user namespaces. Safe here: we
+    // only render our own local vite preview, not untrusted content.
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
   let failures = [];
   try {
     failures = await runPass(browser, routes, CONCURRENCY);
