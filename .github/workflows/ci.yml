@@ -102,6 +102,7 @@ jobs:
   frontend-build:
     name: Frontend Build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
 
@@ -116,10 +117,14 @@ jobs:
         run: cd frontend && npm ci --legacy-peer-deps
 
       - name: Build
+        # SKIP_PRERENDER skips the Puppeteer-based postbuild. CI's job here is
+        # to smoke-test that the bundle compiles; prerender is exercised by
+        # deploy-all.sh which has its own retry logic.
         run: cd frontend && npm run build
         env:
           VITE_API_URL: https://api.example.com
           VITE_CLERK_PUBLISHABLE_KEY: pk_test_placeholder
+          SKIP_PRERENDER: '1'
 
   frontend-e2e:
     name: Frontend E2E (WebKit + Chromium)

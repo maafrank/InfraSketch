@@ -205,6 +205,11 @@ async function runPass(browser, routes, concurrency) {
 }
 
 async function main() {
+  if (process.env.SKIP_PRERENDER === '1') {
+    console.log('[prerender] SKIP_PRERENDER=1 set, skipping prerender step');
+    return;
+  }
+
   const routes = await getRoutes();
   console.log(`[prerender] ${routes.length} routes (concurrency ${CONCURRENCY})`);
 
