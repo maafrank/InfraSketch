@@ -183,6 +183,23 @@ async function prerenderRoute(browser, route) {
   }
 }
 
+async function runPass(browser, routes, concurrency) {
+  const limit = pLimit(concurrency);
+  const failures = [];
+  await Promise.all(
+    routes.map((route) =>
+      limit(async () => {
+        try {
+          await prerenderRoute(browser, route);
+        } catch (err) {
+          failures.push({ route, err });
+        }
+      })
+    )
+  );
+  return failures;
+}
+
 async function main() {
   const routes = await getRoutes();
   console.log(`[prerender] ${routes.length} routes (concurrency ${CONCURRENCY})`);
@@ -193,27 +210,27 @@ async function main() {
   console.log('[prerender] vite preview ready');
 
   const browser = await puppeteer.launch({ headless: 'new' });
-  const limit = pLimit(CONCURRENCY);
-  const failures = [];
+  let failures = [];
   try {
-    await Promise.all(
-      routes.map((route) =>
-        limit(async () => {
-          try {
-            await prerenderRoute(browser, route);
-          } catch (err) {
-            failures.push({ route, err });
-          }
-        })
-      )
-    );
+    failures = await runPass(browser, routes, CONCURRENCY);
+
+    // Retry flaky failures sequentially (concurrency 1) to rule out
+    // resource contention as the cause of Puppeteer waitFor timeouts.
+    const MAX_RETRIES = 2;
+    for (let attempt = 1; attempt <= MAX_RETRIES && failures.length; attempt++) {
+      const retryRoutes = failures.map((f) => f.route);
+      console.log(
+        `[prerender] retry pass ${attempt}/${MAX_RETRIES} for ${retryRoutes.length} route(s) (sequential)`
+      );
+      failures = await runPass(browser, retryRoutes, 1);
+    }
   } finally {
     await browser.close();
     vite.kill('SIGTERM');
   }
 
   if (failures.length) {
-    console.error(`[prerender] ${failures.length} route(s) failed`);
+    console.error(`[prerender] ${failures.length} route(s) failed after retries`);
     for (const { route, err } of failures) {
       console.error(`  ${route}: ${err.message}`);
     }

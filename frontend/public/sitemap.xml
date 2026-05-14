@@ -3,7 +3,7 @@
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>https://infrasketch.net/</loc>
-    <lastmod>2026-04-27</lastmod>
+    <lastmod>2026-05-14</lastmod>
     <priority>1.0</priority>
     <changefreq>weekly</changefreq>
     <image:image>
@@ -13,133 +13,133 @@
   </url>
   <url>
     <loc>https://infrasketch.net/blog</loc>
-    <lastmod>2026-04-27</lastmod>
+    <lastmod>2026-05-14</lastmod>
     <priority>0.9</priority>
     <changefreq>weekly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/compare</loc>
-    <lastmod>2026-04-27</lastmod>
+    <lastmod>2026-05-14</lastmod>
     <priority>0.9</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/about</loc>
-    <lastmod>2026-04-27</lastmod>
+    <lastmod>2026-05-14</lastmod>
     <priority>0.8</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/pricing</loc>
-    <lastmod>2026-04-27</lastmod>
+    <lastmod>2026-05-14</lastmod>
     <priority>0.8</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/contact</loc>
-    <lastmod>2026-04-27</lastmod>
+    <lastmod>2026-05-14</lastmod>
     <priority>0.5</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/careers</loc>
-    <lastmod>2026-04-27</lastmod>
+    <lastmod>2026-05-14</lastmod>
     <priority>0.4</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/privacy</loc>
-    <lastmod>2026-04-27</lastmod>
+    <lastmod>2026-05-14</lastmod>
     <priority>0.3</priority>
     <changefreq>yearly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/terms</loc>
-    <lastmod>2026-04-27</lastmod>
+    <lastmod>2026-05-14</lastmod>
     <priority>0.3</priority>
     <changefreq>yearly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/tools/system-design-tool</loc>
-    <lastmod>2026-04-27</lastmod>
+    <lastmod>2026-05-14</lastmod>
     <priority>1.0</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/tools/ai-diagram-generator</loc>
-    <lastmod>2026-04-27</lastmod>
+    <lastmod>2026-05-14</lastmod>
     <priority>1.0</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/tools/architecture-diagram-tool</loc>
-    <lastmod>2026-04-27</lastmod>
+    <lastmod>2026-05-14</lastmod>
     <priority>1.0</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/tools/design-doc-generator</loc>
-    <lastmod>2026-04-27</lastmod>
+    <lastmod>2026-05-14</lastmod>
     <priority>1.0</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/tools/ml-system-design-tool</loc>
-    <lastmod>2026-04-27</lastmod>
+    <lastmod>2026-05-14</lastmod>
     <priority>1.0</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/tools/llm-architecture-tool</loc>
-    <lastmod>2026-04-27</lastmod>
+    <lastmod>2026-05-14</lastmod>
     <priority>1.0</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/compare/eraser</loc>
-    <lastmod>2026-04-27</lastmod>
+    <lastmod>2026-05-14</lastmod>
     <priority>0.9</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/compare/lucidchart</loc>
-    <lastmod>2026-04-27</lastmod>
+    <lastmod>2026-05-14</lastmod>
     <priority>0.9</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/compare/system-design-primer</loc>
-    <lastmod>2026-04-27</lastmod>
+    <lastmod>2026-05-14</lastmod>
     <priority>0.9</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/compare/bytebytego</loc>
-    <lastmod>2026-04-27</lastmod>
+    <lastmod>2026-05-14</lastmod>
     <priority>0.9</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/compare/mermaid</loc>
-    <lastmod>2026-04-27</lastmod>
+    <lastmod>2026-05-14</lastmod>
     <priority>0.9</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/compare/draw-io</loc>
-    <lastmod>2026-04-27</lastmod>
+    <lastmod>2026-05-14</lastmod>
     <priority>0.9</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/compare/whimsical</loc>
-    <lastmod>2026-04-27</lastmod>
+    <lastmod>2026-05-14</lastmod>
     <priority>0.9</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://infrasketch.net/compare/chatgpt</loc>
-    <lastmod>2026-04-27</lastmod>
+    <lastmod>2026-05-14</lastmod>
     <priority>0.9</priority>
     <changefreq>monthly</changefreq>
   </url>
