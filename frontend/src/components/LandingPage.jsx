@@ -837,6 +837,43 @@ export default function LandingPage({ onGenerate, loading }) {
         </div>
       </div>
 
+      {/* Popular Guides Section */}
+      <div className="tool-section">
+        <h2>Popular Guides & Tools</h2>
+        <div className="learn-more-grid">
+          <RouterLink to="/tools" className="learn-more-card">
+            <span className="learn-more-icon">🧰</span>
+            <h3>All Tools</h3>
+            <p>Browse every InfraSketch tool: system design, AI diagrams, design docs, ML, and LLM architectures.</p>
+          </RouterLink>
+          <RouterLink to="/tools/system-design-tool" className="learn-more-card">
+            <span className="learn-more-icon">🏗️</span>
+            <h3>System Design Tool</h3>
+            <p>Sketch full architectures in plain English. Great for interviews, prototypes, and documentation.</p>
+          </RouterLink>
+          <RouterLink to="/tools/architecture-diagram-tool" className="learn-more-card">
+            <span className="learn-more-icon">🏛️</span>
+            <h3>Architecture Diagram Tool</h3>
+            <p>AWS, GCP, Azure, and microservices diagrams generated from a sentence.</p>
+          </RouterLink>
+          <RouterLink to="/blog/complete-guide-system-design" className="learn-more-card">
+            <span className="learn-more-icon">📖</span>
+            <h3>Complete Guide to System Design</h3>
+            <p>Scalability, caching, databases, and architecture patterns explained end to end.</p>
+          </RouterLink>
+          <RouterLink to="/blog/best-ai-diagram-tools-2026" className="learn-more-card">
+            <span className="learn-more-icon">🔍</span>
+            <h3>Best AI Diagram Tools 2026</h3>
+            <p>How InfraSketch stacks up against Eraser, ChatGPT+Mermaid, Whimsical, and Miro.</p>
+          </RouterLink>
+          <RouterLink to="/blog/mlops-system-design" className="learn-more-card">
+            <span className="learn-more-icon">🧠</span>
+            <h3>MLOps System Design</h3>
+            <p>Reference architecture for ML platforms: training, serving, monitoring, and CI/CD.</p>
+          </RouterLink>
+        </div>
+      </div>
+
       {/* Follow Us Section */}
       <div
         ref={followUsAnimation.ref}

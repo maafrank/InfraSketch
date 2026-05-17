@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Header from './shared/Header';
 import Footer from './shared/Footer';
+import '../App.css';
 import './BlogListPage.css';
 
 // Get related posts based on category and tags
@@ -245,6 +246,33 @@ export default function BlogPostPage() {
           >
             {content}
           </ReactMarkdown>
+        </div>
+      </div>
+
+      {/* Try InfraSketch Tools CTA */}
+      <div className="tool-section">
+        <h2>Try InfraSketch Tools</h2>
+        <div className="learn-more-grid">
+          <Link to="/" className="learn-more-card">
+            <span className="learn-more-icon">⚡</span>
+            <h3>Generate a Diagram</h3>
+            <p>Describe a system in plain English and get an architecture diagram in seconds.</p>
+          </Link>
+          <Link to="/tools/system-design-tool" className="learn-more-card">
+            <span className="learn-more-icon">🏗️</span>
+            <h3>System Design Tool</h3>
+            <p>Built for system design interviews, prototyping, and documentation.</p>
+          </Link>
+          <Link to="/tools/design-doc-generator" className="learn-more-card">
+            <span className="learn-more-icon">📄</span>
+            <h3>Design Doc Generator</h3>
+            <p>Turn a diagram into a full design document with components, data flows, and notes.</p>
+          </Link>
+          <Link to="/tools" className="learn-more-card">
+            <span className="learn-more-icon">🧰</span>
+            <h3>All Tools</h3>
+            <p>Browse every InfraSketch tool, including ML and LLM architecture builders.</p>
+          </Link>
         </div>
       </div>
 
