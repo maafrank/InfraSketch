@@ -47,6 +47,7 @@ const STATIC_ROUTES = [
   '/terms',
   '/blog',
   '/compare',
+  '/tools',
   '/tools/system-design-tool',
   '/tools/ai-diagram-generator',
   '/tools/architecture-diagram-tool',

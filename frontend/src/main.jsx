@@ -22,6 +22,7 @@ import SystemDesignToolPage from './components/SystemDesignToolPage.jsx'
 import AIDiagramGeneratorPage from './components/AIDiagramGeneratorPage.jsx'
 import ArchitectureDiagramToolPage from './components/ArchitectureDiagramToolPage.jsx'
 import DesignDocGeneratorPage from './components/DesignDocGeneratorPage.jsx'
+import ToolsHubPage from './components/ToolsHubPage.jsx'
 import ComparePage from './components/ComparePage.jsx'
 import InfraSketchVsEraserPage from './components/InfraSketchVsEraserPage.jsx'
 import InfraSketchVsLucidchartPage from './components/InfraSketchVsLucidchartPage.jsx'
@@ -62,6 +63,7 @@ const AppRoot = (
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/achievements" element={<AchievementsPage />} />
                 <Route path="/pricing" element={<PricingPage />} />
+                <Route path="/tools" element={<ToolsHubPage />} />
                 <Route path="/tools/system-design-tool" element={<SystemDesignToolPage />} />
                 <Route path="/tools/ai-diagram-generator" element={<AIDiagramGeneratorPage />} />
                 <Route path="/tools/architecture-diagram-tool" element={<ArchitectureDiagramToolPage />} />

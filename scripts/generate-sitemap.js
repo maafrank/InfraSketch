@@ -25,6 +25,7 @@ const STATIC_ROUTES = [
   { loc: '/careers', priority: '0.4', changefreq: 'monthly' },
   { loc: '/privacy', priority: '0.3', changefreq: 'yearly' },
   { loc: '/terms', priority: '0.3', changefreq: 'yearly' },
+  { loc: '/tools', priority: '0.9', changefreq: 'monthly' },
   { loc: '/tools/system-design-tool', priority: '1.0', changefreq: 'monthly' },
   { loc: '/tools/ai-diagram-generator', priority: '1.0', changefreq: 'monthly' },
   { loc: '/tools/architecture-diagram-tool', priority: '1.0', changefreq: 'monthly' },

@@ -60,6 +60,12 @@
     <changefreq>yearly</changefreq>
   </url>
   <url>
+    <loc>https://infrasketch.net/tools</loc>
+    <lastmod>2026-05-17</lastmod>
+    <priority>0.9</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
     <loc>https://infrasketch.net/tools/system-design-tool</loc>
     <lastmod>2026-05-17</lastmod>
     <priority>1.0</priority>
