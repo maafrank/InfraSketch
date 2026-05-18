@@ -25,20 +25,32 @@ from app.agent.prompts import (
 from app.agent.group_processor import process_diagram_groups
 from app.models import Diagram
 from app.utils.secrets import get_anthropic_api_key
-from app.config.models import DEFAULT_MODEL
+from app.config.models import (
+    DEFAULT_MODEL,
+    compute_max_output_tokens,
+    estimate_input_tokens,
+    get_model_limits,
+)
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-def create_llm(model_name: str = DEFAULT_MODEL):
-    """Create Claude LLM instance with specified model."""
+def create_llm(model_name: str = DEFAULT_MODEL, max_tokens: int | None = None):
+    """Create Claude LLM instance with specified model.
+
+    If max_tokens is None, defaults to the model's full max output. Callers handling
+    potentially large inputs should pass a value from compute_max_output_tokens()
+    so the request fits inside the model's context window.
+    """
     api_key = get_anthropic_api_key()
+    if max_tokens is None:
+        max_tokens = get_model_limits(model_name)["max_output"]
     return ChatAnthropic(
         model=model_name,
         api_key=api_key,
         temperature=0.4,
-        max_tokens=32768,  # Supports up to 64k output tokens
+        max_tokens=max_tokens,
     )
 
 
@@ -120,7 +132,7 @@ def generate_suggestions(
 
 def generate_diagram_node(state: InfraSketchState) -> dict:
     """Generate initial diagram from user prompt."""
-    llm = create_llm(state.model or DEFAULT_MODEL)
+    model_name = state.model or DEFAULT_MODEL
 
     # Get user message from last message in conversation
     user_message = state.messages[-1].content if state.messages else ""
@@ -129,6 +141,14 @@ def generate_diagram_node(state: InfraSketchState) -> dict:
         SystemMessage(content=SYSTEM_PROMPT),
         HumanMessage(content=f"Create a system architecture for: {user_message}")
     ]
+
+    # Size max_tokens dynamically so large user prompts do not get rejected for
+    # exceeding the model's context window.
+    max_tokens = compute_max_output_tokens(
+        model_name,
+        estimated_input_tokens=estimate_input_tokens(messages),
+    )
+    llm = create_llm(model_name, max_tokens=max_tokens)
 
     response = llm.invoke(messages)
 
@@ -192,8 +212,7 @@ def chat_node(state: InfraSketchState) -> dict:
 
     If tools are called, the tool loop will execute them and return here.
     """
-    # Bind tools to LLM (includes both diagram and design doc tools)
-    llm = create_llm(state.model or DEFAULT_MODEL).bind_tools(all_tools)
+    model_name = state.model or DEFAULT_MODEL
 
     # Build context
     diagram_dict = state.diagram.model_dump() if state.diagram else {}
@@ -227,6 +246,15 @@ def chat_node(state: InfraSketchState) -> dict:
         SystemMessage(content=SYSTEM_PROMPT),
         HumanMessage(content=prompt)
     ]
+
+    # Size max_tokens dynamically. Chat input includes diagram context, conversation
+    # history, and design doc context, all of which can be large on long-running
+    # sessions. Without this, large inputs trigger context-window-exceeded errors.
+    max_tokens = compute_max_output_tokens(
+        model_name,
+        estimated_input_tokens=estimate_input_tokens(messages),
+    )
+    llm = create_llm(model_name, max_tokens=max_tokens).bind_tools(all_tools)
 
     response = llm.invoke(messages)
 

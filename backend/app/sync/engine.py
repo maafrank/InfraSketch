@@ -356,15 +356,14 @@ def _execute_diagram_to_doc(session) -> str:
 
     from app.agent.prompts import get_diagram_context
     from app.agent.tools import update_design_doc_section
-    from app.config.models import DEFAULT_MODEL
+    from app.config.models import (
+        DEFAULT_MODEL,
+        compute_max_output_tokens,
+        estimate_input_tokens,
+    )
     from app.utils.secrets import get_anthropic_api_key
 
-    llm = ChatAnthropic(
-        model=session.model or DEFAULT_MODEL,
-        api_key=get_anthropic_api_key(),
-        temperature=0.2,
-        max_tokens=8192,
-    ).bind_tools([update_design_doc_section])
+    model_name = session.model or DEFAULT_MODEL
 
     diagram_context = get_diagram_context(session.diagram.model_dump())
     change_hint = (
@@ -382,6 +381,21 @@ def _execute_diagram_to_doc(session) -> str:
         SystemMessage(content="You are a precise technical writer."),
         HumanMessage(content=prompt),
     ]
+
+    # Sync sends the whole diagram + design doc; cap to fit context window.
+    # Keep 8192 as the requested ceiling since sync edits are surgical.
+    max_tokens = compute_max_output_tokens(
+        model_name,
+        estimated_input_tokens=estimate_input_tokens(messages),
+        requested_max=8192,
+    )
+
+    llm = ChatAnthropic(
+        model=model_name,
+        api_key=get_anthropic_api_key(),
+        temperature=0.2,
+        max_tokens=max_tokens,
+    ).bind_tools([update_design_doc_section])
 
     response = llm.invoke(messages)
 
