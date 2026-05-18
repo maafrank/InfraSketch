@@ -2,7 +2,7 @@
 
 Machine learning models are only valuable when they run reliably in production. The challenge is that ML systems are fundamentally different from traditional software. They depend on data that shifts over time, models that degrade silently, and training pipelines that are expensive, slow, and difficult to reproduce. MLOps, the discipline of applying DevOps principles to machine learning, exists to solve these problems. It provides the practices, tools, and architectures needed to take a model from a Jupyter notebook to a production service that teams can trust.
 
-This guide presents a complete MLOps system design reference architecture. It covers maturity levels, core components, monitoring strategies, CI/CD pipelines for ML, infrastructure platforms, cost management, and the anti-patterns that trip teams up most often. Whether you are preparing for a [system design interview](/blog/system-design-interview-guide) or building a production ML platform, this reference architecture gives you a concrete blueprint to work from.
+This guide presents a complete MLOps system design reference architecture. It covers maturity levels, core components, monitoring strategies, CI/CD pipelines for ML, infrastructure platforms, cost management, and the anti-patterns that trip teams up most often. Whether you are preparing for a [system design interview](/blog/system-design-interview-prep-practice) or building a production ML platform, this reference architecture gives you a concrete blueprint to work from.
 
 ## What Is MLOps?
 
