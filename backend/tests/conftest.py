@@ -468,8 +468,25 @@ def mock_user_credits_storage(mocker):
         "app.api.routes_diagrams",
         "app.api.routes_groups",
         "app.api.routes_users",
+        "app.billing.sync",
+        "app.sync.engine",
     ):
         mocker.patch(f"{mod}.get_user_credits_storage", return_value=mock_storage)
+
+    # Service gates now route through sync_user_from_clerk before entitlement
+    # decisions. For tests that already mock storage, make sync a transparent
+    # pass-through: return whatever get_or_create_credits returns, no Clerk
+    # call, no plan reconciliation. Tests for sync.py internals override
+    # this patch directly.
+    transparent_sync = lambda user_id, force=False, gate_check=False: mock_storage.get_or_create_credits(user_id)
+    for mod in (
+        "app.api._helpers",
+        "app.api.routes_billing",
+        "app.api.routes_design_docs",
+        "app.sync.engine",
+    ):
+        mocker.patch(f"{mod}.sync_user_from_clerk", side_effect=transparent_sync)
+
     return mock_storage
 
 

@@ -24,9 +24,17 @@ from app.api._helpers import (
     _should_generate_session_name,
     _generate_session_name_from_content,
 )
+from app.billing.clerk_client import invalidate_clerk_cache_for_user, parse_clerk_timestamp
 from app.billing.credit_costs import DESIGN_DOC_PLANS, calculate_cost
+from app.billing.plans import (
+    CLERK_PLAN_ID_MAP,
+    UnknownClerkPlanError,
+    extract_plan_id_from_item,
+    get_plan_from_clerk_id,
+)
 from app.billing.promo_codes import get_promo_code_info, redeem_promo_code, validate_promo_code
 from app.billing.storage import get_user_credits_storage
+from app.billing.sync import DEFAULT_CANCELED_GRACE_SECONDS, sync_user_from_clerk
 from app.config.models import DEFAULT_MODEL
 from app.gamification.achievements import (
     ACHIEVEMENT_DEFINITIONS,
@@ -83,32 +91,21 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def _load_admin_user_ids() -> set[str]:
+    import os
+    raw = os.environ.get("ADMIN_USER_IDS", "")
+    return {uid.strip() for uid in raw.split(",") if uid.strip()}
+
+
+def require_admin(user_id: str = Depends(get_current_user)) -> str:
+    if user_id not in _load_admin_user_ids():
+        raise HTTPException(status_code=403, detail="admin only")
+    return user_id
+
+
 class RedeemPromoRequest(BaseModel):
     """Request body for redeeming a promo code."""
     code: str
-
-
-CLERK_PLAN_ID_MAP = {
-    "cplan_3ASdFvizPo0JbVeethbsS7UfLjp": "starter",
-    "cplan_37cOR2Mjs1jWOjaJfUGTX0U1Jf4": "pro",
-    "cplan_37cOpDf5Cm7GGUl2K8lUarQf7Bp": "enterprise",
-}
-
-
-def _get_plan_from_clerk_id(plan_id: str) -> str:
-    """Map Clerk plan ID to our plan name."""
-    # First check exact match
-    if plan_id in CLERK_PLAN_ID_MAP:
-        return CLERK_PLAN_ID_MAP[plan_id]
-    # Fall back to fuzzy match on plan key
-    plan_id_lower = plan_id.lower()
-    if "starter" in plan_id_lower:
-        return "starter"
-    elif "pro" in plan_id_lower:
-        return "pro"
-    elif "enterprise" in plan_id_lower:
-        return "enterprise"
-    return "free"
 
 
 @router.post("/subscribe", response_model=SubscriptionStatus)
@@ -487,8 +484,7 @@ async def get_user_credits(http_request: Request,
         JSON with plan, credit balances, and subscription info
     """
 
-    storage = get_user_credits_storage()
-    credits = storage.get_or_create_credits(user_id)
+    credits = sync_user_from_clerk(user_id)
 
     return {
         "plan": credits.plan,
@@ -499,6 +495,36 @@ async def get_user_credits(http_request: Request,
         "plan_started_at": credits.plan_started_at.isoformat() if credits.plan_started_at else None,
         "plan_expires_at": credits.plan_expires_at.isoformat() if credits.plan_expires_at else None,
         "last_credit_reset_at": credits.last_credit_reset_at.isoformat() if credits.last_credit_reset_at else None,
+    }
+
+
+@router.post("/admin/user/{target_user_id}/sync-plan")
+async def admin_sync_user_plan(
+    target_user_id: str,
+    _: str = Depends(require_admin),
+):
+    """
+    Force a Clerk -> DynamoDB plan sync for any user. Used by support to
+    repair accounts where the billing webhook missed or stored the wrong plan.
+
+    Surfaces Clerk failures as 502 so support sees a clear error rather than
+    a misleading "already correct" 200.
+    """
+    try:
+        credits = sync_user_from_clerk(target_user_id, force=True)
+    except Exception as e:
+        logger.exception("admin sync-plan failed for %s", target_user_id)
+        raise HTTPException(
+            status_code=502,
+            detail=f"Clerk sync failed for {target_user_id}: {e}",
+        )
+    return {
+        "user_id": target_user_id,
+        "plan": credits.plan,
+        "subscription_status": credits.subscription_status,
+        "clerk_subscription_id": credits.clerk_subscription_id,
+        "credits_balance": credits.credits_balance,
+        "credits_monthly_allowance": credits.credits_monthly_allowance,
     }
 
 
@@ -649,9 +675,13 @@ async def clerk_billing_webhook(http_request: Request):
                 logger.exception("Clerk billing webhook signature verification failed")
                 raise HTTPException(status_code=401, detail="Invalid webhook signature")
         else:
-            # In development, parse without verification
+            # Allow unsigned only when explicitly running unauthenticated locally.
+            # In production, refuse rather than silently trusting unsigned traffic.
+            if os.environ.get("DISABLE_CLERK_AUTH", "false").lower() != "true":
+                logger.error("Clerk billing webhook rejected: CLERK_BILLING_WEBHOOK_SECRET not configured")
+                raise HTTPException(status_code=500, detail="Webhook secret not configured")
             payload = json.loads(body)
-            logger.info("WARNING: Clerk billing webhook signature not verified (no secret configured)")
+            logger.warning("Clerk billing webhook signature not verified (DISABLE_CLERK_AUTH=true)")
 
         event_type = payload.get("type")
         data = payload.get("data", {})
@@ -667,31 +697,96 @@ async def clerk_billing_webhook(http_request: Request):
         # - subscription.* events: data.payer.user_id
         # - subscriptionItem.* events: data.payer.user_id
         # - user.* events: data.id
-        def get_user_id_from_data(d: dict) -> str | None:
-            # Try payer.user_id first (subscription and subscriptionItem events)
+        def get_user_id_from_data(d: dict) -> Optional[str]:
             payer = d.get("payer", {})
             if payer and payer.get("user_id"):
                 return payer.get("user_id")
-            # Fall back to direct user_id
             return d.get("user_id")
+
+        def _first_period_end(items: list) -> Optional[int]:
+            """Return the period_end timestamp from the first dict item that has one."""
+            for item in items or []:
+                if isinstance(item, dict) and item.get("period_end"):
+                    return item.get("period_end")
+            return None
+
+        def _expiry_with_grace_fallback(raw_period_end):
+            """Parse a Clerk period_end timestamp, falling back to (now + grace)
+            when missing. Bounds canceled subscriptions that never receive an
+            ended webhook so service stops eventually."""
+            from datetime import datetime as _dt, timedelta as _td
+            parsed = parse_clerk_timestamp(raw_period_end)
+            if parsed is not None:
+                return parsed
+            return _dt.utcnow() + _td(seconds=DEFAULT_CANCELED_GRACE_SECONDS)
+
+        def extract_subscription_plan_id(d: dict) -> str:
+            """
+            Pull a plan identifier from a subscription.* event payload. Clerk's
+            current shape nests the plan inside data.subscription_items[]; the
+            top-level data.plan_id is typically empty for subscription.* events.
+            This was the root cause of plan="free" being stored for an active
+            starter subscriber.
+
+            For each item we check plan_id, then nested plan.id, then nested
+            plan.slug (same chain the Clerk API client uses for self-healing),
+            so a payload variant that only exposes slug doesn't silently fail
+            with missing_plan_id. Falls back to top-level data.plan_id last.
+            """
+            items = d.get("subscription_items") or []
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                if item.get("status") and item.get("status") != "active":
+                    continue
+                pid = extract_plan_id_from_item(item)
+                if pid:
+                    return pid
+            return d.get("plan_id", "") or ""
+
+        webhook_user_id = get_user_id_from_data(data)
+        log_event(
+            EventType.CLERK_BILLING_WEBHOOK,
+            metadata={"event_type": event_type, "user_id": webhook_user_id},
+        )
+        # Drop the per-process Clerk cache for this user BEFORE handling the
+        # mutation. Any subsequent same-container service gate that fires
+        # before the cache TTL would otherwise read the pre-mutation snapshot
+        # (e.g. cached active sub from before this cancellation, or just-paid
+        # user whose previous read was cached as 404 - though 404s are no
+        # longer cached, this also catches active->canceled stale reads).
+        # Cross-container staleness is bounded by the 60s cache TTL.
+        invalidate_clerk_cache_for_user(webhook_user_id)
 
         # Handle user.created - initialize credits for new users
         if event_type == "user.created":
             user_id = data.get("id")
             if user_id:
-                # This will create credits with free tier defaults if not exists
                 storage.get_or_create_credits(user_id)
                 logger.info(f"Initialized credits for new user {user_id}")
 
-        # Handle subscription events
+        # Handle subscription events. For create/activate/update, an empty
+        # plan_id after extraction (e.g. Clerk schema change, malformed
+        # subscription_items) must NOT silently flow through to update_plan
+        # with new_plan="" / "free" - that would mark a paying account as
+        # canceled. Return 500 so Clerk retries and surfaces the bad payload.
         elif event_type in ["subscription.created", "subscription.active"]:
             user_id = get_user_id_from_data(data)
-            plan_id = data.get("plan_id", "")
+            plan_id = extract_subscription_plan_id(data)
             subscription_id = data.get("id")
             stripe_customer_id = data.get("stripe_customer_id")
 
-            if user_id:
-                plan = _get_plan_from_clerk_id(plan_id)
+            if not user_id:
+                logger.warning(f"{event_type}: missing user_id in payload: {json.dumps(data)[:500]}")
+            elif not plan_id:
+                logger.error(f"{event_type}: empty plan_id after extraction for user {user_id}; payload: {json.dumps(data)[:500]}")
+                return JSONResponse(status_code=500, content={"error": "missing_plan_id", "event_type": event_type})
+            else:
+                try:
+                    plan = get_plan_from_clerk_id(plan_id, raise_on_unknown=True)
+                except UnknownClerkPlanError:
+                    logger.error(f"{event_type}: unknown plan_id {plan_id!r} for user {user_id}; returning 500 so Clerk retries")
+                    return JSONResponse(status_code=500, content={"error": "unknown_plan_id", "plan_id": plan_id})
                 storage.update_plan(
                     user_id=user_id,
                     new_plan=plan,
@@ -702,11 +797,73 @@ async def clerk_billing_webhook(http_request: Request):
 
         elif event_type == "subscription.updated":
             user_id = get_user_id_from_data(data)
-            plan_id = data.get("plan_id", "")
+            plan_id = extract_subscription_plan_id(data)
             subscription_id = data.get("id")
+            sub_status = (data.get("status") or "").lower()
+            sub_items = data.get("subscription_items") or []
+            has_active_item = any(
+                isinstance(it, dict) and (it.get("status") or "").lower() == "active"
+                for it in sub_items
+            )
+            # canceled = user opted out, grace period until period_end -> keep plan
+            # ended/expired = entitlement is over -> downgrade now
+            all_items_canceled = bool(sub_items) and all(
+                isinstance(it, dict) and (it.get("status") or "").lower() == "canceled"
+                for it in sub_items
+            )
+            any_item_ended_or_expired = any(
+                isinstance(it, dict)
+                and (it.get("status") or "").lower() in {"ended", "expired"}
+                for it in sub_items
+            )
 
-            if user_id:
-                plan = _get_plan_from_clerk_id(plan_id)
+            if not user_id:
+                logger.warning(f"{event_type}: missing user_id in payload: {json.dumps(data)[:500]}")
+            elif sub_status in {"ended", "expired"} or (any_item_ended_or_expired and not has_active_item):
+                # Hard end: entitlement is over (top-level OR an item shows
+                # ended/expired with no compensating active item). Downgrade now.
+                logger.info(
+                    f"{event_type}: ended signal for user {user_id} "
+                    f"(status={sub_status!r}, any_item_ended={any_item_ended_or_expired}); reverting to free"
+                )
+                storage.update_plan(user_id=user_id, new_plan="free")
+            elif sub_status == "past_due":
+                # Failed payment. Don't downgrade plan (retries may succeed)
+                # but mark past_due so service gates block. Must come BEFORE
+                # the canceled-by-items branch: items can be inactive during
+                # past_due retries, which would otherwise mis-route to canceled.
+                logger.info(
+                    f"{event_type}: status=past_due for user {user_id}; marking past_due, keeping plan"
+                )
+                storage.set_subscription_status(user_id, "past_due")
+            elif sub_status == "canceled" or all_items_canceled:
+                # User opted out (top-level status) OR every item is explicitly
+                # canceled. Retain features until period_end - mark canceled,
+                # KEEP plan. A later subscription.ended / subscriptionItem.ended
+                # event will downgrade to free at the actual expiry. If Clerk
+                # omits period_end, fall back to a bounded grace so the
+                # canceled state can't persist indefinitely.
+                period_end = _expiry_with_grace_fallback(
+                    _first_period_end(sub_items) or data.get("period_end")
+                )
+                logger.info(
+                    f"{event_type}: canceled signal for user {user_id} "
+                    f"(status={sub_status!r}, period_end={period_end}); keeping plan, marking canceled"
+                )
+                storage.mark_pending_cancellation(
+                    user_id=user_id,
+                    expires_at=period_end,
+                    clerk_subscription_id=subscription_id,
+                )
+            elif not plan_id:
+                logger.error(f"{event_type}: empty plan_id after extraction for user {user_id}; payload: {json.dumps(data)[:500]}")
+                return JSONResponse(status_code=500, content={"error": "missing_plan_id", "event_type": event_type})
+            else:
+                try:
+                    plan = get_plan_from_clerk_id(plan_id, raise_on_unknown=True)
+                except UnknownClerkPlanError:
+                    logger.error(f"{event_type}: unknown plan_id {plan_id!r} for user {user_id}; returning 500 so Clerk retries")
+                    return JSONResponse(status_code=500, content={"error": "unknown_plan_id", "plan_id": plan_id})
                 storage.update_plan(
                     user_id=user_id,
                     new_plan=plan,
@@ -714,24 +871,78 @@ async def clerk_billing_webhook(http_request: Request):
                 )
                 logger.info(f"Updated subscription for user {user_id}: {plan}")
 
-        elif event_type == "subscription.pastDue":
+        elif event_type in ["subscription.pastDue", "subscriptionItem.pastDue"]:
+            # Payment failed but service is not blocked here. Surfaced via
+            # /user/credits.subscription_status for the frontend to show a
+            # "update payment" banner. Whether past_due should hard-block
+            # paid features is a separate product decision.
             user_id = get_user_id_from_data(data)
             if user_id:
-                credits = storage.get_credits(user_id)
-                if credits:
-                    credits.subscription_status = "past_due"
-                    storage.save_credits(credits)
-                    logger.info(f"Marked subscription as past_due for user {user_id}")
+                storage.set_subscription_status(user_id, "past_due")
+                logger.info(f"Marked subscription as past_due for user {user_id} ({event_type})")
 
-        # Handle subscriptionItem events (for plan changes)
-        elif event_type in ["subscriptionItem.created", "subscriptionItem.active", "subscriptionItem.updated"]:
-            # subscriptionItem contains plan details
+        elif event_type in ["subscription.ended", "subscription.expired"]:
+            # Authoritative entitlement end at the subscription level.
             user_id = get_user_id_from_data(data)
-            plan_id = data.get("plan_id", "")
-            subscription_id = data.get("subscription_id")
+            if not user_id:
+                logger.warning(f"{event_type}: missing user_id in payload: {json.dumps(data)[:500]}")
+            else:
+                storage.update_plan(user_id=user_id, new_plan="free")
+                logger.info(f"{event_type}: reverted user {user_id} to free")
 
-            if user_id and plan_id:
-                plan = _get_plan_from_clerk_id(plan_id)
+        # Handle subscriptionItem events (for plan changes). data here IS the
+        # subscription_item (not a wrapper), so extract_plan_id_from_item is
+        # the right helper - it handles plan_id / plan.id / plan.slug.
+        #
+        # subscriptionItem.updated can arrive with status=canceled/ended even
+        # when the plan_id is still populated. Treating those as upgrade
+        # signals would re-enable service for a non-active item. Route them
+        # to the cancel/end handlers based on data.status.
+        elif event_type in ["subscriptionItem.created", "subscriptionItem.active", "subscriptionItem.updated"]:
+            user_id = get_user_id_from_data(data)
+            plan_id = extract_plan_id_from_item(data)
+            subscription_id = data.get("subscription_id")
+            item_status = (data.get("status") or "").lower()
+
+            if not user_id:
+                logger.warning(f"{event_type}: missing user_id in payload: {json.dumps(data)[:500]}")
+            elif item_status in {"ended", "expired"}:
+                logger.info(
+                    f"{event_type}: status={item_status!r} for user {user_id}; reverting to free"
+                )
+                storage.update_plan(user_id=user_id, new_plan="free")
+            elif item_status == "canceled":
+                # Use the grace fallback so a missing period_end gets bounded
+                # to now+30d instead of writing None (which would leave the
+                # user in canceled state with no expiry, gates passing forever).
+                period_end = _expiry_with_grace_fallback(data.get("period_end"))
+                logger.info(
+                    f"{event_type}: canceled signal for user {user_id} "
+                    f"(period_end={period_end}); keeping plan, marking canceled"
+                )
+                storage.mark_pending_cancellation(
+                    user_id=user_id,
+                    expires_at=period_end,
+                    clerk_subscription_id=subscription_id,
+                )
+            elif item_status == "past_due":
+                # Payment failed on this item. Mark stored past_due and do
+                # NOT update_plan - applying a plan change while payment is
+                # failing would re-enable service.
+                logger.info(
+                    f"{event_type}: status=past_due for user {user_id}; marking past_due, keeping plan"
+                )
+                storage.set_subscription_status(user_id, "past_due")
+            elif not plan_id:
+                logger.warning(f"{event_type}: missing plan_id for user {user_id}; ignoring")
+            else:
+                # Item is active (or status missing - treat as active per the
+                # created/active naming). Apply the plan.
+                try:
+                    plan = get_plan_from_clerk_id(plan_id, raise_on_unknown=True)
+                except UnknownClerkPlanError:
+                    logger.error(f"{event_type}: unknown plan_id {plan_id!r} for user {user_id}; returning 500 so Clerk retries")
+                    return JSONResponse(status_code=500, content={"error": "unknown_plan_id", "plan_id": plan_id})
                 storage.update_plan(
                     user_id=user_id,
                     new_plan=plan,
@@ -739,24 +950,42 @@ async def clerk_billing_webhook(http_request: Request):
                 )
                 logger.info(f"SubscriptionItem {event_type} for user {user_id}: {plan}")
 
-        elif event_type in ["subscriptionItem.canceled", "subscriptionItem.ended"]:
-            # User canceled or subscription ended - revert to free
+        elif event_type == "subscriptionItem.canceled":
+            # User opted out of renewal. Per Clerk billing semantics they
+            # retain entitlement until period_end - mark canceled, keep plan.
+            # subscriptionItem.ended (or sync) will flip to free at expiry.
+            # Fall back to a bounded grace if Clerk omits period_end so the
+            # canceled state can't persist forever without an ended webhook.
             user_id = get_user_id_from_data(data)
-            if user_id:
-                storage.update_plan(
-                    user_id=user_id,
-                    new_plan="free",
+            if not user_id:
+                logger.warning(f"{event_type}: missing user_id in payload: {json.dumps(data)[:500]}")
+            else:
+                period_end = _expiry_with_grace_fallback(data.get("period_end"))
+                logger.info(
+                    f"{event_type}: canceled signal for user {user_id} "
+                    f"(period_end={period_end}); keeping plan, marking canceled"
                 )
-                logger.info(f"Subscription canceled/ended for user {user_id}, reverted to free")
+                storage.mark_pending_cancellation(
+                    user_id=user_id,
+                    expires_at=period_end,
+                    clerk_subscription_id=data.get("subscription_id"),
+                )
+
+        elif event_type == "subscriptionItem.ended":
+            # Authoritative end of entitlement at the item level.
+            user_id = get_user_id_from_data(data)
+            if not user_id:
+                logger.warning(f"{event_type}: missing user_id in payload: {json.dumps(data)[:500]}")
+            else:
+                storage.update_plan(user_id=user_id, new_plan="free")
+                logger.info(f"{event_type}: reverted user {user_id} to free")
 
         elif event_type == "subscriptionItem.upcoming":
-            # Upcoming renewal - could use this to reset credits
             user_id = get_user_id_from_data(data)
             if user_id:
                 storage.reset_monthly_credits(user_id)
                 logger.info(f"Reset monthly credits for upcoming renewal: user {user_id}")
 
-        # Log unhandled events for debugging
         else:
             logger.info(f"Unhandled Clerk billing event: {event_type}")
 

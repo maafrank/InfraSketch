@@ -32,6 +32,8 @@ class EventType(str, Enum):
     API_REQUEST = "api_request"
     API_ERROR = "api_error"
     RATE_LIMIT_EXCEEDED = "rate_limit_exceeded"
+    CLERK_BILLING_WEBHOOK = "clerk_billing_webhook"
+    PLAN_SELF_HEAL = "plan_self_heal"
 
 
 def log_event(

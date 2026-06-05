@@ -22,6 +22,7 @@ from typing import Optional
 
 from app.billing.credit_costs import DESIGN_DOC_PLANS, calculate_cost
 from app.billing.storage import get_user_credits_storage
+from app.billing.sync import sync_user_from_clerk
 from app.models import Diagram, Node, SyncStatus
 from app.sync.context import current_mutation_provenance
 from app.sync.prompts import DIAGRAM_TO_DOC_SYNC_PROMPT
@@ -82,10 +83,24 @@ def _is_structural_change(old: Optional[Diagram], new: Diagram) -> bool:
 
 
 def _user_is_paid(user_id: str) -> bool:
-    """Check if user is on a plan that includes design doc generation."""
+    """Check if user is on a paid plan AND payment is current AND not expired.
+
+    Calls sync_user_from_clerk first so a paid user with a missed webhook
+    isn't denied auto-sync. Throttle inside sync bounds Clerk calls. Three
+    fail-closed conditions even if Clerk sync fails:
+    - subscription_status == past_due (failed renewal payment)
+    - plan_expires_at in the past (grace period exhausted)
+    - plan not in DESIGN_DOC_PLANS
+    """
+    from datetime import datetime
     try:
-        storage = get_user_credits_storage()
-        credits = storage.get_or_create_credits(user_id)
+        credits = sync_user_from_clerk(user_id, gate_check=True)
+        if credits.subscription_status == "past_due":
+            return False
+        if (credits.plan != "free"
+            and credits.plan_expires_at
+            and credits.plan_expires_at < datetime.utcnow()):
+            return False
         return credits.plan in DESIGN_DOC_PLANS
     except Exception as e:
         logger.exception(f"sync: failed to check user plan, treating as free: {e}")
@@ -247,6 +262,19 @@ def run_diagram_to_doc(session_id: str) -> None:
     session = session_manager.get_session(session_id)
     if not session:
         logger.warning(f"sync: session {session_id} not found in run_diagram_to_doc")
+        return
+
+    # Re-check entitlement at execution time, not just at schedule time. A
+    # user can become past_due / canceled between the schedule call and the
+    # background dispatch. Without this re-check, the LLM call still fires
+    # and charges credits for a non-paying user.
+    if not _user_is_paid(session.user_id):
+        logger.info(
+            f"sync: session {session_id} user {session.user_id} no longer paid at execution, aborting"
+        )
+        session_manager.update_sync_status(
+            session_id, state="idle", error="not_entitled", sync_due_at=None,
+        )
         return
 
     status = session.sync_status

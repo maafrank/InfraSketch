@@ -4,6 +4,7 @@ import base64
 import json
 import logging
 import time
+from datetime import datetime
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
@@ -27,6 +28,7 @@ from app.api._helpers import (
 from app.billing.credit_costs import DESIGN_DOC_PLANS, calculate_cost
 from app.billing.promo_codes import get_promo_code_info, redeem_promo_code, validate_promo_code
 from app.billing.storage import get_user_credits_storage
+from app.billing.sync import sync_user_from_clerk
 from app.config.models import DEFAULT_MODEL
 from app.gamification.achievements import (
     ACHIEVEMENT_DEFINITIONS,
@@ -375,7 +377,29 @@ async def generate_design_doc(session_id: str, request: ExportRequest, backgroun
         is_grant_path = False
         if user_id:
             credits_storage = get_user_credits_storage()
-            user_credits = credits_storage.get_or_create_credits(user_id)
+            # Sync from Clerk BEFORE the paid-plan gate. A paid user whose
+            # webhook was missed would otherwise see "free user preview" here
+            # despite having paid. gate_check=True uses the 1h paid throttle.
+            user_credits = sync_user_from_clerk(user_id, gate_check=True)
+            if user_credits.subscription_status == "past_due":
+                return JSONResponse(
+                    status_code=402,
+                    content={
+                        "error": "subscription_past_due",
+                        "message": "Your payment failed. Update your payment method to resume service.",
+                    },
+                )
+            # Fail closed on expired grace period even if Clerk sync is failing.
+            if (user_credits.plan != "free"
+                and user_credits.plan_expires_at
+                and user_credits.plan_expires_at < datetime.utcnow()):
+                return JSONResponse(
+                    status_code=402,
+                    content={
+                        "error": "subscription_expired",
+                        "message": "Your subscription has ended. Resubscribe to resume service.",
+                    },
+                )
             if user_credits.plan not in DESIGN_DOC_PLANS:
                 if user_credits.free_design_docs_remaining > 0:
                     # Consume the grant up-front (matches paid-credit deduction
@@ -594,6 +618,41 @@ async def trigger_sync(session_id: str, request: SyncRequest, http_request: Requ
     """
     user_id = getattr(http_request.state, "user_id", None)
     session = verify_session_access(session_id, user_id, http_request)
+
+    # Gate manual sync the same way auto-sync is gated. A past_due / canceled
+    # user could otherwise hit this endpoint to re-sync an existing design doc
+    # without paying. sync_user_from_clerk also catches the just-paid case
+    # (fresh state, missed webhook).
+    if user_id:
+        user_credits = sync_user_from_clerk(user_id, gate_check=True)
+        if user_credits.subscription_status == "past_due":
+            raise HTTPException(
+                status_code=402,
+                detail={
+                    "error": "subscription_past_due",
+                    "message": "Your payment failed. Update your payment method to resume service.",
+                },
+            )
+        if (user_credits.plan != "free"
+            and user_credits.plan_expires_at
+            and user_credits.plan_expires_at < datetime.utcnow()):
+            raise HTTPException(
+                status_code=402,
+                detail={
+                    "error": "subscription_expired",
+                    "message": "Your subscription has ended. Resubscribe to resume service.",
+                },
+            )
+        if user_credits.plan not in DESIGN_DOC_PLANS:
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": "feature_locked",
+                    "feature": "design_doc_sync",
+                    "required_plan": "starter",
+                    "message": "Design doc sync requires a paid plan.",
+                },
+            )
 
     if not session.design_doc:
         raise HTTPException(status_code=400, detail="Session has no design document to sync")

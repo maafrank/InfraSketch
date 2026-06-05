@@ -164,6 +164,148 @@ class UserCreditsStorage:
             logger.exception(f"Error saving credits for user {credits.user_id}: {e}")
             return False
 
+    def set_clerk_metadata(
+        self,
+        user_id: str,
+        clerk_subscription_id: Optional[str],
+        stripe_customer_id: Optional[str],
+        subscription_status: str,
+    ) -> bool:
+        """
+        Atomically refresh ONLY subscription-tracking metadata fields, leaving
+        plan, credit balances, and timestamps alone. Used by the forced admin
+        sync when the plan already matches but subscription_id /
+        stripe_customer_id / subscription_status are stale.
+
+        Setting clerk_subscription_id to None translates to REMOVE so a row
+        that was carrying an obsolete csub_* gets cleared.
+        """
+        try:
+            ts = datetime.utcnow().isoformat()
+            set_clauses = ["updated_at = :ts", "subscription_status = :status"]
+            remove_clauses = []
+            values = {":ts": ts, ":status": subscription_status}
+
+            if clerk_subscription_id is None:
+                remove_clauses.append("clerk_subscription_id")
+            else:
+                set_clauses.append("clerk_subscription_id = :csub")
+                values[":csub"] = clerk_subscription_id
+
+            if stripe_customer_id is not None:
+                set_clauses.append("stripe_customer_id = :scust")
+                values[":scust"] = stripe_customer_id
+
+            expr = "SET " + ", ".join(set_clauses)
+            if remove_clauses:
+                expr += " REMOVE " + ", ".join(remove_clauses)
+
+            self.credits_table.update_item(
+                Key={"user_id": user_id},
+                UpdateExpression=expr,
+                ExpressionAttributeValues=values,
+            )
+            return True
+        except Exception as e:
+            logger.exception(f"Error setting clerk metadata for user {user_id}: {e}")
+            return False
+
+    def mark_pending_cancellation(
+        self,
+        user_id: str,
+        expires_at: Optional[datetime],
+        clerk_subscription_id: Optional[str] = None,
+    ) -> bool:
+        """
+        Mark a paid subscription as canceled-with-grace-period. Atomically sets
+        subscription_status="canceled" and plan_expires_at without touching
+        plan, credit balances, plan_started_at, or last_credit_reset_at. The
+        user keeps paid features until plan_expires_at, then a subsequent
+        subscriptionItem.ended webhook (or periodic sync) flips plan to free.
+        """
+        try:
+            ts = datetime.utcnow().isoformat()
+            set_clauses = ["updated_at = :ts", "subscription_status = :status"]
+            values = {":ts": ts, ":status": "canceled"}
+            remove_clauses = []
+
+            if expires_at is None:
+                remove_clauses.append("plan_expires_at")
+            else:
+                set_clauses.append("plan_expires_at = :exp")
+                values[":exp"] = expires_at.isoformat()
+
+            if clerk_subscription_id:
+                set_clauses.append("clerk_subscription_id = :csub")
+                values[":csub"] = clerk_subscription_id
+
+            expr = "SET " + ", ".join(set_clauses)
+            if remove_clauses:
+                expr += " REMOVE " + ", ".join(remove_clauses)
+
+            self.credits_table.update_item(
+                Key={"user_id": user_id},
+                UpdateExpression=expr,
+                ExpressionAttributeValues=values,
+            )
+            return True
+        except Exception as e:
+            logger.exception(f"Error marking pending cancellation for user {user_id}: {e}")
+            return False
+
+    def set_subscription_status(self, user_id: str, status: str) -> bool:
+        """
+        Atomically update only the subscription_status field. Used for
+        pastDue handling and recovery-from-canceled without racing against
+        credit deductions.
+
+        Transitioning to "active" also clears plan_expires_at because the
+        field is the cancellation-grace-window expiry; a resubscribed user
+        with a leftover past expiry would otherwise be blocked by the
+        "subscription_expired" gates.
+        """
+        try:
+            ts = datetime.utcnow().isoformat()
+            set_clauses = ["subscription_status = :s", "updated_at = :ts"]
+            remove_clauses = []
+            values = {":s": status, ":ts": ts}
+            if status == "active":
+                remove_clauses.append("plan_expires_at")
+            expr = "SET " + ", ".join(set_clauses)
+            if remove_clauses:
+                expr += " REMOVE " + ", ".join(remove_clauses)
+            self.credits_table.update_item(
+                Key={"user_id": user_id},
+                UpdateExpression=expr,
+                ExpressionAttributeValues=values,
+            )
+            return True
+        except Exception as e:
+            logger.exception(f"Error setting subscription_status for user {user_id}: {e}")
+            return False
+
+    def touch_clerk_sync_timestamp(self, user_id: str) -> bool:
+        """
+        Atomically bump last_clerk_sync_at without rewriting the whole row.
+
+        Used by the /user/credits self-heal path on every poll. A full
+        save_credits() would race with concurrent credit deductions and
+        promo grants, potentially overwriting them with a stale snapshot.
+        Requires the item to already exist (callers run get_or_create_credits
+        first).
+        """
+        try:
+            ts = datetime.utcnow().isoformat()
+            self.credits_table.update_item(
+                Key={"user_id": user_id},
+                UpdateExpression="SET last_clerk_sync_at = :ts, updated_at = :ts",
+                ExpressionAttributeValues={":ts": ts},
+            )
+            return True
+        except Exception as e:
+            logger.exception(f"Error touching clerk sync timestamp for user {user_id}: {e}")
+            return False
+
     def get_or_create_credits(self, user_id: str) -> UserCredits:
         """Get existing credits or create with free tier defaults."""
         credits = self.get_credits(user_id)
@@ -335,11 +477,24 @@ class UserCreditsStorage:
 
         credits.plan = new_plan
         credits.credits_monthly_allowance = new_allowance
-        credits.subscription_status = "active"
         credits.plan_started_at = datetime.utcnow()
+        # Always clear plan_expires_at on a plan write. The field is owned by
+        # mark_pending_cancellation; leaving an old value here would block a
+        # resubscribed user via the "subscription_expired" gates because
+        # plan_expires_at would still be in the past from the prior cancel.
+        credits.plan_expires_at = None
 
-        if clerk_subscription_id:
-            credits.clerk_subscription_id = clerk_subscription_id
+        if new_plan == "free":
+            # Downgrade path: keep stripe_customer_id for future re-subscribe,
+            # but the Clerk subscription_id is now stale and the status is no
+            # longer active. Without this clear, a canceled user would still
+            # show subscription_status="active" with an old clerk_subscription_id.
+            credits.subscription_status = "canceled"
+            credits.clerk_subscription_id = None
+        else:
+            credits.subscription_status = "active"
+            if clerk_subscription_id:
+                credits.clerk_subscription_id = clerk_subscription_id
         if stripe_customer_id:
             credits.stripe_customer_id = stripe_customer_id
 

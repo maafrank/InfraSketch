@@ -38,6 +38,7 @@ class UserCredits(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     last_credit_reset_at: Optional[datetime] = None
+    last_clerk_sync_at: Optional[datetime] = None
 
 
 class CreditTransaction(BaseModel):

@@ -11,6 +11,7 @@ from fastapi import HTTPException
 from app.agent.name_generator import generate_session_name
 from app.billing.credit_costs import calculate_cost
 from app.billing.storage import get_user_credits_storage
+from app.billing.sync import sync_user_from_clerk
 from app.models import Diagram
 from app.session.manager import session_manager
 from app.utils.secrets import get_anthropic_api_key
@@ -41,6 +42,42 @@ async def check_and_deduct_credits(
     Raises:
         HTTPException 402 if insufficient credits
     """
+    # Ensure stored plan reflects current Clerk state BEFORE charging. A paid
+    # user whose webhook was missed would otherwise be billed (or blocked) on
+    # the wrong plan tier. gate_check=True tightens the paid throttle to 1h
+    # so a missed `ended` webhook can't grant >1h of free service. Non-active
+    # stored status bypasses the throttle entirely inside sync. Fail-open if
+    # Clerk is down.
+    synced = sync_user_from_clerk(user_id, gate_check=True)
+
+    # Failed recurring payment stops service. Stored credits at the time of
+    # failure don't matter - the user hasn't paid for the current period.
+    # Frontend can prompt "update payment" using the subscription_status
+    # surfaced in /user/credits.
+    if synced.subscription_status == "past_due":
+        raise HTTPException(
+            status_code=402,
+            detail={
+                "error": "subscription_past_due",
+                "message": "Your payment failed. Update your payment method to resume service.",
+            },
+        )
+
+    # Fail closed on locally-known expired entitlement. plan_expires_at is
+    # set on cancellation; if Clerk sync is failing (transient outage) we
+    # still must NOT keep serving a user whose grace period ended.
+    from datetime import datetime
+    if (synced.plan != "free"
+        and synced.plan_expires_at
+        and synced.plan_expires_at < datetime.utcnow()):
+        raise HTTPException(
+            status_code=402,
+            detail={
+                "error": "subscription_expired",
+                "message": "Your subscription has ended. Resubscribe to resume service.",
+            },
+        )
+
     cost = calculate_cost(action, model)
     storage = get_user_credits_storage()
 

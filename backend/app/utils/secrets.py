@@ -134,3 +134,19 @@ def get_unsplash_api_key() -> str:
         secret_name='infrasketch/unsplash-api-key',
         default_env_var='UNSPLASH_ACCESS_KEY'
     )
+
+
+def get_clerk_secret_key() -> str:
+    """
+    Get Clerk Backend API secret key from AWS Secrets Manager or environment.
+
+    Returns:
+        The Clerk secret key (sk_live_... or sk_test_...)
+
+    Raises:
+        ValueError: If the key cannot be found
+    """
+    return get_secret(
+        secret_name='infrasketch/clerk-secret-key',
+        default_env_var='CLERK_SECRET_KEY'
+    )
