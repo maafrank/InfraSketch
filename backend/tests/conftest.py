@@ -478,7 +478,9 @@ def mock_user_credits_storage(mocker):
     # pass-through: return whatever get_or_create_credits returns, no Clerk
     # call, no plan reconciliation. Tests for sync.py internals override
     # this patch directly.
-    transparent_sync = lambda user_id, force=False, gate_check=False: mock_storage.get_or_create_credits(user_id)
+    def transparent_sync(user_id, force=False, gate_check=False):
+        return mock_storage.get_or_create_credits(user_id)
+
     for mod in (
         "app.api._helpers",
         "app.api.routes_billing",
