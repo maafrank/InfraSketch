@@ -71,6 +71,68 @@ class TestAnalyzerAuthHeaders:
         assert "Authorization" not in analyzer._get_headers()
 
 
+class TestBadTokenFallback:
+    """A misconfigured server-side credential must not break user analyses.
+
+    Regression: the infrasketch/github-token secret was once created holding the
+    literal placeholder "ghp_xxx". GitHub answers 401 Bad credentials, which
+    raise_for_status turned into a hard failure, so repo analysis broke entirely
+    rather than degrading to the unauthenticated rate it had before the token
+    existed.
+    """
+
+    def test_401_drops_the_token_and_retries(self):
+        analyzer = GitHubAnalyzer(access_token="ghp_bad")
+        analyzer._client = MagicMock()
+        analyzer._client.get.side_effect = [_response(401), _response(200)]
+
+        result = analyzer._get("https://api.github.com/repos/o/r")
+
+        assert result.status_code == 200
+        assert analyzer.access_token is None, "bad token must be dropped"
+        assert analyzer._client.get.call_count == 2
+
+    def test_retry_is_sent_without_an_authorization_header(self):
+        analyzer = GitHubAnalyzer(access_token="ghp_bad")
+        analyzer._client = MagicMock()
+        analyzer._client.get.side_effect = [_response(401), _response(200)]
+
+        analyzer._get("https://api.github.com/repos/o/r")
+
+        retry_headers = analyzer._client.get.call_args_list[1].kwargs["headers"]
+        assert "Authorization" not in retry_headers
+
+    def test_401_without_a_token_does_not_retry(self):
+        """Nothing to drop, so a genuine 401 must surface rather than loop."""
+        analyzer = GitHubAnalyzer()
+        analyzer._client = MagicMock()
+        analyzer._client.get.return_value = _response(401)
+
+        result = analyzer._get("https://api.github.com/repos/o/r")
+
+        assert result.status_code == 401
+        assert analyzer._client.get.call_count == 1
+
+    def test_a_working_token_is_kept(self):
+        analyzer = GitHubAnalyzer(access_token="ghp_good")
+        analyzer._client = MagicMock()
+        analyzer._client.get.return_value = _response(200)
+
+        analyzer._get("https://api.github.com/repos/o/r")
+
+        assert analyzer.access_token == "ghp_good"
+        assert analyzer._client.get.call_count == 1
+
+    def test_rate_limit_still_raises_through_get(self):
+        """The fallback must not swallow rate-limit detection."""
+        analyzer = GitHubAnalyzer(access_token="ghp_good")
+        analyzer._client = MagicMock()
+        analyzer._client.get.return_value = _response(403, {"X-RateLimit-Remaining": "0"})
+
+        with pytest.raises(GitHubRateLimitError):
+            analyzer._get("https://api.github.com/repos/o/r")
+
+
 class TestRateLimitDetection:
     """Tests for GitHubAnalyzer._check_rate_limit"""
 

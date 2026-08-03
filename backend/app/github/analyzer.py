@@ -287,6 +287,33 @@ class GitHubAnalyzer:
             headers["Authorization"] = f"Bearer {self.access_token}"
         return headers
 
+    def _get(self, url: str) -> httpx.Response:
+        """Single entry point for GitHub GETs.
+
+        Centralises two cross-cutting concerns:
+
+        1. Rate-limit detection.
+        2. Surviving a bad configured token. A 401 means the deployed
+           credential is wrong: expired, revoked, or a placeholder that was
+           never replaced. Failing every user's analysis over a server-side
+           misconfiguration is strictly worse than running at the
+           unauthenticated rate, so drop the token and retry once. The error
+           log is the signal to go fix the secret.
+        """
+        response = self.client.get(url, headers=self._get_headers())
+
+        if response.status_code == 401 and self.access_token:
+            logger.error(
+                "GitHub rejected the configured token (401 Bad credentials). "
+                "Falling back to unauthenticated requests at 60/hour shared per IP. "
+                "Check the infrasketch/github-token secret."
+            )
+            self.access_token = None
+            response = self.client.get(url, headers=self._get_headers())
+
+        self._check_rate_limit(response)
+        return response
+
     def _check_rate_limit(self, response: httpx.Response) -> None:
         """Raise GitHubRateLimitError if this response was rate limited.
 
@@ -406,9 +433,7 @@ class GitHubAnalyzer:
     def _get_repo_metadata(self, owner: str, repo: str) -> dict:
         """Fetch repository metadata."""
         url = f"{self.base_url}/repos/{owner}/{repo}"
-        response = self.client.get(url, headers=self._get_headers())
-
-        self._check_rate_limit(response)
+        response = self._get(url)
 
         if response.status_code == 404:
             raise RepoNotFoundError(f"Repository {owner}/{repo} not found")
@@ -425,9 +450,7 @@ class GitHubAnalyzer:
     def _get_languages(self, owner: str, repo: str) -> dict:
         """Get language breakdown for the repository."""
         url = f"{self.base_url}/repos/{owner}/{repo}/languages"
-        response = self.client.get(url, headers=self._get_headers())
-
-        self._check_rate_limit(response)
+        response = self._get(url)
 
         if response.status_code == 200:
             return response.json()
@@ -436,9 +459,7 @@ class GitHubAnalyzer:
     def _get_file_tree(self, owner: str, repo: str, branch: str) -> dict:
         """Get simplified file tree structure."""
         url = f"{self.base_url}/repos/{owner}/{repo}/git/trees/{branch}?recursive=1"
-        response = self.client.get(url, headers=self._get_headers())
-
-        self._check_rate_limit(response)
+        response = self._get(url)
 
         if response.status_code != 200:
             return {}
@@ -469,9 +490,7 @@ class GitHubAnalyzer:
     def _get_file_content(self, owner: str, repo: str, path: str) -> Optional[str]:
         """Fetch file content from GitHub API."""
         url = f"{self.base_url}/repos/{owner}/{repo}/contents/{path}"
-        response = self.client.get(url, headers=self._get_headers())
-
-        self._check_rate_limit(response)
+        response = self._get(url)
 
         if response.status_code == 200:
             data = response.json()
