@@ -117,9 +117,16 @@ def handler(event, context):
             return {"statusCode": 400, "body": f"Unknown async task: {async_task}"}
 
     # Otherwise, handle as normal API Gateway request
-    # Configure text_mime_types to ensure responses aren't base64 encoded
-    # Note: application/json should be handled by default, but we include it
-    # explicitly to prevent any encoding issues with API Gateway
+    #
+    # text_mime_types is what Mangum returns verbatim; anything else it
+    # base64-encodes and flags isBase64Encoded. This is a REST API (v1) with no
+    # binaryMediaTypes configured, so API Gateway does NOT decode that flag and
+    # the client receives literal base64. Every text content type this app
+    # serves therefore has to be listed here.
+    #
+    # Known gap: /share/{token}/preview.png returns image/png, which genuinely
+    # cannot be sent as text and needs `image/png` added to the API's
+    # binaryMediaTypes to survive the round trip.
     mangum_handler = Mangum(
         app,
         lifespan="off",
@@ -128,6 +135,9 @@ def handler(event, context):
             "text/plain",
             "text/html",
             "image/svg+xml",
+            # Share sitemap. Without this it reached crawlers as base64.
+            "application/xml",
+            "text/xml",
         ]
     )
     return mangum_handler(event, context)
