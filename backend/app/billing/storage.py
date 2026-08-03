@@ -8,7 +8,7 @@ import json
 import uuid
 from typing import Optional, List, Tuple
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime, timedelta
 import boto3
 from botocore.exceptions import ClientError
 from .models import UserCredits, CreditTransaction
@@ -16,6 +16,11 @@ from .credit_costs import get_plan_credits
 
 import logging
 logger = logging.getLogger(__name__)
+
+
+# How long a credit cycle lasts before the allowance is refilled on read.
+# See UserCreditsStorage._apply_due_monthly_reset.
+CREDIT_RESET_INTERVAL = timedelta(days=30)
 
 
 class DecimalEncoder(json.JSONEncoder):
@@ -316,6 +321,7 @@ class UserCreditsStorage:
                 credits_balance=get_plan_credits("free"),
                 credits_monthly_allowance=get_plan_credits("free"),
                 plan_started_at=datetime.utcnow(),
+                last_credit_reset_at=datetime.utcnow(),
             )
             self.save_credits(credits)
             # Log the initial grant
@@ -327,6 +333,70 @@ class UserCreditsStorage:
                 action="initial_signup",
                 metadata={"plan": "free"},
             )
+            return credits
+
+        return self._apply_due_monthly_reset(credits)
+
+    def _reset_anchor(self, credits: UserCredits) -> Optional[datetime]:
+        """
+        Timestamp the monthly cycle is measured from. last_credit_reset_at once
+        a reset has happened, otherwise when the user's plan (or account)
+        started, so pre-existing rows that never reset are still eligible.
+        """
+        return (
+            credits.last_credit_reset_at
+            or credits.plan_started_at
+            or credits.created_at
+        )
+
+    def _apply_due_monthly_reset(self, credits: UserCredits) -> UserCredits:
+        """
+        Lazily refill the monthly allowance when a cycle has elapsed.
+
+        Paid plans are normally refilled by Clerk's subscriptionItem.upcoming
+        webhook. Clerk does not emit renewal events for the $0 default plan, so
+        free users were granted their allowance once at signup and never again
+        despite the pricing page promising it monthly. This read-path check is
+        the actual refill mechanism for free users and a safety net for paid
+        ones if a renewal webhook is missed.
+        """
+        anchor = self._reset_anchor(credits)
+        if anchor is None:
+            # No usable anchor: stamp one so the next cycle is measurable.
+            credits.last_credit_reset_at = datetime.utcnow()
+            self.save_credits(credits)
+            return credits
+
+        if datetime.utcnow() - anchor < CREDIT_RESET_INTERVAL:
+            return credits
+
+        # Never reduce a balance. A user holding more than the allowance (promo
+        # credits, an admin grant) keeps it; the reset only tops up.
+        old_balance = credits.credits_balance
+        new_balance = max(old_balance, credits.credits_monthly_allowance)
+
+        credits.credits_balance = new_balance
+        credits.credits_used_this_period = 0
+        credits.last_credit_reset_at = datetime.utcnow()
+
+        if not self.save_credits(credits):
+            # Roll the in-memory object back so callers don't act on credits
+            # that were never persisted.
+            credits.credits_balance = old_balance
+            return credits
+
+        self._log_transaction(
+            user_id=credits.user_id,
+            txn_type="reset",
+            amount=new_balance - old_balance,
+            balance_after=new_balance,
+            action="monthly_reset_lazy",
+            metadata={"plan": credits.plan, "anchor": anchor.isoformat()},
+        )
+        logger.info(
+            f"Lazy monthly credit reset for user {credits.user_id}: "
+            f"{old_balance} -> {new_balance} (plan={credits.plan})"
+        )
         return credits
 
     def deduct_credits(

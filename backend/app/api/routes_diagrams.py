@@ -22,6 +22,7 @@ from app.api.routes_groups import generate_group_description_ai
 from app.api._helpers import (
     check_and_deduct_credits,
     generate_system_overview,
+    resolve_model_for_plan,
     _should_generate_session_name,
     _generate_session_name_from_content,
 )
@@ -387,8 +388,10 @@ async def generate_diagram(request: GenerateRequest, http_request: Request, back
     # Extract user_id from request state (set by Clerk middleware)
 
     try:
-        # Use specified model or default to Haiku (alias auto-updates to latest)
-        model = request.model or DEFAULT_MODEL
+        # Use specified model or default to Haiku (alias auto-updates to latest).
+        # Premium tiers are a paid feature; free callers fall back to Speed.
+        # Resolved before the credit check so the charge matches what runs.
+        model = resolve_model_for_plan(user_id, request.model)
 
         # Check and deduct credits BEFORE creating session
         await check_and_deduct_credits(
@@ -803,8 +806,9 @@ async def analyze_repo(request: AnalyzeRepoRequest, http_request: Request, backg
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
-        # Use specified model or default to Haiku
-        model = request.model or DEFAULT_MODEL
+        # Use specified model or default to Haiku. Premium tiers are a paid
+        # feature; free callers fall back to Speed.
+        model = resolve_model_for_plan(user_id, request.model)
 
         # Check and deduct credits BEFORE creating session
         await check_and_deduct_credits(

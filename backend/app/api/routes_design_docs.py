@@ -21,6 +21,7 @@ from app.agent.name_generator import generate_session_name
 from app.api.deps import get_current_user, get_session_for_user, verify_session_access
 from app.api._helpers import (
     check_and_deduct_credits,
+    enforce_export_access,
     generate_system_overview,
     _should_generate_session_name,
     _generate_session_name_from_content,
@@ -245,6 +246,9 @@ async def export_design_doc(session_id: str, request: ExportRequest, format: str
     try:
         # Verify access
         session = verify_session_access(session_id, user_id, http_request)
+
+        # Export is a paid feature ("Design document export", Starter tier).
+        enforce_export_access(user_id)
 
         # Get conversation history
         conversation_history = [
@@ -720,6 +724,11 @@ async def export_design_doc_from_session(session_id: str, request: ExportRequest
         # Check if design doc exists
         if not session.design_doc:
             raise HTTPException(status_code=404, detail="Design document not found. Generate one first.")
+
+        # Export is a paid feature ("Design document export", Starter tier).
+        # Checked before the credit deduction so a free user isn't charged for
+        # an export they aren't allowed to run.
+        enforce_export_access(user_id)
 
         # Check and deduct credits for export (PDF/markdown generation)
         await check_and_deduct_credits(

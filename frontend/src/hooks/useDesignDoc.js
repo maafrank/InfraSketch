@@ -114,9 +114,24 @@ export function useDesignDoc({
       }
     } catch (error) {
       console.error('Failed to export design doc:', error);
+
+      // Export is gated to paid plans. FastAPI nests HTTPException payloads
+      // under `detail`, while the doc-generation gate returns a bare body, so
+      // accept either shape.
+      const body = error.response?.data?.detail ?? error.response?.data ?? {};
+      if (error.response?.status === 403 && body.error === 'feature_locked') {
+        setInsufficientCreditsError({
+          required: 0,
+          available: 0,
+          featureLocked: true,
+          message: body.message || 'Exporting requires a paid plan.',
+        });
+        return;
+      }
+
       throw error;
     }
-  }, [sessionId, processGamificationResult]);
+  }, [sessionId, processGamificationResult, setInsufficientCreditsError]);
 
   const handleCloseDesignDoc = useCallback(() => setDesignDocOpen(false), []);
 

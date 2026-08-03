@@ -1028,6 +1028,12 @@ function AppContent({ resumeMode = false, isMobile }) {
         </div>
         <div className="header-right">
           <div className="header-buttons">
+            <button
+              className="pricing-link-button"
+              onClick={() => navigate('/pricing')}
+            >
+              Pricing
+            </button>
             {isSignedIn && (
               <>
                 <button
@@ -1206,6 +1212,8 @@ function AppContent({ resumeMode = false, isMobile }) {
             prefillText={chatPrefillText}
             suggestions={suggestions}
             onSuggestionClick={handleSuggestionClick}
+            userPlan={userCredits?.plan ?? null}
+            onUpgradeClick={() => navigate('/pricing')}
           />
         )}
       </div>

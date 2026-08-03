@@ -113,6 +113,45 @@ body {
   border-color: rgba(255, 255, 255, 0.4);
 }
 
+/* Header pricing entry point. Before this existed the only links to /pricing
+   were in the landing-page footer, so most visitors never saw the plans. */
+.pricing-link-button {
+  padding: 0.6rem 1.25rem;
+  background: transparent;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.75));
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pricing-link-button:hover {
+  color: var(--terminal-green);
+  border-color: var(--terminal-green);
+}
+
+/* Inline upgrade nudge next to a model selector with locked options. */
+.model-upgrade-link {
+  padding: 2px 8px;
+  background: transparent;
+  color: var(--terminal-green);
+  border: 1px solid var(--terminal-green);
+  border-radius: var(--radius-sm, 4px);
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.model-upgrade-link:hover {
+  background: var(--terminal-green);
+  color: var(--bg-primary);
+}
+
 .add-node-button,
 .new-design-button,
 .export-button,

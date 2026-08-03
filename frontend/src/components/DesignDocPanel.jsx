@@ -485,7 +485,7 @@ export default function DesignDocPanel({
                   </button>
                 </div>
                 <form className="design-doc-locked-promo" onSubmit={handlePromoSubmit}>
-                  <span className="design-doc-locked-promo-label">Or redeem code <code>FREEDESIGN</code> for one free design doc:</span>
+                  <span className="design-doc-locked-promo-label">Have a promo code?</span>
                   <input
                     type="text"
                     value={promoCode}

@@ -21,6 +21,7 @@ from app.api.deps import get_current_user, verify_session_access
 from app.api._helpers import (
     check_and_deduct_credits,
     generate_system_overview,
+    resolve_model_for_plan,
     _should_generate_session_name,
     _generate_session_name_from_content,
 )
@@ -103,8 +104,11 @@ async def chat(request: ChatRequest, http_request: Request, background_tasks: Ba
         if not session_manager.verify_ownership(request.session_id, user_id):
             raise HTTPException(status_code=403, detail="You don't have permission to access this session")
 
-        # Check and deduct credits for chat message
-        model_to_use = request.model if request.model else session.model
+        # Check and deduct credits for chat message. Premium models are a paid
+        # feature; resolve before charging so the cost matches what runs.
+        model_to_use = resolve_model_for_plan(
+            user_id, request.model if request.model else session.model
+        )
         await check_and_deduct_credits(
             user_id=user_id,
             action="chat_message",
@@ -137,12 +141,11 @@ async def chat(request: ChatRequest, http_request: Request, background_tasks: Ba
         old_diagram_dict = session.diagram.model_dump()
         old_design_doc = session.design_doc
 
-        # Use model from request if provided, otherwise use session's model
-        model_to_use = request.model if request.model else session.model
-
-        # Update session model if changed
-        if request.model and request.model != session.model:
-            session_manager.update_model(request.session_id, request.model)
+        # model_to_use was already resolved against the caller's plan above.
+        # Persist the resolved model so the session doesn't record a premium
+        # tier the user isn't entitled to run.
+        if model_to_use != session.model:
+            session_manager.update_model(request.session_id, model_to_use)
 
         # Run agent with message-based state
         result = agent_graph.invoke({

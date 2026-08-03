@@ -12,6 +12,10 @@ logger = logging.getLogger(__name__)
 
 
 CLERK_PLAN_ID_MAP = {
+    # Clerk's default plan. Every user gets a subscription to it at signup, so
+    # omitting it made subscription.created raise UnknownClerkPlanError on every
+    # new user and 500 the webhook (which Clerk then retried ~7x each).
+    "cplan_37a40Ja1JwQMw78ZUiNu8H9miEX": "free",
     "cplan_3ASdFvizPo0JbVeethbsS7UfLjp": "starter",
     "cplan_37cOR2Mjs1jWOjaJfUGTX0U1Jf4": "pro",
     "cplan_37cOpDf5Cm7GGUl2K8lUarQf7Bp": "enterprise",
@@ -65,6 +69,11 @@ def get_plan_from_clerk_id(plan_id: str, raise_on_unknown: bool = False) -> str:
         return CLERK_PLAN_ID_MAP[plan_id]
 
     plan_id_lower = plan_id.lower()
+    # Checked before the paid slugs: extract_plan_id_from_item can hand us a
+    # bare slug ("free") rather than a cplan_ ID, and the default plan must
+    # resolve without raising.
+    if "free" in plan_id_lower:
+        return "free"
     if "starter" in plan_id_lower:
         return "starter"
     if "pro" in plan_id_lower:

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { MODEL_OPTIONS } from '../constants/models';
+import { DEFAULT_MODEL, MODEL_OPTIONS, isModelLocked } from '../constants/models';
 import { MOBILE_BREAKPOINT } from '../constants/ui';
 
 export default function ChatPanel({
@@ -19,13 +19,29 @@ export default function ChatPanel({
   prefillText,
   suggestions = [],
   onSuggestionClick,
+  userPlan = null,
+  onUpgradeClick,
 }) {
+  const lockedModelCount = MODEL_OPTIONS.filter(opt => isModelLocked(opt, userPlan)).length;
+  const currentModelLocked = isModelLocked(
+    MODEL_OPTIONS.find(opt => opt.id === currentModel),
+    userPlan,
+  );
   const [input, setInput] = useState('');
   const [width, setWidth] = useState(400); // Default width
   const [isResizing, setIsResizing] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
+
+  // A session saved while on a paid plan can still hold a premium model after
+  // the plan lapses. Fall back to Speed so the selector never shows a disabled
+  // option as the active one (and the request isn't silently downgraded).
+  useEffect(() => {
+    if (currentModelLocked && onModelChange) {
+      onModelChange(DEFAULT_MODEL);
+    }
+  }, [currentModelLocked, onModelChange]);
 
   // Detect mobile viewport
   useEffect(() => {
@@ -212,10 +228,24 @@ export default function ChatPanel({
               disabled={loading}
               className="model-select"
             >
-              {MODEL_OPTIONS.map(opt => (
-                <option key={opt.id} value={opt.id}>{opt.label} ({opt.description})</option>
-              ))}
+              {MODEL_OPTIONS.map(opt => {
+                const locked = isModelLocked(opt, userPlan);
+                return (
+                  <option key={opt.id} value={opt.id} disabled={locked}>
+                    {opt.label} ({locked ? 'Pro plan' : opt.description})
+                  </option>
+                );
+              })}
             </select>
+            {lockedModelCount > 0 && (
+              <button
+                type="button"
+                className="model-upgrade-link"
+                onClick={onUpgradeClick}
+              >
+                Unlock Power
+              </button>
+            )}
             {selectedNode && (
               <span className="chat-context">
                 {selectedNode.data.label} ({selectedNode.data.type})

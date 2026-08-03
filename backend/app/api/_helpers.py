@@ -5,18 +5,92 @@ split file could remain self-contained. Importable from any routes_*.py.
 """
 
 import logging
+from typing import Optional
 
 from fastapi import HTTPException
 
 from app.agent.name_generator import generate_session_name
-from app.billing.credit_costs import calculate_cost
+from app.billing.credit_costs import (
+    DESIGN_DOC_EXPORT_PLANS,
+    PREMIUM_MODEL_PLANS,
+    PREMIUM_MODEL_TIERS,
+    calculate_cost,
+)
 from app.billing.storage import get_user_credits_storage
 from app.billing.sync import sync_user_from_clerk
+from app.config.models import DEFAULT_MODEL, get_model_tier
 from app.models import Diagram
 from app.session.manager import session_manager
 from app.utils.secrets import get_anthropic_api_key
 
 logger = logging.getLogger(__name__)
+
+
+def resolve_model_for_plan(user_id: Optional[str], model: Optional[str]) -> str:
+    """
+    Resolve the model a request may actually use, given the caller's plan.
+
+    Power (Sonnet) and Ultra (Opus) are sold as Pro features. Rather than
+    failing the request, a free caller is transparently served the Speed
+    (Haiku) model: the diagram or reply still gets produced, and the frontend
+    marks the premium options as locked so this path is only reached by stale
+    clients or direct API calls.
+
+    Unauthenticated callers (local dev with auth disabled) are unrestricted.
+    """
+    effective = model or DEFAULT_MODEL
+    if not user_id:
+        return effective
+    if get_model_tier(effective) not in PREMIUM_MODEL_TIERS:
+        return effective
+
+    try:
+        plan = get_user_credits_storage().get_or_create_credits(user_id).plan
+    except Exception as e:
+        # Fail open on the read path: a storage blip must not downgrade a
+        # paying customer's model mid-request.
+        logger.warning(f"Could not resolve plan for user {user_id}, allowing {effective}: {e}")
+        return effective
+
+    if plan in PREMIUM_MODEL_PLANS:
+        return effective
+
+    logger.info(
+        f"Model {effective} requires a paid plan; serving {DEFAULT_MODEL} to "
+        f"user {user_id} on plan={plan}"
+    )
+    return DEFAULT_MODEL
+
+
+def enforce_export_access(user_id: Optional[str]) -> None:
+    """
+    Gate design-doc export (PDF / Markdown) to paid plans.
+
+    Raises HTTPException 403 with the same feature_locked shape the design-doc
+    generation gate uses, so the frontend upgrade prompt works unchanged.
+    """
+    if not user_id:
+        return
+
+    try:
+        plan = get_user_credits_storage().get_or_create_credits(user_id).plan
+    except Exception as e:
+        # Fail open: never block a paying user because storage hiccuped.
+        logger.warning(f"Could not resolve plan for user {user_id}, allowing export: {e}")
+        return
+
+    if plan in DESIGN_DOC_EXPORT_PLANS:
+        return
+
+    raise HTTPException(
+        status_code=403,
+        detail={
+            "error": "feature_locked",
+            "feature": "design_doc_export",
+            "required_plan": "starter",
+            "message": "Exporting your design document requires a paid plan. Upgrade to Starter ($1/mo) to export as PDF or Markdown.",
+        },
+    )
 
 
 async def check_and_deduct_credits(

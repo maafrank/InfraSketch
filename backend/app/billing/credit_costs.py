@@ -27,6 +27,17 @@ PLAN_CREDITS = {
 # Plans that include design doc generation
 DESIGN_DOC_PLANS = {"starter", "pro", "enterprise"}
 
+# Plans that include design doc export (PDF / Markdown).
+# Sold as "Design document export" on the Starter tier.
+DESIGN_DOC_EXPORT_PLANS = {"starter", "pro", "enterprise"}
+
+# Plans that include the Power (Sonnet) and Ultra (Opus) models.
+# Sold as "Power model access" on the Pro tier. Free stays on Speed (Haiku).
+PREMIUM_MODEL_PLANS = {"pro", "enterprise"}
+
+# Model tiers that require PREMIUM_MODEL_PLANS.
+PREMIUM_MODEL_TIERS = {"sonnet", "opus"}
+
 
 def calculate_cost(action: str, model: Optional[str] = None) -> int:
     """
