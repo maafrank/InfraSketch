@@ -465,4 +465,38 @@ describe('ChatPanel', () => {
       });
     });
   });
+
+  // Regression: handleFixFinding in App.jsx once passed a bare {id} stub here.
+  // ChatPanel read selectedNode.data.label, threw, and because this panel is
+  // always mounted on desktop the ErrorBoundary replaced the entire app with a
+  // crash screen. The caller was fixed; these pin the panel's own resilience.
+  describe('malformed selectedNode', () => {
+    it('does not crash when selectedNode has no data wrapper', () => {
+      expect(() =>
+        render(<ChatPanel {...defaultProps} selectedNode={{ id: 'api_1' }} />)
+      ).not.toThrow();
+    });
+
+    it('falls back to top-level fields when data is absent', () => {
+      const { container } = render(
+        <ChatPanel {...defaultProps} selectedNode={{ id: 'api_1', label: 'API', type: 'api' }} />
+      );
+      expect(container.querySelector('.chat-context').textContent).toBe('API (api)');
+    });
+
+    it('still renders the normal React Flow node shape', () => {
+      const { container } = render(
+        <ChatPanel
+          {...defaultProps}
+          selectedNode={{ id: 'api_1', data: { label: 'API Gateway', type: 'api' } }}
+        />
+      );
+      expect(container.querySelector('.chat-context').textContent).toBe('API Gateway (api)');
+    });
+
+    it('shows the generic placeholder when the node has no usable label', () => {
+      render(<ChatPanel {...defaultProps} selectedNode={{ id: 'api_1' }} />);
+      expect(screen.getByPlaceholderText('Ask about the system...')).toBeInTheDocument();
+    });
+  });
 });

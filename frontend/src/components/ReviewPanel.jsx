@@ -2,6 +2,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { MOBILE_BREAKPOINT } from '../constants/ui';
 import './ReviewPanel.css';
 
+// Kept in step with CREDIT_COSTS["architecture_review"] in
+// backend/app/billing/credit_costs.py. Shown on every button that spends it, so
+// a re-run is never a surprise charge.
+const REVIEW_CREDIT_COST = 5;
+
 const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low'];
 
 const SEVERITY_LABEL = {
@@ -129,14 +134,18 @@ export default function ReviewPanel({
         {!isGenerating && error && (
           <div className="review-empty">
             <p className="review-error">{error}</p>
-            <button className="review-rerun-button" onClick={onRerun}>Try again</button>
+            <button className="review-rerun-button" onClick={onRerun}>
+              Try again ({REVIEW_CREDIT_COST} credits)
+            </button>
           </div>
         )}
 
         {!isGenerating && !error && !review && (
           <div className="review-empty">
             <p>No review yet for this diagram.</p>
-            <button className="review-rerun-button" onClick={onRerun}>Run review</button>
+            <button className="review-rerun-button" onClick={onRerun}>
+              Run review ({REVIEW_CREDIT_COST} credits)
+            </button>
           </div>
         )}
 
@@ -144,8 +153,13 @@ export default function ReviewPanel({
           <>
             {isStale && (
               <div className="review-stale-banner">
-                The diagram has changed since this review ran, so some findings may no longer apply.
-                <button className="review-stale-rerun" onClick={onRerun}>Re-run</button>
+                <span>
+                  The diagram has changed since this review ran, so these findings may
+                  no longer match what is on the canvas.
+                </span>
+                <button className="review-stale-rerun" onClick={onRerun}>
+                  Re-run ({REVIEW_CREDIT_COST} credits)
+                </button>
               </div>
             )}
 
@@ -223,7 +237,9 @@ export default function ReviewPanel({
             )}
 
             <div className="review-footer">
-              <button className="review-rerun-button" onClick={onRerun}>Re-run review</button>
+              <button className="review-rerun-button" onClick={onRerun}>
+                Re-run review ({REVIEW_CREDIT_COST} credits)
+              </button>
             </div>
           </>
         )}

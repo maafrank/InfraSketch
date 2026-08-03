@@ -27,6 +27,13 @@ export default function ChatPanel({
     MODEL_OPTIONS.find(opt => opt.id === currentModel),
     userPlan,
   );
+  // selectedNode is a React Flow node, so its display fields live under `.data`.
+  // Read defensively: a caller passing a differently-shaped object used to throw
+  // here, and because this panel is always mounted on desktop, that took down
+  // the whole app through the ErrorBoundary rather than degrading locally.
+  const nodeLabel = selectedNode?.data?.label ?? selectedNode?.label ?? null;
+  const nodeType = selectedNode?.data?.type ?? selectedNode?.type ?? null;
+
   const [input, setInput] = useState('');
   const [width, setWidth] = useState(400); // Default width
   const [isResizing, setIsResizing] = useState(false);
@@ -246,9 +253,9 @@ export default function ChatPanel({
                 Unlock Power
               </button>
             )}
-            {selectedNode && (
+            {nodeLabel && (
               <span className="chat-context">
-                {selectedNode.data.label} ({selectedNode.data.type})
+                {nodeLabel}{nodeType ? ` (${nodeType})` : ''}
               </span>
             )}
             {isMobile && onClose && (
@@ -284,9 +291,9 @@ export default function ChatPanel({
         <div ref={messagesEndRef} />
       </div>
 
-      {selectedNode && !isMobile && onExitNodeFocus && (
+      {nodeLabel && !isMobile && onExitNodeFocus && (
         <div className="node-focus-indicator">
-          <span>Chatting about: <strong>{selectedNode.data.label}</strong></span>
+          <span>Chatting about: <strong>{nodeLabel}</strong></span>
           <button
             className="exit-node-focus-button"
             onClick={onExitNodeFocus}
@@ -321,9 +328,7 @@ export default function ChatPanel({
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={
-            selectedNode
-              ? `Ask about ${selectedNode.data.label}...`
-              : 'Ask about the system...'
+            nodeLabel ? `Ask about ${nodeLabel}...` : 'Ask about the system...'
           }
           rows={1}
         />

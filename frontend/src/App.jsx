@@ -145,6 +145,18 @@ function AppContent({ resumeMode = false, isMobile }) {
   // Auto-sync (diagram <-> design doc) status, hydrated from session GET responses.
   const [syncStatus, setSyncStatus] = useState({ state: 'idle' });
 
+  // ── Architecture review ─────────────────────────────────────────────────────
+  // Declared above the undo/redo block so recordHistory can mark the review
+  // stale: findings are anchored to specific nodes, so any structural edit can
+  // invalidate them.
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [review, setReview] = useState(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewStale, setReviewStale] = useState(false);
+  const [reviewError, setReviewError] = useState(null);
+  const [reviewWidth, setReviewWidth] = useState(0);
+  const [highlightedNodeIds, setHighlightedNodeIds] = useState([]);
+
   // Undo/redo over whole-diagram snapshots.
   const { record, undo, redo, reset: resetHistory, canUndo, canRedo } = useDiagramHistory();
 
@@ -163,9 +175,15 @@ function AppContent({ resumeMode = false, isMobile }) {
   /**
    * Snapshot the current diagram before a mutation is applied.
    * Call this immediately before the mutating request, not after.
+   *
+   * Also marks any existing review stale. Every finding points at specific node
+   * IDs, so once the structure changes the findings may no longer describe the
+   * diagram. The banner only renders when a review exists, so setting this
+   * unconditionally is harmless.
    */
   const recordHistory = useCallback(() => {
     record(diagramRef.current);
+    setReviewStale(true);
   }, [record]);
 
   /**
@@ -200,15 +218,6 @@ function AppContent({ resumeMode = false, isMobile }) {
   const handleRedo = useCallback(() => {
     restoreDiagram(redo(diagramRef.current));
   }, [redo, restoreDiagram]);
-
-  // ── Architecture review ───────────────────────────────────────────────────
-  const [reviewOpen, setReviewOpen] = useState(false);
-  const [review, setReview] = useState(null);
-  const [reviewLoading, setReviewLoading] = useState(false);
-  const [reviewStale, setReviewStale] = useState(false);
-  const [reviewError, setReviewError] = useState(null);
-  const [reviewWidth, setReviewWidth] = useState(0);
-  const [highlightedNodeIds, setHighlightedNodeIds] = useState([]);
 
   const handleRunReview = useCallback(async () => {
     if (!sessionId) return;
@@ -285,16 +294,38 @@ function AppContent({ resumeMode = false, isMobile }) {
   /**
    * Hand a finding to the chat agent. The agent already owns the diagram tools,
    * so a review fix needs no new agent code, just a well-formed message.
+   *
+   * Deliberately does NOT touch selectedNode. ChatPanel reads
+   * `selectedNode.data.label`, i.e. it expects a React Flow node, not a backend
+   * one; an earlier version set a bare {id} stub here and crashed the app on
+   * every click. Leaving it null also scopes the request to the whole diagram,
+   * which is what we want: a fix like "put a load balancer in front of the API"
+   * adds nodes rather than editing the one that was flagged.
+   *
+   * The node IDs still reach the agent inside the message text, and the prompt
+   * context already lists exact IDs, so nothing is lost by not focusing a node.
    */
   const handleFixFinding = useCallback((finding) => {
-    const target = finding.node_ids?.[0];
-    if (target) setSelectedNode((prev) => prev ?? { id: target });
+    const affected = finding.node_ids?.length
+      ? ` The affected components are: ${finding.node_ids.join(', ')}.`
+      : '';
     const message =
-      `The architecture review flagged this as a ${finding.severity} ${finding.category} issue: ` +
-      `"${finding.title}". ${finding.detail} Recommended fix: ${finding.recommendation} ` +
+      `The architecture review flagged a ${finding.severity} ${finding.category} issue: ` +
+      `"${finding.title}". ${finding.detail}${affected} ` +
+      `Recommended fix: ${finding.recommendation} ` +
       `Please apply this change to the diagram.`;
+
+    // Make sure the conversation is actually visible before sending. On desktop
+    // the chat panel is always mounted; on mobile it is a fullscreen modal, and
+    // the review panel is covering it right now.
+    if (isMobile) {
+      setReviewOpen(false);
+      setMobileChatOpen(true);
+    }
+    setHighlightedNodeIds([]);
+
     handleSendMessageRef.current?.(message);
-  }, []);
+  }, [isMobile]);
 
   // Design-doc state + handlers (extracted from App.jsx for cohesion)
   const designDocHook = useDesignDoc({
@@ -769,6 +800,10 @@ function AppContent({ resumeMode = false, isMobile }) {
       // Update diagram if modified
       if (response.diagram) {
         record(preChatDiagram);
+        // The agent just restructured the diagram, so any review on screen is
+        // describing the previous version. This is the path a "fix this" click
+        // takes, so the banner appears right where the user is looking.
+        setReviewStale(true);
         setDiagram(response.diagram);
       }
 
