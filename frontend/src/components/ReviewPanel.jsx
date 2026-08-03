@@ -49,7 +49,11 @@ export default function ReviewPanel({
   onHighlightNodes,
   onFixFinding,
   onWidthChange,
-  sessionHistorySidebarWidth = 0,
+  // Total width of everything docked to this panel's left: the session-history
+  // sidebar plus the design-doc panel when it is open. Both are position:fixed
+  // at left:0, so without this offset the two panels sit on top of each other
+  // and only the later one in the DOM is visible.
+  leftOffset = 0,
 }) {
   const [width, setWidth] = useState(420);
   const [isResizing, setIsResizing] = useState(false);
@@ -75,7 +79,7 @@ export default function ReviewPanel({
     const handleMouseMove = (e) => {
       if (frame) return;
       frame = requestAnimationFrame(() => {
-        const next = e.clientX - sessionHistorySidebarWidth;
+        const next = e.clientX - leftOffset;
         setWidth(Math.min(720, Math.max(320, next)));
         frame = null;
       });
@@ -89,7 +93,7 @@ export default function ReviewPanel({
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isResizing, sessionHistorySidebarWidth]);
+  }, [isResizing, leftOffset]);
 
   const handleToggleFinding = useCallback((finding) => {
     const nextId = expandedId === finding.id ? null : finding.id;
@@ -111,7 +115,7 @@ export default function ReviewPanel({
   return (
     <div
       className={`review-panel ${isMobile ? 'mobile-modal' : ''}`}
-      style={isMobile ? {} : { width: `${width}px`, left: `${sessionHistorySidebarWidth}px` }}
+      style={isMobile ? {} : { width: `${width}px`, left: `${leftOffset}px` }}
     >
       {!isMobile && (
         <div className="resize-handle-right" onMouseDown={() => setIsResizing(true)} />

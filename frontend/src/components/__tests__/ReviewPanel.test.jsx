@@ -150,4 +150,34 @@ describe('ReviewPanel', () => {
       expect(screen.getByText(/Reviewing your architecture/)).toBeInTheDocument();
     });
   });
+
+  // Regression: this panel and the design-doc panel are both position:fixed and
+  // dock to the same edge. They originally shared one offset (the session-history
+  // sidebar width), so opening both stacked them and only one was visible.
+  describe('docking alongside the design doc panel', () => {
+    const panelOf = (container) => container.querySelector('.review-panel');
+
+    it('sits flush left when nothing else is docked', () => {
+      const { container } = render(<ReviewPanel {...defaultProps} leftOffset={0} />);
+      expect(panelOf(container).style.left).toBe('0px');
+    });
+
+    it('clears the session-history sidebar', () => {
+      const { container } = render(<ReviewPanel {...defaultProps} leftOffset={300} />);
+      expect(panelOf(container).style.left).toBe('300px');
+    });
+
+    it('clears the sidebar and the design doc panel together', () => {
+      // 300 sidebar + 400 design doc: without this the two panels overlapped.
+      const { container } = render(<ReviewPanel {...defaultProps} leftOffset={700} />);
+      expect(panelOf(container).style.left).toBe('700px');
+    });
+
+    it('has a width of its own so it never covers the panel to its left', () => {
+      const { container } = render(<ReviewPanel {...defaultProps} leftOffset={400} />);
+      const panel = panelOf(container);
+      expect(panel.style.left).toBe('400px');
+      expect(parseInt(panel.style.width, 10)).toBeGreaterThan(0);
+    });
+  });
 });

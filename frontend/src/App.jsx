@@ -352,6 +352,20 @@ function AppContent({ resumeMode = false, isMobile }) {
     reset: resetDesignDoc,
   } = designDocHook;
 
+  // The design-doc and review panels both dock to the left edge. On desktop
+  // they sit side by side (the review panel's leftOffset accounts for the doc's
+  // width). On a phone both are fullscreen modals at the same z-index, so only
+  // one may be open; the most recently opened wins.
+  //
+  // Lives here rather than inside the open handlers because setDesignDocOpen is
+  // destructured just above: referencing it from a useCallback dependency array
+  // declared earlier in the component throws a TDZ ReferenceError on first render.
+  useEffect(() => {
+    if (isMobile && designDocOpen && reviewOpen) {
+      setReviewOpen(false);
+    }
+  }, [isMobile, designDocOpen, reviewOpen]);
+
   // Auth - Set up token getter for API client
   const { getToken, isSignedIn } = useAuth();
   const { openSignIn } = useClerk();
@@ -1466,7 +1480,10 @@ function AppContent({ resumeMode = false, isMobile }) {
             onHighlightNodes={setHighlightedNodeIds}
             onFixFinding={handleFixFinding}
             onWidthChange={setReviewWidth}
-            sessionHistorySidebarWidth={sessionHistoryOpen ? sessionHistorySidebarWidth : 0}
+            leftOffset={
+              (sessionHistoryOpen ? sessionHistorySidebarWidth : 0) +
+              (designDocOpen ? designDocWidth : 0)
+            }
           />
         )}
 

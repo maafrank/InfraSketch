@@ -2,16 +2,20 @@
    Shares DesignDocPanel's docking model: fixed to the left edge, offset by the
    session-history sidebar, fullscreen on mobile. */
 
+/* top/z-index deliberately match .design-doc-panel in App.css. The two dock to
+   the same edge and are frequently open together: starting at top:0 would slide
+   this panel under the app header, and a lower z-index would let the design doc
+   render over it. */
 .review-panel {
   position: fixed;
-  top: 0;
+  top: 108px;
   bottom: 0;
   background: var(--bg-primary);
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  z-index: 900;
-  will-change: width;
+  z-index: 1000;
+  will-change: width, left;
 }
 
 .review-panel .resize-handle-right {
@@ -282,7 +286,9 @@
     bottom: 0;
     width: 100%;
     border-right: none;
-    z-index: 1200;
+    /* Same layer as .design-doc-panel.mobile-modal. On a phone only one of the
+       two may be open at a time; App.jsx enforces that. */
+    z-index: 2000;
   }
 
   .review-panel .resize-handle-right {
