@@ -152,78 +152,18 @@ body {
   color: var(--bg-primary);
 }
 
+/* Header action buttons.
+   One shared treatment in the app's terminal green. Earlier revisions gave the
+   review, IaC and share triggers their own accent colours, which both fought the
+   rest of the UI and, because .review-button was spliced into this selector
+   list, leaked amber onto Add Node and New Design while leaving their hover
+   green. Keep every header button in this group. */
 .add-node-button,
 .new-design-button,
 .export-button,
-/* Architecture review trigger. Same shape as the other header buttons, amber
-   to match the review panel's highlight color. */
-.review-button {
-  padding: 0.6rem 1.25rem;
-  background: transparent;
-  color: #f6ad55;
-  border: 1px solid #f6ad55;
-  border-radius: var(--radius-md);
-  font-size: 0.9rem;
-  font-weight: 500;
-  font-family: var(--font-mono);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.review-button:hover:not(:disabled) {
-  background: #f6ad55;
-  color: var(--bg-primary);
-  box-shadow: 0 0 15px rgba(246, 173, 85, 0.3);
-}
-
-/* IaC export trigger. Cyan, distinct from the review amber and the design-doc
-   green, since all three sit adjacent in the header. */
-.iac-button {
-  padding: 0.6rem 1.25rem;
-  background: transparent;
-  color: #00d4ff;
-  border: 1px solid #00d4ff;
-  border-radius: var(--radius-md);
-  font-size: 0.9rem;
-  font-weight: 500;
-  font-family: var(--font-mono);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.iac-button:hover:not(:disabled) {
-  background: #00d4ff;
-  color: var(--bg-primary);
-  box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
-}
-
-/* Share trigger. Purple, the third distinct hue in the header cluster. */
-.share-button {
-  padding: 0.6rem 1.25rem;
-  background: transparent;
-  color: #b794f4;
-  border: 1px solid #b794f4;
-  border-radius: var(--radius-md);
-  font-size: 0.9rem;
-  font-weight: 500;
-  font-family: var(--font-mono);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.share-button:hover:not(:disabled) {
-  background: #b794f4;
-  color: var(--bg-primary);
-  box-shadow: 0 0 15px rgba(183, 148, 244, 0.3);
-}
-
-.review-button:disabled,
-.iac-button:disabled,
-.share-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
+.review-button,
+.iac-button,
+.share-button,
 .create-design-doc-button {
   padding: 0.6rem 1.25rem;
   background: transparent;
@@ -237,19 +177,24 @@ body {
   transition: all 0.2s;
 }
 
-.add-node-button:hover,
-.new-design-button:hover,
+.add-node-button:hover:not(:disabled),
+.new-design-button:hover:not(:disabled),
 .export-button:hover:not(:disabled),
+.review-button:hover:not(:disabled),
+.iac-button:hover:not(:disabled),
+.share-button:hover:not(:disabled),
 .create-design-doc-button:hover:not(:disabled) {
   background: var(--terminal-green);
   color: var(--bg-primary);
   box-shadow: 0 0 15px rgba(0, 184, 48, 0.3);
 }
 
-.review-button:disabled,
 .add-node-button:disabled,
 .new-design-button:disabled,
 .export-button:disabled,
+.review-button:disabled,
+.iac-button:disabled,
+.share-button:disabled,
 .create-design-doc-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -3685,6 +3630,9 @@ body {
 
   .add-node-button,
   .new-design-button,
+  .review-button,
+  .iac-button,
+  .share-button,
   .create-design-doc-button {
     padding: 0.6rem 1rem;
     font-size: 0.9rem;
@@ -3751,6 +3699,9 @@ body {
 
   .add-node-button,
   .new-design-button,
+  .review-button,
+  .iac-button,
+  .share-button,
   .create-design-doc-button,
   .export-button {
     padding: 0.5rem 0.75rem;
@@ -4192,6 +4143,9 @@ body {
 
   .add-node-button,
   .new-design-button,
+  .review-button,
+  .iac-button,
+  .share-button,
   .create-design-doc-button {
     font-size: 0.8rem;
     padding: 0.5rem;
