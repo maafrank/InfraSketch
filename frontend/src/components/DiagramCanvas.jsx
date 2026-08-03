@@ -276,14 +276,22 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
   }, [isMobile, diagram?.nodes?.length]);
 
   // Function to apply layout to current nodes/edges.
-  // Deliberately ignores saved positions (that is what the button is for), then
-  // persists the result so the tidied arrangement is what reloads.
-  const applyLayout = useCallback(() => {
+  // Deliberately ignores saved positions (that is what the button is for).
+  //
+  // `save` defaults to false because this function has two very different
+  // callers. The layout button is an explicit "tidy this up" and should
+  // persist. But it is also handed to the parent via onLayoutReady and invoked
+  // incidentally (re-center on sidebar resize, before the design-doc
+  // screenshot, and before a PNG export). Persisting on those paths wrote a new
+  // `diagram` object on every call, which re-triggered the caller and looped,
+  // and it overwrote hand-arranged positions with fresh dagre coordinates.
+  const applyLayout = useCallback(({ save = false } = {}) => {
     setNodes((currentNodes) => {
       const layoutedNodes = getLayoutedElements(currentNodes, edges, layoutDirection);
 
-      // Save immediately: this is an explicit user action, not an incidental drag.
-      savePositions(layoutedNodes, { immediate: true });
+      if (save) {
+        savePositions(layoutedNodes, { immediate: true });
+      }
 
       // Use fitView to center the diagram after layout (tighter padding on mobile)
       setTimeout(() => {
@@ -780,7 +788,7 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
         </button>
         <button
           className="floating-layout-button"
-          onClick={applyLayout}
+          onClick={() => applyLayout({ save: true })}
           title="Re-organize layout"
         >
           <svg

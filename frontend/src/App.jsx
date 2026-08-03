@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { SignedIn, SignedOut, SignInButton, UserButton, useAuth, useClerk } from "@clerk/clerk-react";
 import { toPng } from 'html-to-image';
@@ -250,16 +250,34 @@ function AppContent({ resumeMode = false, isMobile }) {
     });
   }, [registerCallbacks, handleOpenAddNodeModalWithPrefill, navigate, setDesignDoc, setDesignDocOpen]);
 
-  // Re-center diagram when sidebar opens/closes
+  // Held in a ref so the re-center effect below can call the latest layout
+  // function without taking a dependency on its identity. applyLayoutFn is
+  // rebuilt whenever the canvas's edges change, which happens on every diagram
+  // mutation, so depending on it directly reintroduces the coupling this
+  // effect is specifically avoiding.
+  const applyLayoutRef = useRef(null);
   useEffect(() => {
-    if (diagram && applyLayoutFn && !isMobile) {
-      // Small delay to allow panel animations to complete
-      const timer = setTimeout(() => {
-        applyLayoutFn();
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [sessionHistoryOpen, sessionHistorySidebarWidth, diagram, applyLayoutFn, isMobile]);
+    applyLayoutRef.current = applyLayoutFn;
+  }, [applyLayoutFn]);
+
+  // Re-center diagram when the history sidebar opens/closes or resizes.
+  //
+  // Deliberately NOT keyed on `diagram`. applyLayout re-runs dagre and ignores
+  // saved positions, so firing it on every diagram mutation snapped a
+  // just-dragged node straight back to its computed position, making nodes
+  // impossible to move. It also looped: the layout write updated `diagram`,
+  // which re-ran this effect, at ~10 requests/second per open desktop tab.
+  // Initial layout is already handled by the canvas's own diagram effect
+  // (which honours manual_layout), and fitView on panel resize by its own
+  // fitView effect, so this only needs the sidebar signals.
+  useEffect(() => {
+    if (isMobile) return;
+    // Small delay to allow panel animations to complete
+    const timer = setTimeout(() => {
+      applyLayoutRef.current?.();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [sessionHistoryOpen, sessionHistorySidebarWidth, isMobile]);
 
   // Load session callback - defined before useEffect that uses it
   const loadSession = useCallback(async (sid) => {
