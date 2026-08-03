@@ -62,6 +62,7 @@ from app.models import (
     NodeMetadata,
     NodePosition,
     SessionState,
+    UpdateNodePositionsRequest,
 )
 from app.session.manager import session_manager
 from app.subscription.models import SubscribeRequest, SubscriptionStatus
@@ -70,6 +71,7 @@ from app.user.models import UserPreferences
 from app.user.storage import get_user_preferences_storage
 from app.utils.badge_generator import get_monthly_visitors_badge_svg
 from app.utils.diagram_export import convert_markdown_to_pdf, generate_diagram_png
+from app.utils.secrets import get_github_token
 from app.utils.logger import (
     EventType,
     log_chat_interaction,
@@ -207,7 +209,11 @@ def _analyze_repo_background(session_id: str, repo_url: str, model: str, user_ip
             session_id, "fetching", "fetch", "Fetching repository metadata..."
         )
 
-        analyzer = GitHubAnalyzer()
+        # Authenticated: 5,000 GitHub req/hour instead of 60/hour shared across
+        # every user on this Lambda's egress IP. analyze_repo fetches dozens of
+        # files per repo, so unauthenticated one or two analyses can exhaust the
+        # quota for everyone.
+        analyzer = GitHubAnalyzer(access_token=get_github_token())
 
         # Phase 2: Analyze repository
         session_manager.set_repo_analysis_status(
@@ -622,6 +628,52 @@ async def delete_node(session_id: str, node_id: str, http_request: Request,
     return session.diagram
 
 
+# NOTE: declared before /nodes/{node_id} so the path parameter route does not
+# swallow "positions" as a node ID. FastAPI matches in declaration order.
+@router.patch("/session/{session_id}/nodes/positions", response_model=Diagram)
+async def update_node_positions(session_id: str, request: UpdateNodePositionsRequest, http_request: Request,
+    user_id: str = Depends(get_current_user),
+    session: SessionState = Depends(get_session_for_user)
+):
+    """
+    Persist canvas positions for one or more nodes.
+
+    Called on drag-stop (debounced) and after an explicit auto-layout, so a
+    user's arrangement survives a reload. Saving any position flips
+    diagram.manual_layout to True, which tells the canvas to stop re-running
+    dagre over the whole graph on every render.
+
+    Unknown node IDs are skipped rather than rejected: the client may still be
+    holding a node that a concurrent chat tool call has since deleted, and a
+    background position save should never surface an error to the user.
+    """
+    if not session.diagram or not session.diagram.nodes:
+        raise HTTPException(status_code=400, detail="Session has no diagram to position")
+
+    nodes_by_id = {node.id: node for node in session.diagram.nodes}
+
+    applied = 0
+    for update in request.positions:
+        node = nodes_by_id.get(update.id)
+        if node is None:
+            continue
+        node.position = NodePosition(x=update.x, y=update.y)
+        applied += 1
+
+    if applied == 0:
+        raise HTTPException(status_code=404, detail="None of the supplied node IDs exist in this diagram")
+
+    session.diagram.manual_layout = True
+
+    # Position-only edits are excluded from the design-doc sync by
+    # SyncEngine._node_signature, so this write will not trigger a sync run.
+    session_manager.update_diagram(session_id, session.diagram)
+
+    logger.info(f"Saved positions for {applied}/{len(request.positions)} nodes in session {session_id}")
+
+    return session.diagram
+
+
 @router.patch("/session/{session_id}/nodes/{node_id}", response_model=Diagram)
 async def update_node(session_id: str, node_id: str, updated_node: Node, http_request: Request,
     user_id: str = Depends(get_current_user),
@@ -807,7 +859,8 @@ async def analyze_repo(request: AnalyzeRepoRequest, http_request: Request, backg
     # Extract user_id from request state (set by Clerk middleware)
 
     try:
-        # Validate GitHub URL format
+        # Validate GitHub URL format. No token needed: parse_github_url is pure
+        # string parsing and makes no API call.
         try:
             analyzer = GitHubAnalyzer()
             owner, repo = analyzer.parse_github_url(request.repo_url)

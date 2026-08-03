@@ -31,6 +31,7 @@ import {
   updateNode,
   addEdge,
   deleteEdge,
+  saveNodePositions,
   setClerkTokenGetter,
   getSession,
   createBlankSession,
@@ -729,6 +730,39 @@ function AppContent({ resumeMode = false, isMobile }) {
     }
   }, [sessionId, selectedNode]);
 
+  /**
+   * Persist a hand-arranged layout. Fired (debounced) by the canvas on drag-stop
+   * and on explicit auto-layout.
+   *
+   * Applies the new positions to local state first so the canvas keeps rendering
+   * them, then saves in the background. A failed save is logged rather than
+   * alerted: the user did not ask for a save, and their positions still hold for
+   * this session.
+   */
+  const handleNodePositionsChange = useCallback(async (positions) => {
+    if (!sessionId || !positions?.length) return;
+
+    const positionById = new Map(positions.map((p) => [p.id, p]));
+
+    setDiagram((prev) => {
+      if (!prev?.nodes) return prev;
+      return {
+        ...prev,
+        manual_layout: true,
+        nodes: prev.nodes.map((node) => {
+          const next = positionById.get(node.id);
+          return next ? { ...node, position: { x: next.x, y: next.y } } : node;
+        }),
+      };
+    });
+
+    try {
+      await saveNodePositions(sessionId, positions);
+    } catch (error) {
+      console.error('Failed to save node positions:', error);
+    }
+  }, [sessionId]);
+
   const handleAddEdge = useCallback(async (edge) => {
     if (!sessionId) return;
 
@@ -1161,6 +1195,7 @@ function AppContent({ resumeMode = false, isMobile }) {
               onAddEdge={handleAddEdge}
               onDeleteEdge={handleDeleteEdge}
               onMergeNodes={handleMergeNodes}
+              onNodePositionsChange={handleNodePositionsChange}
               onUngroupNodes={handleUngroupNodes}
               onToggleCollapse={handleToggleGroupCollapse}
               onRegenerateDescription={handleRegenerateDescription}

@@ -139,6 +139,7 @@ All under `/api` prefix. Persists to DynamoDB in Lambda, in-memory locally.
 | `/session/{id}/nodes` | POST | `Node` | `Diagram` | Add node |
 | `/session/{id}/nodes/{node_id}` | DELETE | - | `Diagram` | Delete node + edges |
 | `/session/{id}/nodes/{node_id}` | PATCH | `Node` | `Diagram` | Update node |
+| `/session/{id}/nodes/positions` | PATCH | `{positions:[{id,x,y}]}` | `Diagram` | Save canvas layout. Must stay declared BEFORE `/nodes/{node_id}` |
 | `/session/{id}/edges` | POST | `Edge` | `Diagram` | Add edge |
 | `/session/{id}/edges/{edge_id}` | DELETE | - | `Diagram` | Delete edge |
 | `/session/{id}/groups` | POST | `{child_node_ids:[...]}` | `{diagram, group_id}` | Create group |
@@ -160,6 +161,10 @@ All under `/api` prefix. Persists to DynamoDB in Lambda, in-memory locally.
 
 # Edge
 {"id": str, "source": str, "target": str, "label": str, "type": "default" | "animated"}
+
+# Diagram
+{"nodes": List[Node], "edges": List[Edge],
+ "manual_layout": bool}  # True once the user drags a node: stored positions win over dagre
 
 # SessionState
 {"session_id": str, "user_id": str, "diagram": Diagram, "messages": List[Message],
@@ -249,7 +254,7 @@ Both servers auto-reload (`--reload` backend, Vite HMR frontend).
 - IAM Role: `infrasketch-lambda-role` (shared by all Lambdas). Policies: `DynamoDBSessionStorage` (inline, lists all table ARNs), `LambdaSelfInvoke` (inline), `SecretsManagerReadWrite` (managed), `AWSLambdaBasicExecutionRole` (managed). When adding new DynamoDB tables, update the `DynamoDBSessionStorage` inline policy.
 - Storage: DynamoDB `infrasketch-sessions` (pay-per-request, 1yr TTL)
 - Frontend: S3 + CloudFront
-- Secrets: AWS Secrets Manager (ANTHROPIC_API_KEY)
+- Secrets: AWS Secrets Manager (`infrasketch/anthropic-api-key`, `infrasketch/github-token`)
 - Monitoring: CloudWatch Logs/Metrics/Dashboard, Weekly reports (Monday 9AM PST), Lambda error alarms via SNS to mattafrank2439@gmail.com. Setup script: `scripts/setup-streak-monitoring.sh`
 
 **Deploy scripts:** Backend packages deps for Linux → Lambda zip → S3 → update function. Frontend builds → S3 sync → CloudFront invalidate.
@@ -291,6 +296,22 @@ aws cloudfront update-response-headers-policy --id $POLICY_ID --if-match $ETAG -
 
 **Details:** 5% overlap threshold, 50ms debounce, groups can't nest, delete group = delete children, edges deduplicated.
 
+## Canvas Layout Persistence
+
+**Problem it solves:** the canvas used to re-run dagre on every render, so a hand-arranged diagram reset on reload.
+
+**How:** drag-stop (or multi-select drag-stop) collects every visible node's position and calls `PATCH /nodes/positions` after a 600ms debounce. The endpoint saves the coordinates and sets `diagram.manual_layout = true`.
+
+**Rendering rule:** with `manual_layout` false, dagre lays out everything (unchanged behavior). With it true, `getLayoutedElements(..., {preserveStored: true})` keeps each node's stored position and lets dagre place only nodes that have never been positioned, so a node added by chat does not land at the origin. `(0, 0)` means "never placed" because that is the server-side default for `NodePosition`.
+
+**Escape hatches:** the auto-layout button and a TB/LR direction flip both ignore stored positions, then persist the fresh dagre result so the tidied arrangement is what reloads.
+
+**Not saved:** children hidden inside a collapsed group (only rendered nodes are sent), and positions at the moment of a drag-to-merge (the merge rewrites the diagram anyway).
+
+**Sync:** position-only writes never trigger a design-doc sync. `SyncEngine._node_signature` excludes position, so `_is_structural_change` sees no change.
+
+**Key files:** `routes_diagrams.py` (`update_node_positions`, declared before `/nodes/{node_id}` so the path param does not swallow "positions"), `utils/layout.js`, `DiagramCanvas.jsx` (`savePositions`, `handleNodeDragStop`), `App.jsx` (`handleNodePositionsChange`)
+
 ## Panel Resizing
 
 All panels use RAF throttling (60fps), `onWidthChange` callback, `useCallback` optimization, CSS `will-change`.
@@ -312,6 +333,27 @@ All panels use RAF throttling (60fps), `onWidthChange` callback, `useCallback` o
 **Document sections:** Executive Summary, System Overview, Architecture Diagram, Component Details, Data Flow, Infrastructure, Scalability, Security, Trade-offs, Implementation Phases, Future Enhancements, Appendix.
 
 **Dependencies:** Frontend: `html-to-image`. Backend: `Pillow`, `markdown2`, `reportlab` (primary), `weasyprint` (fallback, needs `brew install pango`).
+
+## GitHub Repo Analysis
+
+**Flow:** paste a GitHub URL into the prompt box (detected by `isGitHubUrl`) → `POST /api/analyze-repo` (10 credits) → async background task fetches repo data, then generates a diagram from it → poll `/session/{id}/repo-analysis/status`. Statuses: `fetching` → `analyzing` → `generating` → `completed`/`failed`.
+
+**What it extracts** (`github/analyzer.py`): languages, dependencies (package.json / requirements.txt / go.mod / etc.), Docker Compose services, Kubernetes resources, Terraform resources, CI/CD platform, entry points, API routes, DB connection strings, external services, README summary.
+
+**Authentication (required in practice):** the analyzer fetches dozens of files per repo. Unauthenticated, GitHub allows 60 requests/hour **per IP**, and every Lambda invocation shares an egress IP, so one or two analyses can exhaust the quota for all users. `get_github_token()` (`utils/secrets.py`) reads the `infrasketch/github-token` secret, falling back to the `GITHUB_TOKEN` env var, and returns None (with a warning log) if neither is set. Authenticated: 5,000 requests/hour.
+
+Create/rotate the token:
+```bash
+# Fine-grained token, "Public repositories (read-only)", no account permissions:
+# https://github.com/settings/personal-access-tokens
+aws secretsmanager create-secret --name infrasketch/github-token \
+  --description "GitHub API token for repo analysis" --secret-string 'ghp_xxx'
+# Rotating an existing one:
+aws secretsmanager put-secret-value --secret-id infrasketch/github-token --secret-string 'ghp_xxx'
+```
+The Lambda role already has `SecretsManagerReadWrite`, so no IAM change is needed. The value is `lru_cache`d per warm container, so a rotation needs a cold start (or a `aws lambda update-function-configuration` no-op) to take effect.
+
+**Rate-limit handling:** `_check_rate_limit` raises `GitHubRateLimitError` on 403 with `X-RateLimit-Remaining: 0` (primary limit) and on any 429 (secondary/abuse limit). The error message records `authenticated=True/False` so logs distinguish "no token configured" from "token exhausted". A 403 with quota remaining is a permissions problem and surfaces as `RepoAccessDeniedError`.
 
 ## Authentication & Security (Clerk)
 

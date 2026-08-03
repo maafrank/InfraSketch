@@ -46,13 +46,32 @@ const getResponsiveLayoutConfig = () => {
 };
 
 /**
+ * A node counts as "placed" only if the backend holds a real coordinate for it.
+ * Node.position defaults to {x: 0, y: 0} server-side, so the origin means
+ * "never positioned" rather than "positioned at the origin". A node genuinely
+ * dragged to exactly (0, 0) just gets auto-placed once more.
+ */
+export const hasStoredPosition = (node) => {
+  const position = node?.nodeData?.position;
+  if (!position) return false;
+  if (typeof position.x !== 'number' || typeof position.y !== 'number') return false;
+  return position.x !== 0 || position.y !== 0;
+};
+
+/**
  * Auto-layout nodes using dagre (directed graph layout)
  * @param {Array} nodes - React Flow nodes
  * @param {Array} edges - React Flow edges
  * @param {string} direction - 'TB' (top-bottom) or 'LR' (left-right)
+ * @param {Object} [options]
+ * @param {boolean} [options.preserveStored=false] - Keep each node's saved
+ *   position instead of the dagre result. Dagre still runs, so nodes with no
+ *   saved position (newly added by chat, for example) land somewhere sensible
+ *   instead of stacking at the origin.
  * @returns {Array} nodes with calculated positions
  */
-export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
+export const getLayoutedElements = (nodes, edges, direction = 'TB', options = {}) => {
+  const { preserveStored = false } = options;
   const config = getResponsiveLayoutConfig();
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
@@ -81,6 +100,13 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
 
   // Apply calculated positions to nodes
   const layoutedNodes = nodes.map((node) => {
+    if (preserveStored && hasStoredPosition(node)) {
+      return {
+        ...node,
+        position: { x: node.nodeData.position.x, y: node.nodeData.position.y },
+      };
+    }
+
     const nodeWithPosition = dagreGraph.node(node.id);
 
     return {

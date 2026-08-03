@@ -44,6 +44,11 @@ class Edge(BaseModel):
 class Diagram(BaseModel):
     nodes: List[Node]
     edges: List[Edge]
+    # False: the canvas auto-lays out every render (dagre), ignoring stored positions.
+    # True: the user has arranged nodes by hand, so stored positions win and dagre
+    # only fills in nodes that have never been placed. Flipped by the
+    # PATCH /nodes/positions endpoint the first time a node is dragged.
+    manual_layout: bool = False
 
 
 class Message(BaseModel):
@@ -140,6 +145,18 @@ class ChatResponse(BaseModel):
     design_doc: Optional[str] = None  # Updated design document content
     suggestions: List[str] = Field(default_factory=list)  # AI-generated follow-up suggestions
     gamification: Optional[dict] = None  # XP, achievements, streak updates
+
+
+class NodePositionUpdate(BaseModel):
+    """A single node's new canvas coordinates."""
+    id: str
+    x: float
+    y: float
+
+
+class UpdateNodePositionsRequest(BaseModel):
+    """Bulk position save. One request per drag-stop, not one per node."""
+    positions: List[NodePositionUpdate] = Field(..., min_length=1)
 
 
 class CreateGroupRequest(BaseModel):

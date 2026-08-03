@@ -1,6 +1,8 @@
 import os
 import json
 import logging
+from functools import lru_cache
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -134,6 +136,38 @@ def get_unsplash_api_key() -> str:
         secret_name='infrasketch/unsplash-api-key',
         default_env_var='UNSPLASH_ACCESS_KEY'
     )
+
+
+@lru_cache(maxsize=1)
+def get_github_token() -> Optional[str]:
+    """
+    Get a GitHub API token from AWS Secrets Manager or environment.
+
+    Unlike the other getters this returns None instead of raising: repo analysis
+    still works unauthenticated, just at GitHub's 60 requests/hour/IP limit
+    instead of 5,000/hour, and only for public repos. Since every Lambda
+    invocation shares an egress IP, the unauthenticated limit is effectively a
+    global quota, so a missing token is worth a warning.
+
+    Cached because it is read on every repo analysis and the value never changes
+    within a warm Lambda container.
+    """
+    try:
+        token = get_secret(
+            secret_name='infrasketch/github-token',
+            default_env_var='GITHUB_TOKEN'
+        )
+    except ValueError:
+        logger.warning(
+            "No GitHub token configured (infrasketch/github-token secret or GITHUB_TOKEN env). "
+            "Repo analysis will run unauthenticated: 60 req/hour shared across all users, public repos only."
+        )
+        return None
+
+    if not token or not token.strip():
+        return None
+
+    return token.strip()
 
 
 def get_clerk_secret_key() -> str:

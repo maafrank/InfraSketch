@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { getLayoutedElements } from '../layout';
+import { getLayoutedElements, hasStoredPosition } from '../layout';
 
 describe('getLayoutedElements', () => {
   describe('Basic functionality', () => {
@@ -256,6 +256,85 @@ describe('getLayoutedElements', () => {
       const firstNode = result.find((n) => n.id === 'node-0');
       const lastNode = result.find((n) => n.id === 'node-49');
       expect(firstNode.position.y).toBeLessThan(lastNode.position.y);
+    });
+  });
+
+  describe('preserveStored option', () => {
+    const makeNode = (id, storedPosition) => ({
+      id,
+      data: { label: id },
+      nodeData: storedPosition ? { id, position: storedPosition } : { id },
+    });
+
+    it('keeps stored positions instead of the dagre result', () => {
+      const nodes = [makeNode('api', { x: 1234, y: 5678 })];
+
+      const result = getLayoutedElements(nodes, [], 'TB', { preserveStored: true });
+
+      expect(result[0].position).toEqual({ x: 1234, y: 5678 });
+    });
+
+    it('ignores stored positions when preserveStored is off', () => {
+      const nodes = [makeNode('api', { x: 1234, y: 5678 })];
+
+      const result = getLayoutedElements(nodes, [], 'TB');
+
+      expect(result[0].position).not.toEqual({ x: 1234, y: 5678 });
+    });
+
+    it('auto-places nodes that have never been positioned', () => {
+      // A node added by chat after the user arranged the diagram: it carries the
+      // server-side default of (0, 0) and must not be left stacked at the origin.
+      const nodes = [makeNode('api', { x: 400, y: 400 }), makeNode('new-cache', { x: 0, y: 0 })];
+      const edges = [{ id: 'e1', source: 'api', target: 'new-cache' }];
+
+      const result = getLayoutedElements(nodes, edges, 'TB', { preserveStored: true });
+
+      const api = result.find((n) => n.id === 'api');
+      const cache = result.find((n) => n.id === 'new-cache');
+
+      expect(api.position).toEqual({ x: 400, y: 400 });
+      expect(cache.position).not.toEqual({ x: 0, y: 0 });
+      expect(Number.isFinite(cache.position.x)).toBe(true);
+    });
+
+    it('auto-places nodes with no stored position at all', () => {
+      const nodes = [makeNode('api', { x: 400, y: 400 }), makeNode('brand-new')];
+
+      const result = getLayoutedElements(nodes, [], 'TB', { preserveStored: true });
+
+      const brandNew = result.find((n) => n.id === 'brand-new');
+      expect(Number.isFinite(brandNew.position.x)).toBe(true);
+      expect(Number.isFinite(brandNew.position.y)).toBe(true);
+    });
+
+    it('preserves negative coordinates', () => {
+      const nodes = [makeNode('api', { x: -250, y: -80 })];
+
+      const result = getLayoutedElements(nodes, [], 'TB', { preserveStored: true });
+
+      expect(result[0].position).toEqual({ x: -250, y: -80 });
+    });
+  });
+
+  describe('hasStoredPosition', () => {
+    it('treats the origin as unpositioned', () => {
+      // NodePosition defaults to (0, 0) server-side, so the origin cannot be
+      // distinguished from "never placed".
+      expect(hasStoredPosition({ nodeData: { position: { x: 0, y: 0 } } })).toBe(false);
+    });
+
+    it('accepts a position on one axis only', () => {
+      expect(hasStoredPosition({ nodeData: { position: { x: 0, y: 120 } } })).toBe(true);
+      expect(hasStoredPosition({ nodeData: { position: { x: 120, y: 0 } } })).toBe(true);
+    });
+
+    it('rejects missing or malformed positions', () => {
+      expect(hasStoredPosition(undefined)).toBe(false);
+      expect(hasStoredPosition({})).toBe(false);
+      expect(hasStoredPosition({ nodeData: {} })).toBe(false);
+      expect(hasStoredPosition({ nodeData: { position: null } })).toBe(false);
+      expect(hasStoredPosition({ nodeData: { position: { x: '10', y: '20' } } })).toBe(false);
     });
   });
 

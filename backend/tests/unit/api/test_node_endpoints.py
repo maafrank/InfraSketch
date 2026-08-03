@@ -237,3 +237,157 @@ class TestUpdateNode:
         session = session_manager.get_session(session_id)
         node = next(n for n in session.diagram.nodes if n.id == node_id)
         assert node.label == new_label
+
+
+class TestUpdateNodePositions:
+    """Tests for PATCH /api/session/{session_id}/nodes/positions"""
+
+    def test_saves_positions_and_sets_manual_layout(self, client_with_session):
+        """Should persist coordinates and flip manual_layout so the canvas stops auto-laying out."""
+        client, session_id = client_with_session
+
+        response = client.patch(
+            f"/api/session/{session_id}/nodes/positions",
+            json={"positions": [
+                {"id": "api-gateway-1", "x": 42.5, "y": -17.0},
+                {"id": "postgres-db-1", "x": 300, "y": 500},
+            ]}
+        )
+
+        assert response.status_code == 200
+        diagram = response.json()
+        assert diagram["manual_layout"] is True
+
+        by_id = {n["id"]: n for n in diagram["nodes"]}
+        assert by_id["api-gateway-1"]["position"] == {"x": 42.5, "y": -17.0}
+        assert by_id["postgres-db-1"]["position"] == {"x": 300.0, "y": 500.0}
+
+    def test_persists_to_session(self, client_with_session):
+        """Positions must survive in session storage, not just the response."""
+        client, session_id = client_with_session
+
+        response = client.patch(
+            f"/api/session/{session_id}/nodes/positions",
+            json={"positions": [{"id": "api-gateway-1", "x": 11, "y": 22}]}
+        )
+        assert response.status_code == 200
+
+        from app.session.manager import session_manager
+        session = session_manager.get_session(session_id)
+        node = next(n for n in session.diagram.nodes if n.id == "api-gateway-1")
+        assert node.position.x == 11
+        assert node.position.y == 22
+        assert session.diagram.manual_layout is True
+
+    def test_route_is_not_shadowed_by_node_id_route(self, client_with_session):
+        """
+        Regression: PATCH /nodes/{node_id} is declared in the same router, so
+        "positions" must not be matched as a node ID.
+        """
+        client, session_id = client_with_session
+
+        response = client.patch(
+            f"/api/session/{session_id}/nodes/positions",
+            json={"positions": [{"id": "api-gateway-1", "x": 1, "y": 2}]}
+        )
+
+        # The node_id route would reject this body with a 400/422, never a 200.
+        assert response.status_code == 200
+
+    def test_skips_unknown_node_ids(self, client_with_session):
+        """A node deleted concurrently should be skipped, not fail the whole save."""
+        client, session_id = client_with_session
+
+        response = client.patch(
+            f"/api/session/{session_id}/nodes/positions",
+            json={"positions": [
+                {"id": "api-gateway-1", "x": 5, "y": 6},
+                {"id": "deleted-by-another-tab", "x": 9, "y": 9},
+            ]}
+        )
+
+        assert response.status_code == 200
+        diagram = response.json()
+        node_ids = [n["id"] for n in diagram["nodes"]]
+        assert "deleted-by-another-tab" not in node_ids
+        by_id = {n["id"]: n for n in diagram["nodes"]}
+        assert by_id["api-gateway-1"]["position"] == {"x": 5.0, "y": 6.0}
+
+    def test_returns_404_when_no_ids_match(self, client_with_session):
+        """All-unknown payload means the client is out of sync entirely."""
+        client, session_id = client_with_session
+
+        response = client.patch(
+            f"/api/session/{session_id}/nodes/positions",
+            json={"positions": [{"id": "nope", "x": 1, "y": 1}]}
+        )
+
+        assert response.status_code == 404
+
+    def test_rejects_empty_positions_list(self, client_with_session):
+        """An empty save is a client bug, not a no-op worth a DynamoDB write."""
+        client, session_id = client_with_session
+
+        response = client.patch(
+            f"/api/session/{session_id}/nodes/positions",
+            json={"positions": []}
+        )
+
+        assert response.status_code == 422
+
+    def test_returns_404_for_nonexistent_session(self, client):
+        """Should return 404 for non-existent session."""
+        response = client.patch(
+            "/api/session/nonexistent-session/nodes/positions",
+            json={"positions": [{"id": "api-gateway-1", "x": 1, "y": 1}]}
+        )
+
+        assert response.status_code == 404
+
+    def test_manual_layout_survives_adding_a_node(self, client_with_session, sample_cache_node):
+        """
+        Regression: every diagram mutation path must mutate the existing Diagram
+        rather than rebuild one, or manual_layout would silently reset to False
+        and the user's arrangement would be discarded on the next render.
+        """
+        client, session_id = client_with_session
+
+        client.patch(
+            f"/api/session/{session_id}/nodes/positions",
+            json={"positions": [{"id": "api-gateway-1", "x": 700, "y": 900}]}
+        )
+
+        response = client.post(
+            f"/api/session/{session_id}/nodes",
+            json=sample_cache_node.model_dump()
+        )
+
+        assert response.status_code == 200
+        diagram = response.json()
+        assert diagram["manual_layout"] is True
+        by_id = {n["id"]: n for n in diagram["nodes"]}
+        assert by_id["api-gateway-1"]["position"] == {"x": 700.0, "y": 900.0}
+        # The new node keeps whatever position it was created with. A node added
+        # by a chat tool has none, so it lands on the server-side (0, 0) default,
+        # which the canvas reads as "never placed" and auto-positions.
+        assert by_id[sample_cache_node.id]["position"] == {
+            "x": sample_cache_node.position.x,
+            "y": sample_cache_node.position.y,
+        }
+
+    def test_manual_layout_survives_deleting_a_node(self, client_with_session):
+        """Deleting a node must not reset the saved layout for the survivors."""
+        client, session_id = client_with_session
+
+        client.patch(
+            f"/api/session/{session_id}/nodes/positions",
+            json={"positions": [{"id": "api-gateway-1", "x": 700, "y": 900}]}
+        )
+
+        response = client.delete(f"/api/session/{session_id}/nodes/postgres-db-1")
+
+        assert response.status_code == 200
+        diagram = response.json()
+        assert diagram["manual_layout"] is True
+        by_id = {n["id"]: n for n in diagram["nodes"]}
+        assert by_id["api-gateway-1"]["position"] == {"x": 700.0, "y": 900.0}

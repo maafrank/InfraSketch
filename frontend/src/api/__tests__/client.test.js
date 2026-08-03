@@ -20,6 +20,7 @@ import {
   updateNode,
   addEdge,
   deleteEdge,
+  saveNodePositions,
   createNodeGroup,
   ungroupNodes,
   toggleGroupCollapse,
@@ -244,6 +245,28 @@ describe('API Client', () => {
       await updateNode('session-123', 'api-1', { label: 'Updated API' });
 
       expect(capturedBody).toEqual({ label: 'Updated API' });
+    });
+
+    it('saveNodePositions sends a bulk position payload', async () => {
+      let capturedBody;
+      let capturedUrl;
+      server.use(
+        http.patch(`${API_URL}/session/:sessionId/nodes/positions`, async ({ request }) => {
+          capturedUrl = request.url;
+          capturedBody = await request.json();
+          return HttpResponse.json({ ...mockDiagram, manual_layout: true });
+        })
+      );
+
+      const positions = [
+        { id: 'api-1', x: 100, y: 200 },
+        { id: 'db-1', x: 300, y: 400 },
+      ];
+      const result = await saveNodePositions('session-123', positions);
+
+      expect(capturedUrl).toContain('/session/session-123/nodes/positions');
+      expect(capturedBody).toEqual({ positions });
+      expect(result.manual_layout).toBe(true);
     });
   });
 

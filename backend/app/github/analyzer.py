@@ -6,11 +6,14 @@ to extract architectural patterns, dependencies, and infrastructure.
 """
 
 import base64
+import logging
 import re
 import json
 from dataclasses import dataclass, field
 from typing import Optional
 import httpx
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -285,12 +288,35 @@ class GitHubAnalyzer:
         return headers
 
     def _check_rate_limit(self, response: httpx.Response) -> None:
-        """Check and raise if rate limited."""
-        if response.status_code == 403:
-            remaining = response.headers.get("X-RateLimit-Remaining", "0")
-            if remaining == "0":
+        """Raise GitHubRateLimitError if this response was rate limited.
+
+        GitHub signals the primary limit with 403 + X-RateLimit-Remaining: 0,
+        and secondary (abuse) limits with 429. Both are retryable-later, so both
+        map to the same error rather than surfacing as a generic failure.
+        """
+        status = response.status_code
+        if status not in (403, 429):
+            return
+
+        remaining = response.headers.get("X-RateLimit-Remaining", "0")
+        if status == 429 or remaining == "0":
+            try:
                 reset_time = int(response.headers.get("X-RateLimit-Reset", "0"))
-                raise GitHubRateLimitError(reset_time)
+            except ValueError:
+                reset_time = 0
+
+            limit = response.headers.get("X-RateLimit-Limit", "unknown")
+            logger.warning(
+                f"GitHub rate limit hit (status={status}, limit={limit}, "
+                f"authenticated={bool(self.access_token)})"
+            )
+            raise GitHubRateLimitError(
+                reset_time,
+                message=(
+                    f"GitHub API rate limit exceeded (limit={limit}, "
+                    f"authenticated={bool(self.access_token)})"
+                ),
+            )
 
     def parse_github_url(self, url: str) -> tuple[str, str]:
         """

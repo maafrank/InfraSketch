@@ -143,7 +143,19 @@ const EXAMPLE_PROMPTS = [
   }
 ];
 
-function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAddEdge, onDeleteEdge, onReactFlowInit, onUpdateNode, onOpenNodePalette, onLayoutReady, onExportPng, onExampleClick, designDocOpen, designDocWidth, chatPanelOpen, chatPanelWidth, layoutDirection = 'TB', onLayoutDirectionChange, onMergeNodes, onUngroupNodes, onToggleCollapse, onRegenerateDescription, mergingNodes = false, onToggleAllGroups, hasExpandedGroups }) {
+// How long to wait after the last drag before persisting positions. Batches a
+// flurry of small adjustments into one request.
+const POSITION_SAVE_DEBOUNCE_MS = 600;
+
+// Drop anything React Flow has not given a usable position yet, so a half-built
+// node can never send NaN coordinates to the backend.
+const toPositionPayload = (flowNodes) =>
+  (flowNodes || [])
+    .filter((node) => node?.id && node.position &&
+      Number.isFinite(node.position.x) && Number.isFinite(node.position.y))
+    .map((node) => ({ id: node.id, x: node.position.x, y: node.position.y }));
+
+function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAddEdge, onDeleteEdge, onReactFlowInit, onUpdateNode, onOpenNodePalette, onLayoutReady, onExportPng, onExampleClick, onNodePositionsChange, designDocOpen, designDocWidth, chatPanelOpen, chatPanelWidth, layoutDirection = 'TB', onLayoutDirectionChange, onMergeNodes, onUngroupNodes, onToggleCollapse, onRegenerateDescription, mergingNodes = false, onToggleAllGroups, hasExpandedGroups }) {
   const reactFlowInstance = useReactFlow();
 
   // Pass the React Flow instance to parent
@@ -181,6 +193,65 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
   const dropTargetTimeoutRef = useRef(null);
   const isDraggingRef = useRef(false);
 
+  // Position persistence state. nodesRef avoids stale closures in the debounced
+  // save; appliedDirectionRef lets us tell "the diagram changed" apart from
+  // "the user switched TB/LR", which must force a full re-layout even when the
+  // diagram already has saved positions.
+  const nodesRef = useRef([]);
+  const positionSaveTimeoutRef = useRef(null);
+  const appliedDirectionRef = useRef(layoutDirection);
+  const onNodePositionsChangeRef = useRef(onNodePositionsChange);
+
+  useEffect(() => {
+    onNodePositionsChangeRef.current = onNodePositionsChange;
+  }, [onNodePositionsChange]);
+
+  useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
+
+  /**
+   * Persist the positions of every currently rendered node.
+   * Only visible nodes are sent, so children hidden inside a collapsed group
+   * keep whatever position they already had.
+   */
+  const savePositions = useCallback((nodesToSave, { immediate = false } = {}) => {
+    const handler = onNodePositionsChangeRef.current;
+    if (!handler) return;
+
+    const positions = toPositionPayload(nodesToSave);
+    if (positions.length === 0) return;
+
+    if (positionSaveTimeoutRef.current) {
+      clearTimeout(positionSaveTimeoutRef.current);
+      positionSaveTimeoutRef.current = null;
+    }
+
+    if (immediate) {
+      handler(positions);
+      return;
+    }
+
+    positionSaveTimeoutRef.current = setTimeout(() => {
+      positionSaveTimeoutRef.current = null;
+      handler(positions);
+    }, POSITION_SAVE_DEBOUNCE_MS);
+  }, []);
+
+  // Flush any pending save when the canvas unmounts (session switch, navigation)
+  // so a drag immediately before leaving is not lost.
+  useEffect(() => () => {
+    if (!positionSaveTimeoutRef.current) return;
+    clearTimeout(positionSaveTimeoutRef.current);
+    positionSaveTimeoutRef.current = null;
+
+    const handler = onNodePositionsChangeRef.current;
+    if (!handler) return;
+
+    const positions = toPositionPayload(nodesRef.current);
+    if (positions.length > 0) handler(positions);
+  }, []);
+
   // Mobile zoom hint state
   const [showZoomHint, setShowZoomHint] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -204,24 +275,25 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
     }
   }, [isMobile, diagram?.nodes?.length]);
 
-  // Function to apply layout to current nodes/edges
+  // Function to apply layout to current nodes/edges.
+  // Deliberately ignores saved positions (that is what the button is for), then
+  // persists the result so the tidied arrangement is what reloads.
   const applyLayout = useCallback(() => {
     setNodes((currentNodes) => {
-      setEdges((currentEdges) => {
-        // Apply layout and trigger fitView
-        getLayoutedElements(currentNodes, currentEdges, layoutDirection);
+      const layoutedNodes = getLayoutedElements(currentNodes, edges, layoutDirection);
 
-        // Use fitView to center the diagram after layout (tighter padding on mobile)
-        setTimeout(() => {
-          const fitPadding = window.innerWidth <= MOBILE_BREAKPOINT ? 0.05 : 0.2;
-          reactFlowInstance?.fitView({ padding: fitPadding, duration: 400 });
-        }, 10);
+      // Save immediately: this is an explicit user action, not an incidental drag.
+      savePositions(layoutedNodes, { immediate: true });
 
-        return currentEdges;
-      });
-      return getLayoutedElements(currentNodes, edges, layoutDirection);
+      // Use fitView to center the diagram after layout (tighter padding on mobile)
+      setTimeout(() => {
+        const fitPadding = window.innerWidth <= MOBILE_BREAKPOINT ? 0.05 : 0.2;
+        reactFlowInstance?.fitView({ padding: fitPadding, duration: 400 });
+      }, 10);
+
+      return layoutedNodes;
     });
-  }, [setNodes, setEdges, edges, reactFlowInstance, layoutDirection]);
+  }, [setNodes, edges, reactFlowInstance, layoutDirection, savePositions]);
 
   // Expose applyLayout to parent component
   useEffect(() => {
@@ -387,12 +459,28 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
       },
     }));
 
-    // Apply auto-layout
-    const layoutedNodes = getLayoutedElements(visibleNodes, deduplicatedEdges, layoutDirection);
+    // Honour saved positions once the user has arranged the diagram by hand,
+    // except when they just flipped TB/LR, which means "re-lay this out".
+    const directionChanged = appliedDirectionRef.current !== layoutDirection;
+    appliedDirectionRef.current = layoutDirection;
+    const preserveStored = Boolean(diagram.manual_layout) && !directionChanged;
+
+    const layoutedNodes = getLayoutedElements(
+      visibleNodes,
+      deduplicatedEdges,
+      layoutDirection,
+      { preserveStored }
+    );
 
     setNodes(layoutedNodes);
     setEdges(deduplicatedEdges);
-  }, [diagram, setNodes, setEdges, onDeleteNode, onToggleCollapse, selectedEdge, layoutDirection, dropTarget]);
+
+    // A direction flip discards saved positions, so write the new ones back or
+    // the next render would restore the old arrangement.
+    if (directionChanged && diagram.manual_layout) {
+      savePositions(layoutedNodes, { immediate: true });
+    }
+  }, [diagram, setNodes, setEdges, onDeleteNode, onToggleCollapse, selectedEdge, layoutDirection, dropTarget, savePositions]);
 
   // Re-layout when panels open/close or resize (debounced)
   useEffect(() => {
@@ -534,12 +622,27 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
     isDraggingRef.current = false;
 
     if (dropTarget && onMergeNodes && node.id !== dropTarget.id) {
-      // User dropped node onto another node - merge them
+      // User dropped node onto another node - merge them. The merge rewrites the
+      // diagram (new group node, re-parented children), so persisting the
+      // pre-merge positions here would just be overwritten.
+      setDropTarget(null);
       await onMergeNodes(node.id, dropTarget.id);
+      return;
     }
 
     setDropTarget(null);
-  }, [dropTarget, onMergeNodes]);
+
+    // Plain reposition: keep it. nodesRef holds the post-drag positions that
+    // React Flow already applied to its internal state.
+    savePositions(nodesRef.current);
+  }, [dropTarget, onMergeNodes, savePositions]);
+
+  // React Flow fires this instead of onNodeDragStop when several selected nodes
+  // are dragged together.
+  const handleSelectionDragStop = useCallback(() => {
+    isDraggingRef.current = false;
+    savePositions(nodesRef.current);
+  }, [savePositions]);
 
   // Show empty state if no diagram or diagram has no nodes
   const hasNodes = diagram?.nodes?.length > 0;
@@ -611,6 +714,7 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
         onNodeDragStart={handleNodeDragStart}
         onNodeDrag={handleNodeDrag}
         onNodeDragStop={handleNodeDragStop}
+        onSelectionDragStop={handleSelectionDragStop}
         onPaneClick={handlePaneClick}
         nodeTypes={nodeTypes}
         nodesDraggable={!mergingNodes}

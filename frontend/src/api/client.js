@@ -176,6 +176,16 @@ export const updateNode = async (sessionId, nodeId, node) => {
   return response.data;
 };
 
+/**
+ * Persist canvas positions so a hand-arranged layout survives a reload.
+ * @param {string} sessionId
+ * @param {Array<{id: string, x: number, y: number}>} positions
+ */
+export const saveNodePositions = async (sessionId, positions) => {
+  const response = await client.patch(`/session/${sessionId}/nodes/positions`, { positions });
+  return response.data;
+};
+
 export const addEdge = async (sessionId, edge) => {
   const response = await client.post(`/session/${sessionId}/edges`, edge);
   return response.data;
