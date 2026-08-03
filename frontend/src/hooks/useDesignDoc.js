@@ -1,6 +1,12 @@
 import { useCallback, useState } from 'react';
 
-import { exportDesignDoc, generateDesignDoc, pollDesignDocStatus, updateDesignDoc } from '../api/client';
+import {
+  exportDesignDoc,
+  generateDesignDoc,
+  getDesignDocStatus,
+  pollDesignDocStatus,
+  updateDesignDoc,
+} from '../api/client';
 import { PANEL_WIDTHS } from '../constants/ui';
 import { base64ToBlob, downloadBlob } from '../utils/download';
 
@@ -36,6 +42,39 @@ export function useDesignDoc({
       setDesignDocOpen(true);
       return;
     }
+
+    if (!force) {
+      // Local state is not proof that no doc exists. It is empty before a
+      // session finishes hydrating, and generating from here would both charge
+      // credits and overwrite a document the user already paid for. Confirm
+      // against the server first; the status endpoint is free.
+      try {
+        const existing = await getDesignDocStatus(sessionId);
+        if (existing.status === 'completed' && existing.design_doc) {
+          setDesignDoc(existing.design_doc);
+          setDesignDocIsPreview(existing.is_preview === true);
+          setDesignDocOpen(true);
+          return;
+        }
+        if (existing.status === 'generating') {
+          // Another tab (or a reload mid-run) already started one. Attach to it
+          // rather than paying for a second.
+          setDesignDocOpen(true);
+          setDesignDocLoading(true);
+          const result = await pollDesignDocStatus(sessionId);
+          if (result.success) {
+            setDesignDocIsPreview(result.is_preview === true);
+            setDesignDoc(result.design_doc);
+          }
+          setDesignDocLoading(false);
+          return;
+        }
+      } catch (error) {
+        // Never block generation on a failed status probe.
+        console.debug('Design-doc status probe failed, generating:', error);
+      }
+    }
+
     if (force) {
       setDesignDoc(null);
       setDesignDocIsPreview(false);

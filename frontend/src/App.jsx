@@ -285,6 +285,23 @@ function AppContent({ resumeMode = false, isMobile }) {
     setHighlightedNodeIds([]);
   }, []);
 
+  /**
+   * Drop every trace of the current session's review.
+   *
+   * Review state is session-scoped, but nothing cleared it on a session switch,
+   * so the panel kept showing findings (and node highlights) belonging to a
+   * diagram the user had navigated away from. handleOpenReview also
+   * short-circuits on `if (review) return`, so a stale review blocked the fetch
+   * of the correct one indefinitely.
+   */
+  const resetReview = useCallback(() => {
+    setReview(null);
+    setReviewStale(false);
+    setReviewError(null);
+    setReviewLoading(false);
+    setHighlightedNodeIds([]);
+  }, []);
+
   // ── Infrastructure-as-Code export ─────────────────────────────────────────
   const [iacOpen, setIacOpen] = useState(false);
 
@@ -484,9 +501,11 @@ function AppContent({ resumeMode = false, isMobile }) {
   // Load session callback - defined before useEffect that uses it
   const loadSession = useCallback(async (sid) => {
     setLoading(true);
-    // History is session-local: an undo must never restore a diagram that
-    // belongs to a different session.
+    // History and review are both session-local: an undo must never restore a
+    // diagram from another session, and the review panel must not keep showing
+    // findings for the diagram we are navigating away from.
     resetHistory();
+    resetReview();
     try {
       const sessionData = await getSession(sid);
 
@@ -512,7 +531,7 @@ function AppContent({ resumeMode = false, isMobile }) {
     } finally {
       setLoading(false);
     }
-  }, [navigate, hydrateDesignDocFromSession, resetHistory]);
+  }, [navigate, hydrateDesignDocFromSession, resetHistory, resetReview]);
 
   // Resume session from URL parameter
   useEffect(() => {
@@ -1168,6 +1187,7 @@ function AppContent({ resumeMode = false, isMobile }) {
     setMessages([]);
     resetDesignDoc();
     resetHistory();
+    resetReview();
     setSessionName('Untitled Design');
     navigate('/');
   };
@@ -1183,9 +1203,10 @@ function AppContent({ resumeMode = false, isMobile }) {
     setMessages([]);
     resetDesignDoc();
     resetHistory();
+    resetReview();
     setSessionName('Untitled Design');
     navigate('/');
-  }, [navigate, resetDesignDoc, resetHistory]);
+  }, [navigate, resetDesignDoc, resetHistory, resetReview]);
 
   const handleUpgradeFromPreview = useCallback(() => {
     navigate('/pricing');
@@ -1330,14 +1351,17 @@ function AppContent({ resumeMode = false, isMobile }) {
                 <button
                   className={`create-design-doc-button${diagram && !designDoc && !designDocLoading && !designDocOpen ? ' pulse-glow' : ''}`}
                   onClick={handleCreateDesignDoc}
-                  disabled={designDocLoading || !diagram}
+                  // `loading` matters: while a session is still being fetched,
+                  // designDoc is stale/empty, and a click here would generate a
+                  // second document over one that already exists.
+                  disabled={designDocLoading || loading || !diagram}
                 >
                   {designDocLoading ? 'Generating...' : (designDoc && !designDocOpen ? 'Open Design Doc' : 'Create Design Doc')}
                 </button>
                 <button
                   className="review-button"
                   onClick={reviewOpen ? handleCloseReview : handleOpenReview}
-                  disabled={!diagram || reviewLoading}
+                  disabled={!diagram || reviewLoading || loading}
                   title="Have Sketch critique this architecture"
                 >
                   {reviewLoading ? 'Reviewing...' : 'Review'}
@@ -1347,7 +1371,7 @@ function AppContent({ resumeMode = false, isMobile }) {
                 <button
                   className="iac-button"
                   onClick={() => setIacOpen(true)}
-                  disabled={!diagram}
+                  disabled={!diagram || loading}
                   title="Export as Terraform, Kubernetes, or Docker Compose"
                 >
                   Export IaC

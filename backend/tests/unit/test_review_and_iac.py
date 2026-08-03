@@ -163,11 +163,18 @@ class TestNormalizeFiles:
         assert [f["path"] for f in files] == ["main.tf"]
 
     def test_caps_total_size(self):
-        """A runaway generation must not blow the 400KB DynamoDB item limit."""
-        raw = [{"path": f"f{i}.tf", "content": "x" * 90_000} for i in range(10)]
+        """Artifacts share a 400KB DynamoDB item with the diagram, doc and chat.
+
+        The budget must leave room for those, so it is well under the item limit
+        rather than equal to it.
+        """
+        from app.iac.generator import MAX_TOTAL_BYTES
+
+        raw = [{"path": f"f{i}.tf", "content": "x" * 50_000} for i in range(10)]
         files = _normalize_files(raw, "#")
         total = sum(len(f["content"].encode()) for f in files)
-        assert total <= 400_000
+        assert total <= MAX_TOTAL_BYTES
+        assert MAX_TOTAL_BYTES < 400_000, "must leave headroom in the DynamoDB item"
         assert len(files) < 10
 
     def test_caps_file_count(self):

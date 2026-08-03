@@ -29,11 +29,19 @@ logger = logging.getLogger(__name__)
 # Multi-file Terraform runs long. Below this the model truncates mid-resource.
 IAC_MAX_OUTPUT_TOKENS = 16_384
 
-# Guards against a runaway generation filling a session record (DynamoDB items
-# cap at 400KB and the diagram + doc already live there).
+# Guards against a runaway generation filling a session record.
+#
+# A DynamoDB item caps at 400KB TOTAL, and the session already carries the
+# diagram, the design doc (~10KB), the chat transcript, and possibly a review.
+# An earlier 400_000 budget here was therefore guaranteed to overflow the item
+# once anything else was present: save_session would fail, and because it only
+# logs and returns False, the failure would surface later as silently lost work
+# rather than an error at the point of generation.
+#
+# 120KB leaves room for a large diagram plus a doc plus all three targets.
 MAX_FILES = 40
-MAX_FILE_BYTES = 100_000
-MAX_TOTAL_BYTES = 400_000
+MAX_FILE_BYTES = 60_000
+MAX_TOTAL_BYTES = 120_000
 
 
 class IacGenerationError(Exception):
