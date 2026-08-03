@@ -278,6 +278,20 @@ Both servers auto-reload (`--reload` backend, Vite HMR frontend).
 
 **Deploy scripts:** Backend packages deps for Linux → Lambda zip → S3 → update function. Frontend builds → S3 sync → CloudFront invalidate.
 
+**Response Content Types (API Gateway base64 trap):**
+
+`infrasketch-api` is a **REST API (v1)** with `binaryMediaTypes` unset. Mangum base64-encodes any response whose content type is not in `text_mime_types` (`backend/lambda_handler.py`) and sets `isBase64Encoded`, but a REST API with no `binaryMediaTypes` does not act on that flag, so **the client receives literal base64 with the right Content-Type header**. The bug is invisible to a status-code check: it returns 200.
+
+Any new text content type must be added to `text_mime_types`. `application/xml` was missing, which served the share sitemap to crawlers as base64.
+
+Genuinely binary responses (`image/png`) cannot be fixed that way, since raw bytes cannot ride through as text. They need the content type added to the API's `binaryMediaTypes`:
+```bash
+aws apigateway update-rest-api --rest-api-id b31htlojb0 \
+  --patch-operations op=add,path=/binaryMediaTypes/image~1png   # ~1 is an escaped "/"
+aws apigateway create-deployment --rest-api-id b31htlojb0 --stage-name prod
+```
+Verify with `curl -s <url> | head -c 20` and check it is not base64, not just that the status is 200.
+
 **Lambda Deployment Checklist:**
 When deploying or modifying any Lambda function, always verify:
 1. **IAM permissions** - Check the Lambda's execution role has access to all AWS services it uses (DynamoDB tables, Secrets Manager, S3, SES, etc.). Run: `aws iam get-role-policy --role-name infrasketch-lambda-role --policy-name DynamoDBSessionStorage` to see current DynamoDB table access. If adding a new DynamoDB table, add its ARN to the policy.

@@ -242,6 +242,20 @@ class DynamoDBSessionStorage:
             logger.exception(f"Error querying sessions for user {user_id}: {e}")
             return []
 
+    @staticmethod
+    def _is_missing_index(error: Exception) -> bool:
+        """True if the error is just "this GSI does not exist yet".
+
+        Indexes are created lazily on cold start and take minutes to backfill,
+        so this is an expected transient state, not a fault. Logging it as an
+        exception with a traceback would make the CloudWatch error alarm fire
+        every time someone hit a share endpoint during the backfill window.
+        """
+        return isinstance(error, ClientError) and (
+            error.response.get('Error', {}).get('Code') == 'ValidationException'
+            and 'does not have the specified index' in str(error)
+        )
+
     def get_session_by_share_token(self, share_token: str) -> Optional[SessionState]:
         """Look up a shared session by its public token via the sparse GSI."""
         try:
@@ -256,6 +270,9 @@ class DynamoDBSessionStorage:
                 return None
             return self._deserialize_session(items[0])
         except Exception as e:
+            if self._is_missing_index(e):
+                logger.warning("share_token-index not available yet; share lookups will fail until it is ACTIVE")
+                return None
             logger.exception(f"Error querying session by share token: {e}")
             return None
 
@@ -276,5 +293,8 @@ class DynamoDBSessionStorage:
                     logger.exception(f"Error deserializing public session: {e}")
             return sessions
         except Exception as e:
+            if self._is_missing_index(e):
+                logger.warning("public_flag-index not available yet; share sitemap will be empty until it is ACTIVE")
+                return []
             logger.exception(f"Error listing public sessions: {e}")
             return []
