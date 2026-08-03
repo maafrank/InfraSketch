@@ -212,3 +212,67 @@ class TestDiagramStatusEndpoint:
         assert data["status"] == "completed"
         assert "duration_seconds" in data
         assert data["duration_seconds"] >= 0.1
+
+
+class TestGenerateCreditGateStatusCodes:
+    """POST /api/generate must not rewrite deliberate status codes as 500.
+
+    Regression: /generate was the only credit-charging endpoint without an
+    `except HTTPException: raise` guard, so check_and_deduct_credits' 402 was
+    caught by the bare `except Exception` and re-raised as
+    "Failed to start diagram generation". The frontend only opens the upgrade
+    modal on a 402 (App.jsx), and treats 500 as retryable (client.js), so a
+    free user out of credits saw "Server error (500)" after four attempts and
+    was never offered the paywall on the primary conversion action.
+    """
+
+    def test_insufficient_credits_returns_402_not_500(self, client, mock_user_credits_storage):
+        from app.billing.models import UserCredits
+
+        broke = UserCredits(
+            user_id="local-dev-user",
+            plan="free",
+            credits_balance=2,
+            credits_monthly_allowance=10,
+        )
+        mock_user_credits_storage.deduct_credits.return_value = (False, broke)
+        mock_user_credits_storage.get_or_create_credits.return_value = broke
+        mock_user_credits_storage.get_credits.return_value = broke
+
+        response = client.post("/api/generate", json={"prompt": "Design a URL shortener"})
+
+        assert response.status_code == 402, (
+            f"expected 402 so the upgrade modal opens, got {response.status_code}: {response.text}"
+        )
+        detail = response.json()["detail"]
+        assert detail["error"] == "insufficient_credits"
+        assert detail["available"] == 2
+
+    def test_past_due_subscription_returns_402_not_500(self, client, mock_user_credits_storage):
+        from app.billing.models import UserCredits
+
+        past_due = UserCredits(
+            user_id="local-dev-user",
+            plan="pro",
+            credits_balance=300,
+            credits_monthly_allowance=300,
+            subscription_status="past_due",
+        )
+        mock_user_credits_storage.get_or_create_credits.return_value = past_due
+        mock_user_credits_storage.get_credits.return_value = past_due
+
+        response = client.post("/api/generate", json={"prompt": "Design a chat app"})
+
+        assert response.status_code == 402
+        assert response.json()["detail"]["error"] == "subscription_past_due"
+
+    def test_unexpected_error_still_returns_500(self, client, mock_user_credits_storage, mocker):
+        """The guard must not swallow genuine failures."""
+        mocker.patch(
+            "app.api.routes_diagrams.session_manager.create_session_for_generation",
+            side_effect=RuntimeError("dynamo exploded"),
+        )
+
+        response = client.post("/api/generate", json={"prompt": "Design a cache"})
+
+        assert response.status_code == 500

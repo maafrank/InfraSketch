@@ -452,6 +452,15 @@ async def generate_diagram(request: GenerateRequest, http_request: Request, back
             "status": "generating"
         })
 
+    except HTTPException:
+        # Deliberate status codes (402 insufficient_credits, 402 past_due,
+        # 403 feature_locked) must reach the client intact. Without this guard
+        # the bare handler below rewrote them as 500, so a free user who ran
+        # out of credits got "Server error (500)" plus three automatic retries
+        # (client.js retries 500) instead of the upgrade modal, which App.jsx
+        # only opens on a 402. This is the primary conversion action, so the
+        # paywall was unreachable exactly where it mattered most.
+        raise
     except Exception as e:
         log_error(
             error_type="diagram_generation_start_failed",
