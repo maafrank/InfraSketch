@@ -13,6 +13,9 @@ import LandingPage from './components/LandingPage';
 import DiagramCanvas from './components/DiagramCanvas';
 import ChatPanel from './components/ChatPanel';
 import DesignDocPanel from './components/DesignDocPanel';
+import ReviewPanel from './components/ReviewPanel';
+import IacExportModal from './components/IacExportModal';
+import ShareModal from './components/ShareModal';
 import AddNodeModal from './components/AddNodeModal';
 import SessionHistorySidebar from './components/SessionHistorySidebar';
 import NodePalette from './components/NodePalette';
@@ -32,6 +35,10 @@ import {
   addEdge,
   deleteEdge,
   saveNodePositions,
+  replaceDiagram,
+  startArchitectureReview,
+  getReviewStatus,
+  pollReviewStatus,
   setClerkTokenGetter,
   getSession,
   createBlankSession,
@@ -47,6 +54,7 @@ import {
 import './App.css';
 import { MOBILE_BREAKPOINT } from './constants/ui';
 import { useDesignDoc } from './hooks/useDesignDoc';
+import { useDiagramHistory } from './hooks/useDiagramHistory';
 import { base64ToBlob, downloadBlob } from './utils/download';
 
 // Settings icon for UserButton menu
@@ -136,6 +144,157 @@ function AppContent({ resumeMode = false, isMobile }) {
 
   // Auto-sync (diagram <-> design doc) status, hydrated from session GET responses.
   const [syncStatus, setSyncStatus] = useState({ state: 'idle' });
+
+  // Undo/redo over whole-diagram snapshots.
+  const { record, undo, redo, reset: resetHistory, canUndo, canRedo } = useDiagramHistory();
+
+  // Mirrors `diagram` so recordHistory can read the current value without every
+  // mutation handler having to take `diagram` as a dependency.
+  const diagramRef = useRef(null);
+  useEffect(() => {
+    diagramRef.current = diagram;
+  }, [diagram]);
+
+  // handleSendMessage is defined further down and re-created every render, so
+  // the review panel's "fix this" action reaches it through a ref rather than
+  // capturing a stale binding.
+  const handleSendMessageRef = useRef(null);
+
+  /**
+   * Snapshot the current diagram before a mutation is applied.
+   * Call this immediately before the mutating request, not after.
+   */
+  const recordHistory = useCallback(() => {
+    record(diagramRef.current);
+  }, [record]);
+
+  /**
+   * Restore a snapshot. Applies optimistically so the canvas responds
+   * immediately, then persists. If the write fails the local diagram is now a
+   * lie, so we re-read the session rather than leaving the two out of step.
+   */
+  const restoreDiagram = useCallback(async (restored) => {
+    if (!restored || !sessionId) return;
+    setDiagram(restored);
+    setSelectedNode((current) =>
+      current && !restored.nodes?.some((n) => n.id === current.id) ? null : current
+    );
+    try {
+      await replaceDiagram(sessionId, restored);
+    } catch (error) {
+      console.error('Failed to persist undo/redo:', error);
+      try {
+        const fresh = await getSession(sessionId);
+        setDiagram(fresh.diagram);
+      } catch (reloadError) {
+        console.error('Failed to resync diagram after a failed undo/redo:', reloadError);
+      }
+      resetHistory();
+    }
+  }, [sessionId, resetHistory]);
+
+  const handleUndo = useCallback(() => {
+    restoreDiagram(undo(diagramRef.current));
+  }, [undo, restoreDiagram]);
+
+  const handleRedo = useCallback(() => {
+    restoreDiagram(redo(diagramRef.current));
+  }, [redo, restoreDiagram]);
+
+  // ── Architecture review ───────────────────────────────────────────────────
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [review, setReview] = useState(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewStale, setReviewStale] = useState(false);
+  const [reviewError, setReviewError] = useState(null);
+  const [reviewWidth, setReviewWidth] = useState(0);
+  const [highlightedNodeIds, setHighlightedNodeIds] = useState([]);
+
+  const handleRunReview = useCallback(async () => {
+    if (!sessionId) return;
+    setReviewOpen(true);
+    setReviewLoading(true);
+    setReviewError(null);
+    try {
+      await startArchitectureReview(sessionId);
+      const result = await pollReviewStatus(sessionId);
+      if (result.success) {
+        setReview(result.review);
+        setReviewStale(result.isStale);
+      } else {
+        setReviewError(result.error || 'The review could not be completed.');
+      }
+      if (refreshCredits) refreshCredits();
+      if (refreshGamification) refreshGamification();
+    } catch (error) {
+      const detail = error?.response?.data?.detail;
+      if (error?.response?.status === 402 || error?.response?.status === 403) {
+        // Reuse the existing upgrade/credits modal rather than a bespoke one.
+        setInsufficientCreditsError(detail || { message: 'Architecture review requires a paid plan.' });
+        setReviewOpen(false);
+      } else {
+        setReviewError(detail?.message || 'Could not start the review. Please try again.');
+      }
+    } finally {
+      setReviewLoading(false);
+    }
+  }, [sessionId, refreshCredits, refreshGamification]);
+
+  /**
+   * Open the panel. Loads any review already stored on the session instead of
+   * charging for a fresh one; the user re-runs explicitly.
+   */
+  const handleOpenReview = useCallback(async () => {
+    if (!sessionId) return;
+    setReviewOpen(true);
+    if (review) return;
+    try {
+      const status = await getReviewStatus(sessionId);
+      if (status.status === 'completed' && status.review) {
+        setReview(status.review);
+        setReviewStale(status.is_stale === true);
+      } else if (status.status === 'generating') {
+        // A review kicked off in another tab (or before a reload) is still
+        // running; attach to it rather than starting a second one.
+        setReviewLoading(true);
+        const result = await pollReviewStatus(sessionId);
+        if (result.success) {
+          setReview(result.review);
+          setReviewStale(result.isStale);
+        } else {
+          setReviewError(result.error || 'The review could not be completed.');
+        }
+        setReviewLoading(false);
+      }
+    } catch (error) {
+      console.error('Failed to load existing review:', error);
+    }
+  }, [sessionId, review]);
+
+  const handleCloseReview = useCallback(() => {
+    setReviewOpen(false);
+    setHighlightedNodeIds([]);
+  }, []);
+
+  // ── Infrastructure-as-Code export ─────────────────────────────────────────
+  const [iacOpen, setIacOpen] = useState(false);
+
+  // ── Public sharing ────────────────────────────────────────────────────────
+  const [shareOpen, setShareOpen] = useState(false);
+
+  /**
+   * Hand a finding to the chat agent. The agent already owns the diagram tools,
+   * so a review fix needs no new agent code, just a well-formed message.
+   */
+  const handleFixFinding = useCallback((finding) => {
+    const target = finding.node_ids?.[0];
+    if (target) setSelectedNode((prev) => prev ?? { id: target });
+    const message =
+      `The architecture review flagged this as a ${finding.severity} ${finding.category} issue: ` +
+      `"${finding.title}". ${finding.detail} Recommended fix: ${finding.recommendation} ` +
+      `Please apply this change to the diagram.`;
+    handleSendMessageRef.current?.(message);
+  }, []);
 
   // Design-doc state + handlers (extracted from App.jsx for cohesion)
   const designDocHook = useDesignDoc({
@@ -265,11 +424,9 @@ function AppContent({ resumeMode = false, isMobile }) {
   // Deliberately NOT keyed on `diagram`. applyLayout re-runs dagre and ignores
   // saved positions, so firing it on every diagram mutation snapped a
   // just-dragged node straight back to its computed position, making nodes
-  // impossible to move. It also looped: the layout write updated `diagram`,
-  // which re-ran this effect, at ~10 requests/second per open desktop tab.
-  // Initial layout is already handled by the canvas's own diagram effect
-  // (which honours manual_layout), and fitView on panel resize by its own
-  // fitView effect, so this only needs the sidebar signals.
+  // impossible to move. Initial layout is already handled by the canvas's own
+  // diagram effect (which honours manual_layout), and fitView on panel resize
+  // by its fitView effect, so this only needs the sidebar signals.
   useEffect(() => {
     if (isMobile) return;
     // Small delay to allow panel animations to complete
@@ -282,6 +439,9 @@ function AppContent({ resumeMode = false, isMobile }) {
   // Load session callback - defined before useEffect that uses it
   const loadSession = useCallback(async (sid) => {
     setLoading(true);
+    // History is session-local: an undo must never restore a diagram that
+    // belongs to a different session.
+    resetHistory();
     try {
       const sessionData = await getSession(sid);
 
@@ -307,7 +467,7 @@ function AppContent({ resumeMode = false, isMobile }) {
     } finally {
       setLoading(false);
     }
-  }, [navigate, hydrateDesignDocFromSession]);
+  }, [navigate, hydrateDesignDocFromSession, resetHistory]);
 
   // Resume session from URL parameter
   useEffect(() => {
@@ -590,6 +750,10 @@ function AppContent({ resumeMode = false, isMobile }) {
 
     setChatLoading(true);
     setSuggestions([]); // Clear suggestions while loading
+    // Captured before the request so an agent rewrite can be undone. Recorded
+    // only if the agent actually touched the diagram, so a pure Q&A turn does
+    // not push a no-op onto the undo stack.
+    const preChatDiagram = diagramRef.current;
     try {
       const response = await sendChatMessage(
         currentSessionId,
@@ -604,6 +768,7 @@ function AppContent({ resumeMode = false, isMobile }) {
 
       // Update diagram if modified
       if (response.diagram) {
+        record(preChatDiagram);
         setDiagram(response.diagram);
       }
 
@@ -657,6 +822,12 @@ function AppContent({ resumeMode = false, isMobile }) {
     }
   };
 
+  // Keep the ref pointing at the current render's handleSendMessage so the
+  // review panel's "fix this" action never fires a stale closure.
+  useEffect(() => {
+    handleSendMessageRef.current = handleSendMessage;
+  });
+
   // Handler for when user clicks a suggestion pill - sends immediately
   const handleSuggestionClick = (suggestion) => {
     handleSendMessage(suggestion);
@@ -679,6 +850,7 @@ function AppContent({ resumeMode = false, isMobile }) {
     }
 
     try {
+      recordHistory();
       const result = await addNode(currentSessionId, node);
       const { gamification, ...updatedDiagram } = result;
       setDiagram(updatedDiagram);
@@ -709,6 +881,7 @@ function AppContent({ resumeMode = false, isMobile }) {
     if (!sessionId) return;
 
     try {
+      recordHistory();
       const updatedDiagram = await updateNode(sessionId, updatedNodeData.id, updatedNodeData);
       setDiagram(updatedDiagram);
 
@@ -722,12 +895,13 @@ function AppContent({ resumeMode = false, isMobile }) {
       console.error('Failed to update node:', error);
       alert('Failed to update node. Please try again.');
     }
-  }, [sessionId]);
+  }, [sessionId, recordHistory]);
 
   const handleDeleteNode = useCallback(async (nodeId) => {
     if (!sessionId) return;
 
     try {
+      recordHistory();
       const updatedDiagram = await deleteNode(sessionId, nodeId);
       setDiagram(updatedDiagram);
 
@@ -746,7 +920,7 @@ function AppContent({ resumeMode = false, isMobile }) {
       console.error('Failed to delete node:', error);
       alert('Failed to delete node. Please try again.');
     }
-  }, [sessionId, selectedNode]);
+  }, [sessionId, selectedNode, recordHistory]);
 
   /**
    * Persist a hand-arranged layout. Fired (debounced) by the canvas on drag-stop
@@ -785,6 +959,7 @@ function AppContent({ resumeMode = false, isMobile }) {
     if (!sessionId) return;
 
     try {
+      recordHistory();
       const result = await addEdge(sessionId, edge);
       const { gamification, ...updatedDiagram } = result;
       setDiagram(updatedDiagram);
@@ -800,12 +975,13 @@ function AppContent({ resumeMode = false, isMobile }) {
       console.error('Failed to add edge:', error);
       alert('Failed to add connection. Please try again.');
     }
-  }, [sessionId, processGamificationResult]);
+  }, [sessionId, processGamificationResult, recordHistory]);
 
   const handleDeleteEdge = useCallback(async (edgeId) => {
     if (!sessionId) return;
 
     try {
+      recordHistory();
       const updatedDiagram = await deleteEdge(sessionId, edgeId);
       setDiagram(updatedDiagram);
 
@@ -819,13 +995,14 @@ function AppContent({ resumeMode = false, isMobile }) {
       console.error('Failed to delete edge:', error);
       alert('Failed to delete connection. Please try again.');
     }
-  }, [sessionId]);
+  }, [sessionId, recordHistory]);
 
   const handleMergeNodes = useCallback(async (draggedNodeId, targetNodeId) => {
     if (!sessionId) return;
 
     setMergingNodes(true);
     try {
+      recordHistory();
       // Call with AI generation enabled (default: true)
       const response = await createNodeGroup(sessionId, [draggedNodeId, targetNodeId], true);
       setDiagram(response.diagram);
@@ -847,12 +1024,13 @@ function AppContent({ resumeMode = false, isMobile }) {
     } finally {
       setMergingNodes(false);
     }
-  }, [sessionId, processGamificationResult]);
+  }, [sessionId, processGamificationResult, recordHistory]);
 
   const handleUngroupNodes = useCallback(async (groupId) => {
     if (!sessionId) return;
 
     try {
+      recordHistory();
       const response = await ungroupNodes(sessionId, groupId);
       setDiagram(response);
 
@@ -866,12 +1044,13 @@ function AppContent({ resumeMode = false, isMobile }) {
       console.error('Failed to ungroup nodes:', error);
       alert('Failed to ungroup nodes. Please try again.');
     }
-  }, [sessionId]);
+  }, [sessionId, recordHistory]);
 
   const handleRegenerateDescription = useCallback(async (nodeId) => {
     if (!sessionId) return;
 
     try {
+      recordHistory();
       const response = await generateNodeDescription(sessionId, nodeId);
 
       // Update diagram with new description
@@ -889,7 +1068,7 @@ function AppContent({ resumeMode = false, isMobile }) {
       console.error('Failed to regenerate description:', error);
       throw error; // Re-throw so tooltip can handle it
     }
-  }, [sessionId]);
+  }, [sessionId, recordHistory]);
 
   const handleToggleGroupCollapse = useCallback(async (groupId) => {
     if (!sessionId) return;
@@ -939,6 +1118,7 @@ function AppContent({ resumeMode = false, isMobile }) {
     setSelectedNode(null);
     setMessages([]);
     resetDesignDoc();
+    resetHistory();
     setSessionName('Untitled Design');
     navigate('/');
   };
@@ -953,9 +1133,10 @@ function AppContent({ resumeMode = false, isMobile }) {
     setSelectedNode(null);
     setMessages([]);
     resetDesignDoc();
+    resetHistory();
     setSessionName('Untitled Design');
     navigate('/');
-  }, [navigate, resetDesignDoc]);
+  }, [navigate, resetDesignDoc, resetHistory]);
 
   const handleUpgradeFromPreview = useCallback(() => {
     navigate('/pricing');
@@ -1105,6 +1286,32 @@ function AppContent({ resumeMode = false, isMobile }) {
                   {designDocLoading ? 'Generating...' : (designDoc && !designDocOpen ? 'Open Design Doc' : 'Create Design Doc')}
                 </button>
                 <button
+                  className="review-button"
+                  onClick={reviewOpen ? handleCloseReview : handleOpenReview}
+                  disabled={!diagram || reviewLoading}
+                  title="Have Sketch critique this architecture"
+                >
+                  {reviewLoading ? 'Reviewing...' : 'Review'}
+                </button>
+                {/* IaC is generated from the diagram, not the design doc, so it
+                    needs a route that does not require a doc to exist. */}
+                <button
+                  className="iac-button"
+                  onClick={() => setIacOpen(true)}
+                  disabled={!diagram}
+                  title="Export as Terraform, Kubernetes, or Docker Compose"
+                >
+                  Export IaC
+                </button>
+                <button
+                  className="share-button"
+                  onClick={() => setShareOpen(true)}
+                  disabled={!diagram || !sessionId}
+                  title="Create a public link to this diagram"
+                >
+                  Share
+                </button>
+                <button
                   className="add-node-button"
                   onClick={() => setShowAddNodeModal(true)}
                 >
@@ -1188,6 +1395,7 @@ function AppContent({ resumeMode = false, isMobile }) {
             onUpgrade={handleUpgradeFromPreview}
             onWidthChange={handleDesignDocWidthChange}
             onApplyLayout={applyLayoutFn}
+            onExportIac={() => setIacOpen(true)}
             sessionHistorySidebarWidth={sessionHistoryOpen ? sessionHistorySidebarWidth : 0}
             syncStatus={syncStatus}
             onCreditsUpdated={refreshCredits}
@@ -1195,10 +1403,42 @@ function AppContent({ resumeMode = false, isMobile }) {
           />
         )}
 
+        {shareOpen && (
+          <ShareModal
+            sessionId={sessionId}
+            sessionName={sessionName}
+            onClose={() => setShareOpen(false)}
+          />
+        )}
+
+        {iacOpen && (
+          <IacExportModal
+            sessionId={sessionId}
+            onClose={() => setIacOpen(false)}
+            onCreditsUpdated={refreshCredits}
+            onUpgradeNeeded={setInsufficientCreditsError}
+          />
+        )}
+
+        {reviewOpen && (
+          <ReviewPanel
+            review={review}
+            isGenerating={reviewLoading}
+            isStale={reviewStale}
+            error={reviewError}
+            onClose={handleCloseReview}
+            onRerun={handleRunReview}
+            onHighlightNodes={setHighlightedNodeIds}
+            onFixFinding={handleFixFinding}
+            onWidthChange={setReviewWidth}
+            sessionHistorySidebarWidth={sessionHistoryOpen ? sessionHistorySidebarWidth : 0}
+          />
+        )}
+
         <div
           className="main-area"
           style={{
-            marginLeft: isSignedIn ? `${(sessionHistoryOpen ? sessionHistorySidebarWidth : 0) + (designDocOpen ? designDocWidth : 0)}px` : '0px',
+            marginLeft: isSignedIn ? `${(sessionHistoryOpen ? sessionHistorySidebarWidth : 0) + (designDocOpen ? designDocWidth : 0) + (reviewOpen ? reviewWidth : 0)}px` : '0px',
             display: isMobile && (sessionHistoryOpen || designDocOpen || selectedNode || mobileChatOpen) ? 'none' : 'flex'
           }}
         >
@@ -1214,6 +1454,11 @@ function AppContent({ resumeMode = false, isMobile }) {
               onDeleteEdge={handleDeleteEdge}
               onMergeNodes={handleMergeNodes}
               onNodePositionsChange={handleNodePositionsChange}
+              onUndo={handleUndo}
+              onRedo={handleRedo}
+              canUndo={canUndo}
+              canRedo={canRedo}
+              highlightedNodeIds={highlightedNodeIds}
               onUngroupNodes={handleUngroupNodes}
               onToggleCollapse={handleToggleGroupCollapse}
               onRegenerateDescription={handleRegenerateDescription}

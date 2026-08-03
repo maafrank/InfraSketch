@@ -34,6 +34,7 @@ import InfraSketchVsWhimsicalPage from './components/InfraSketchVsWhimsicalPage.
 import InfraSketchVsChatGPTPage from './components/InfraSketchVsChatGPTPage.jsx'
 import MLSystemDesignToolPage from './components/MLSystemDesignToolPage.jsx'
 import LLMArchitectureToolPage from './components/LLMArchitectureToolPage.jsx'
+import SharedDiagramPage from './components/SharedDiagramPage.jsx'
 import NotFoundPage from './components/NotFoundPage.jsx'
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
@@ -53,6 +54,10 @@ const AppRoot = (
                 <Route path="/" element={<App />} />
                 <Route path="/history" element={<SessionHistory />} />
                 <Route path="/session/:sessionId" element={<App resumeMode={true} />} />
+                {/* Public: deliberately outside any signed-in guard. The HTML
+                    for this path is served by the backend (see
+                    routes_share_html.py) so link unfurls get real meta tags. */}
+                <Route path="/share/:token" element={<SharedDiagramPage />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/terms" element={<TermsOfService />} />
                 <Route path="/about" element={<AboutPage />} />

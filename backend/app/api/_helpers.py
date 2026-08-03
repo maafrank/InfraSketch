@@ -62,12 +62,20 @@ def resolve_model_for_plan(user_id: Optional[str], model: Optional[str]) -> str:
     return DEFAULT_MODEL
 
 
-def enforce_export_access(user_id: Optional[str]) -> None:
+def enforce_plan_feature(
+    user_id: Optional[str],
+    feature: str,
+    allowed_plans: set,
+    required_plan: str,
+    message: str,
+) -> None:
     """
-    Gate design-doc export (PDF / Markdown) to paid plans.
+    Gate a paid feature to a set of plans.
 
-    Raises HTTPException 403 with the same feature_locked shape the design-doc
-    generation gate uses, so the frontend upgrade prompt works unchanged.
+    Raises HTTPException 403 with the `feature_locked` shape the frontend
+    upgrade prompt expects. Unauthenticated callers (local dev with auth
+    disabled) are unrestricted, and a storage failure fails open so a paying
+    customer is never blocked by an unrelated outage.
     """
     if not user_id:
         return
@@ -76,20 +84,34 @@ def enforce_export_access(user_id: Optional[str]) -> None:
         plan = get_user_credits_storage().get_or_create_credits(user_id).plan
     except Exception as e:
         # Fail open: never block a paying user because storage hiccuped.
-        logger.warning(f"Could not resolve plan for user {user_id}, allowing export: {e}")
+        logger.warning(f"Could not resolve plan for user {user_id}, allowing {feature}: {e}")
         return
 
-    if plan in DESIGN_DOC_EXPORT_PLANS:
+    if plan in allowed_plans:
         return
 
     raise HTTPException(
         status_code=403,
         detail={
             "error": "feature_locked",
-            "feature": "design_doc_export",
-            "required_plan": "starter",
-            "message": "Exporting your design document requires a paid plan. Upgrade to Starter ($1/mo) to export as PDF or Markdown.",
+            "feature": feature,
+            "required_plan": required_plan,
+            "message": message,
         },
+    )
+
+
+def enforce_export_access(user_id: Optional[str]) -> None:
+    """Gate design-doc export (PDF / Markdown) to paid plans."""
+    enforce_plan_feature(
+        user_id,
+        feature="design_doc_export",
+        allowed_plans=DESIGN_DOC_EXPORT_PLANS,
+        required_plan="starter",
+        message=(
+            "Exporting your design document requires a paid plan. "
+            "Upgrade to Starter ($1/mo) to export as PDF or Markdown."
+        ),
     )
 
 

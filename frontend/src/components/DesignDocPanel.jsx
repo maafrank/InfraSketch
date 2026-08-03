@@ -6,7 +6,12 @@ import { addWatermark } from '../utils/watermark';
 import { marked } from 'marked';
 import TurndownService from 'turndown';
 import { MOBILE_BREAKPOINT } from '../constants/ui';
-import { redeemPromoCode } from '../api/client';
+import { redeemPromoCode, triggerSync } from '../api/client';
+
+// Kept in step with CREDIT_COSTS["diagram_to_doc_sync"] in
+// backend/app/billing/credit_costs.py. Shown before the user triggers a sync so
+// the charge is never a surprise.
+const SYNC_CREDIT_COST = 2;
 
 // Initialize markdown-to-HTML converter
 marked.setOptions({
@@ -35,13 +40,14 @@ export default function DesignDocPanel({
   designDoc,
   onSave,
   onClose,
-  // sessionId - reserved for future use (e.g., real-time sync)
+  sessionId,
   onExport,
   isGenerating = false,
   isPreview = false,
   onUpgrade,
   onWidthChange,
   onApplyLayout,
+  onExportIac,
   sessionHistorySidebarWidth = 0,
   syncStatus = null,
   onCreditsUpdated,
@@ -57,6 +63,8 @@ export default function DesignDocPanel({
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoError, setPromoError] = useState(null);
   const [promoSuccess, setPromoSuccess] = useState(null);
+  const [syncRequesting, setSyncRequesting] = useState(false);
+  const [syncError, setSyncError] = useState(null);
 
   const handlePromoSubmit = useCallback(async (e) => {
     e.preventDefault();
@@ -352,10 +360,37 @@ export default function DesignDocPanel({
     }
   };
 
+  // Auto-sync stops scheduling permanently once the backend records this many
+  // consecutive failures (MAX_CONSECUTIVE_FAILURES in backend/app/sync/engine.py).
+  // Past that point the only way back is a manual trigger, which resets the
+  // counter, so the user has to be told.
+  const syncAutoDisabled = (syncStatus?.consecutive_failures || 0) >= 3;
+  const syncInFlight =
+    syncRequesting || syncStatus?.state === 'pending' || syncStatus?.state === 'running';
+
+  const handleSyncNow = useCallback(async () => {
+    if (!sessionId || syncInFlight) return;
+    setSyncRequesting(true);
+    setSyncError(null);
+    try {
+      await triggerSync(sessionId);
+      // The parent polls sync_status and refreshes the doc when it lands, so
+      // there is nothing to apply here.
+      if (onCreditsUpdated) onCreditsUpdated();
+    } catch (error) {
+      const detail = error?.response?.data?.detail;
+      setSyncError(detail?.message || 'Could not start a sync. Please try again.');
+    } finally {
+      setSyncRequesting(false);
+    }
+  }, [sessionId, syncInFlight, onCreditsUpdated]);
+
   const getSaveStatusText = () => {
     if (syncStatus?.state === 'running') return '● Syncing with diagram...';
     if (syncStatus?.state === 'pending') return '● Auto-sync queued';
-    if (syncStatus?.state === 'failed') return '✗ Sync failed';
+    if (syncStatus?.state === 'failed') {
+      return syncAutoDisabled ? '✗ Auto-sync paused after repeated failures' : '✗ Sync failed';
+    }
     switch (saveStatus) {
       case 'saving':
         return '● Saving...';
@@ -524,16 +559,36 @@ export default function DesignDocPanel({
       </div>
 
       <div className="design-doc-footer">
-        <div className={getSaveStatusClass()}>
+        <div className={getSaveStatusClass()} title={syncError || syncStatus?.error || undefined}>
           {isPreview ? 'Preview' : getSaveStatusText()}
         </div>
+        {!isPreview && sessionId && (
+          <button
+            className="sync-now-button"
+            onClick={handleSyncNow}
+            disabled={syncInFlight}
+            title={
+              syncAutoDisabled
+                ? `Auto-sync is paused after repeated failures. Syncing now retries and re-enables it. Costs ${SYNC_CREDIT_COST} credits.`
+                : `Rewrite the affected sections from the current diagram. Costs ${SYNC_CREDIT_COST} credits.`
+            }
+          >
+            {syncInFlight ? 'Syncing...' : `Sync now (${SYNC_CREDIT_COST} credits)`}
+          </button>
+        )}
         <div className="export-buttons">
           <select
             onChange={(e) => {
-              if (e.target.value) {
-                handleExport(e.target.value);
-                e.target.value = ''; // Reset dropdown
+              const value = e.target.value;
+              e.target.value = ''; // Reset dropdown
+              if (!value) return;
+              // IaC is a separate async job with its own modal, not a
+              // download-on-click like the document formats.
+              if (value === 'iac') {
+                if (onExportIac) onExportIac();
+                return;
               }
+              handleExport(value);
             }}
             disabled={exportLoading || isPreview}
             className="export-dropdown"
@@ -543,6 +598,7 @@ export default function DesignDocPanel({
             <option value="pdf">PDF</option>
             <option value="markdown">Markdown</option>
             <option value="png">PNG</option>
+            <option value="iac">Infrastructure as Code...</option>
           </select>
         </div>
       </div>

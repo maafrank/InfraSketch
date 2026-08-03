@@ -30,6 +30,9 @@ export default function CustomNode({ data, id }) {
   const isCollapsed = data.is_collapsed;
   const childCount = data.child_ids?.length || 0;
   const isDropTarget = data.isDropTarget;
+  // Set by the architecture review panel when a finding referencing this node
+  // is expanded.
+  const isHighlighted = data.isHighlighted;
   const hasParent = !!data.parent_id;
 
   // Determine classes
@@ -38,6 +41,7 @@ export default function CustomNode({ data, id }) {
     `node-type-${data.type}`,
     isGroup ? 'node-group' : '',
     isDropTarget ? 'drop-target' : '',
+    isHighlighted ? 'review-highlighted' : '',
   ].filter(Boolean).join(' ');
 
   // Apply blended color for mixed-type groups

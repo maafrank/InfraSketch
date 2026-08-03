@@ -68,6 +68,31 @@ def handler(event, context):
 
             return {"statusCode": 200, "body": "Repository analysis completed"}
 
+        elif async_task == "generate_review":
+            # Async invocation for architecture review
+            from app.api.routes_review import _generate_review_background
+
+            session_id = event.get("session_id")
+            user_ip = event.get("user_ip")
+
+            print(f"Async task invocation: Generating architecture review for session {session_id}")
+            _generate_review_background(session_id, user_ip)
+
+            return {"statusCode": 200, "body": "Architecture review completed"}
+
+        elif async_task == "generate_iac":
+            # Async invocation for Infrastructure-as-Code export
+            from app.api.routes_iac import _generate_iac_background
+
+            session_id = event.get("session_id")
+            target = event.get("target")
+            user_ip = event.get("user_ip")
+
+            print(f"Async task invocation: Generating {target} IaC for session {session_id}")
+            _generate_iac_background(session_id, target, user_ip)
+
+            return {"statusCode": 200, "body": "IaC generation completed"}
+
         elif async_task == "sync_diagram_to_doc":
             from app.sync.engine import run_diagram_to_doc
             from app.session.manager import session_manager

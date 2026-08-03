@@ -15,6 +15,8 @@ export const POLL_TIMEOUTS_MS = {
   designDoc: 3 * 60 * 1000,       // 180_000
   repoAnalysis: 5 * 60 * 1000,    // 300_000
   sessionName: 10 * 1000,
+  review: 3 * 60 * 1000,          // 180_000
+  iac: 4 * 60 * 1000,             // 240_000, multi-file Terraform is the long tail
 };
 
 /** Default request timeout for the axios client. */

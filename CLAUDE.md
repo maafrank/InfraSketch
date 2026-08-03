@@ -115,6 +115,7 @@ CLERK_SECRET_KEY=sk_test_your-key
 LANGSMITH_TRACING=False
 RATE_LIMIT_PER_MINUTE=60
 DISABLE_CLERK_AUTH=true  # Local dev only, false in production
+ENABLE_AUTO_SYNC=false   # Diagram -> design-doc auto-sync. Defaults false locally, already true in Lambda
 
 # Frontend (frontend/.env) - Required
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_your-key
@@ -148,6 +149,24 @@ All under `/api` prefix. Persists to DynamoDB in Lambda, in-memory locally.
 | `/session/{id}/design-doc/status` | GET | - | `{status, elapsed_seconds?, design_doc?}` | Poll every 2s |
 | `/session/{id}/design-doc` | PATCH | `{content}` | - | Manual edit |
 | `/session/{id}/design-doc/export` | POST | `{diagram_image}` | `{pdf, markdown, diagram_png}` | Export formats |
+| `/session/{id}/diagram` | PUT | `Diagram` | `Diagram` | Whole-diagram replace. Backs undo/redo. Validates referential integrity, not charged |
+| `/session/{id}/review` | POST | - | `{status:"started"}` | Architecture review, async. 5 credits, Starter+ |
+| `/session/{id}/review/status` | GET | - | `{status, review?, is_stale?}` | Poll every 2s |
+| `/session/{id}/iac/generate` | POST | `{target}` | `{status:"started"}` | IaC export, async. 10 credits, Pro+. Target: terraform\|kubernetes\|compose |
+| `/session/{id}/iac/status` | GET | `?target=` | `{status, artifact?, is_stale?}` | Poll every 2s |
+| `/session/{id}/iac/download` | POST | `{target}` | `{zip:{content,filename}}` | Base64 zip, not charged |
+| `/session/{id}/share` | POST | `{allow_fork}` | `{token, share_url}` | Publish publicly |
+| `/session/{id}/share` | DELETE | - | `{success}` | Revoke the link |
+| `/share/{token}` | GET | - | Sanitized session | **Public, no auth** |
+| `/share/{token}/fork` | POST | - | `{session_id}` | Clone into caller's account (auth required) |
+
+Served at the **root**, not under `/api` (see Public Sharing below):
+
+| Endpoint | Method | Response | Notes |
+|----------|--------|----------|-------|
+| `/share/sitemap.xml` | GET | XML | Must stay declared BEFORE `/share/{token}` |
+| `/share/{token}` | GET | HTML | App shell with per-diagram OG tags |
+| `/share/{token}/preview.png` | GET | PNG | OG image |
 
 ## Data Models
 
@@ -328,6 +347,12 @@ All panels use RAF throttling (60fps), `onWidthChange` callback, `useCallback` o
 
 **Chat editing:** Bot uses `update_design_doc_section` tool for surgical edits (finds section header, replaces only that section). Never overwrites entire doc unless explicitly asked.
 
+**Auto-sync (diagram → doc):** enabled via `ENABLE_AUTO_SYNC`, already `true` on the production Lambda and `false` by default locally. A structural diagram change schedules a debounced (8s) LLM pass that rewrites the affected sections. Paid plans only, 2 credits per sync that changes something.
+
+To diagnose a sync that never fires, grep for **`sync: not scheduled`** in CloudWatch: `schedule()` logs the reason on every one of its nine early returns. Note `_user_is_paid` fails closed on any exception from `sync_user_from_clerk`, so a Clerk-side error silently disables sync for everyone (this is what suppressed all syncs until the plan-mapping fix in `3e2c308`).
+
+After 3 consecutive failures the scheduler stops permanently for that session. The only way back is the manual "Sync now" button in the design-doc panel, which resets the counter.
+
 **Export:** PNG (instant, frontend only) | PDF/Markdown (screenshot + session_id → backend retrieves doc → embeds image → returns base64). Edge labels hidden during screenshot. 2x pixel ratio.
 
 **Document sections:** Executive Summary, System Overview, Architecture Diagram, Component Details, Data Flow, Infrastructure, Scalability, Security, Trade-offs, Implementation Phases, Future Enhancements, Appendix.
@@ -354,6 +379,67 @@ aws secretsmanager put-secret-value --secret-id infrasketch/github-token --secre
 The Lambda role already has `SecretsManagerReadWrite`, so no IAM change is needed. The value is `lru_cache`d per warm container, so a rotation needs a cold start (or a `aws lambda update-function-configuration` no-op) to take effect.
 
 **Rate-limit handling:** `_check_rate_limit` raises `GitHubRateLimitError` on 403 with `X-RateLimit-Remaining: 0` (primary limit) and on any 429 (secondary/abuse limit). The error message records `authenticated=True/False` so logs distinguish "no token configured" from "token exhausted". A 403 with quota remaining is a permissions problem and surfaces as `RepoAccessDeniedError`.
+
+## Undo / Redo
+
+Client-side stack of whole-diagram snapshots. Every mutation endpoint already returns a complete `Diagram`, so history is just a bounded (50-entry) stack of those in `useDiagramHistory` (`frontend/src/hooks/useDiagramHistory.js`).
+
+`App.jsx` calls `recordHistory()` immediately **before** each mutating request, capturing the pre-mutation diagram. Restoring PUTs the snapshot back to `/session/{id}/diagram`, which validates referential integrity (no dangling edges, no orphaned group links) before saving.
+
+**Not recorded:** position drags and group collapse, matching `SyncEngine._node_signature`'s definition of non-structural. **Reset on:** session load, new design, session delete, so an undo can never restore another session's diagram.
+
+**Keyboard:** Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z, bound on `document` in `DiagramCanvas`. The handler bails out when the event target is an input, textarea, select, or inside a `contenteditable`, because TipTap in the design-doc panel owns its own undo stack.
+
+Session-local by design: history is lost on reload. Persisting it is version history, a separate feature.
+
+## Architecture Review
+
+Scored critique of a diagram. 5 credits, Starter+ (`ARCHITECTURE_REVIEW_PLANS`).
+
+**Flow:** header "Review" button → `POST /session/{id}/review` → async background task → poll `/review/status` → `ReviewPanel` renders.
+
+**Output** (`backend/app/review/analyzer.py`): a forced `emit_review` tool call, so there is no JSON parsing. Findings carry severity (critical/high/medium/low), category (reliability/scalability/security/data/cost/observability), exact `node_ids`, and a concrete recommendation. The **score is derived from the findings** (`SEVERITY_PENALTIES`), never self-reported, so it cannot disagree with the list under it. Findings with an unknown severity/category, or node IDs not in the diagram, are dropped rather than rendered.
+
+**Two actions per finding:** clicking one highlights its nodes on the canvas (`highlightedNodeIds` → `.review-highlighted`); "Ask Sketch to fix this" feeds the recommendation into the existing chat agent, which already owns the diagram tools. That reuse is what makes the feature cheap.
+
+Reviews store `reviewed_diagram_revision`, so the panel shows a stale banner once the diagram moves on.
+
+## Infrastructure as Code Export
+
+Terraform (AWS), Kubernetes manifests, or Docker Compose. 10 credits, **Pro+** (`IAC_EXPORT_PLANS`).
+
+**Flow:** header "Export IaC" (or the design-doc export dropdown) → `IacExportModal` → `POST /session/{id}/iac/generate` → poll → preview files → `POST /iac/download` for a base64 zip.
+
+**Generation** (`backend/app/iac/generator.py`): forced `emit_iac_files` tool call returning `{files, warnings, assumptions}`. Prompts prefer `node.metadata.technology` over the generic type mapping.
+
+**Safety:** `_safe_path` rejects `../` traversal and absolute paths (zip-slip), and there are caps on file count (40), per-file size (100KB), and total size (400KB, the DynamoDB item limit). The scaffold header is prepended **by the generator, not the prompt**, so it cannot be dropped or reworded.
+
+**Generated code is a scaffold, not production infrastructure.** This is stated in the modal and in a header comment in every file. Acceptance bar: `terraform validate`, `kubectl apply --dry-run=client`, `docker compose config`.
+
+Artifacts store the source `diagram_revision` so the UI can flag stale output.
+
+## Public Sharing
+
+**Data:** `share_token` (URL slug), `is_public`, `public_flag` (sparse `"1"`, GSI partition key only), `allow_fork`, `share_view_count`. Two sparse GSIs on `infrasketch-sessions`: `share_token-index` (lookup) and `public_flag-index` (sitemap). `_serialize_session` drops null values for both, because DynamoDB rejects a null index key and a sparse index needs the attribute absent.
+
+**The sanitizer is the security-critical piece.** `public_share_payload` in `routes_sharing.py` is an explicit **allowlist**, not a `model_dump(exclude=...)` denylist: a denylist starts leaking the moment someone adds a field to `SessionState`. Covered by `tests/unit/api/test_sharing.py`, which asserts against a fully-populated session. Never expose `user_id`, `messages`, `generation_prompt`, `repo_url`, `repo_analysis`, or billing/sync state.
+
+**Auth:** `/share/` is in `PUBLIC_PATH_PREFIXES`. `/api/share/` is in the new `PUBLIC_GET_PATH_PREFIXES`, so GET is open but `POST /api/share/{token}/fork` still authenticates (forking creates a session, which needs an owner).
+
+**Why server-rendered HTML:** the site is prerendered at build time and served from S3, so a dynamic share page cannot get per-diagram meta tags that way. Google renders JS, but Slack/X/LinkedIn read raw HTML, so unfurls would show the generic site preview. `routes_share_html.py` fetches the deployed `index.html` (cached 5 min), swaps the title/OG/Twitter/canonical tags, injects JSON-LD, and **empties `<div id="root">` with no whitespace inside** (`main.jsx` branches on `hasChildNodes()`; whitespace counts and would force `hydrateRoot` against the prerendered landing page).
+
+Fetching the live shell rather than templating one keeps the hashed Vite asset filenames correct across frontend deploys automatically.
+
+### Deploying share links (one-time infra)
+
+1. **IAM:** add the two new GSI ARNs to the `DynamoDBSessionStorage` inline policy **before** deploying the backend:
+   `arn:aws:dynamodb:us-east-1:059409992371:table/infrasketch-sessions/index/*` covers both.
+2. **GSIs:** created automatically on Lambda cold start. DynamoDB allows only one GSI build at a time, so `_ensure_table_exists` creates one per invocation; it takes a few cold starts to converge. Verify with
+   `aws dynamodb describe-table --table-name infrasketch-sessions --query 'Table.GlobalSecondaryIndexes[].{Name:IndexName,Status:IndexStatus}'`
+3. **CloudFront:** add an origin `b31htlojb0.execute-api.us-east-1.amazonaws.com` with `OriginPath=/prod`, then a cache behavior `/share/*` → that origin, caching disabled or short TTL, no cookies forwarded.
+4. **CloudFront Function:** `infrastructure/cloudfront-function.js` already returns early for `/share/`. Keep it attached to the new behavior so the www→apex 301 still applies. Without that early return, `/share/abc` is rewritten to `/share/abc/index.html` and 404s.
+5. Deploy the function update, then verify:
+   `curl -s https://infrasketch.net/share/<token> | grep -o '<meta property="og:[^>]*>'`
 
 ## Authentication & Security (Clerk)
 

@@ -57,27 +57,62 @@ class DynamoDBSessionStorage:
             table_description = dynamodb_client.describe_table(TableName=self.table_name)
             gsis = table_description.get('Table', {}).get('GlobalSecondaryIndexes', [])
 
-            has_user_gsi = any(gsi['IndexName'] == 'user_id-index' for gsi in gsis)
+            existing_indexes = {gsi['IndexName'] for gsi in gsis}
 
-            if not has_user_gsi:
-                logger.info(f"Creating user_id GSI on table '{self.table_name}'...")
-                dynamodb_client.update_table(
-                    TableName=self.table_name,
-                    AttributeDefinitions=[
-                        {'AttributeName': 'user_id', 'AttributeType': 'S'}
+            # DynamoDB allows only one GSI creation at a time, so these are
+            # attempted independently and any that fail for that reason get
+            # created on a later cold start.
+            pending = [
+                (
+                    'user_id-index',
+                    [{'AttributeName': 'user_id', 'AttributeType': 'S'}],
+                    [{'AttributeName': 'user_id', 'KeyType': 'HASH'}],
+                ),
+                # Sparse: only shared sessions carry share_token, so this index
+                # holds one entry per share rather than one per session.
+                (
+                    'share_token-index',
+                    [{'AttributeName': 'share_token', 'AttributeType': 'S'}],
+                    [{'AttributeName': 'share_token', 'KeyType': 'HASH'}],
+                ),
+                # Sparse too: powers the share sitemap without a table scan.
+                (
+                    'public_flag-index',
+                    [
+                        {'AttributeName': 'public_flag', 'AttributeType': 'S'},
+                        {'AttributeName': 'session_id', 'AttributeType': 'S'},
                     ],
-                    GlobalSecondaryIndexUpdates=[{
-                        'Create': {
-                            'IndexName': 'user_id-index',
-                            'KeySchema': [
-                                {'AttributeName': 'user_id', 'KeyType': 'HASH'}
-                            ],
-                            'Projection': {'ProjectionType': 'ALL'}
-                            # Note: BillingMode is inherited from table, cannot be specified in GSI update
-                        }
-                    }]
-                )
-                logger.info(f"GSI creation initiated for '{self.table_name}'")
+                    [
+                        {'AttributeName': 'public_flag', 'KeyType': 'HASH'},
+                        {'AttributeName': 'session_id', 'KeyType': 'RANGE'},
+                    ],
+                ),
+            ]
+
+            for index_name, attr_defs, key_schema in pending:
+                if index_name in existing_indexes:
+                    continue
+                logger.info(f"Creating {index_name} on table '{self.table_name}'...")
+                try:
+                    dynamodb_client.update_table(
+                        TableName=self.table_name,
+                        AttributeDefinitions=attr_defs,
+                        GlobalSecondaryIndexUpdates=[{
+                            'Create': {
+                                'IndexName': index_name,
+                                'KeySchema': key_schema,
+                                'Projection': {'ProjectionType': 'ALL'}
+                                # Note: BillingMode is inherited from table, cannot be specified in GSI update
+                            }
+                        }]
+                    )
+                    logger.info(f"GSI creation initiated for '{index_name}'")
+                    # Only one index can be building at a time; the rest are
+                    # picked up on a later invocation.
+                    break
+                except ClientError as gsi_error:
+                    logger.warning(f"Could not create {index_name} now: {gsi_error}")
+                    break
 
         except ClientError as e:
             if e.response['Error']['Code'] == 'ResourceNotFoundException':
@@ -121,6 +156,13 @@ class DynamoDBSessionStorage:
 
         # Convert all floats to Decimals for DynamoDB compatibility
         session_dict = convert_floats_to_decimals(session_dict)
+
+        # Drop null GSI keys. DynamoDB rejects an item whose index key attribute
+        # is present but null, and a sparse index requires the attribute to be
+        # absent entirely for non-shared sessions.
+        for sparse_key in ('share_token', 'public_flag'):
+            if session_dict.get(sparse_key) is None:
+                session_dict.pop(sparse_key, None)
 
         # Add TTL (expire sessions after 1 year)
         session_dict['ttl'] = int(time.time()) + (365 * 24 * 60 * 60)
@@ -198,4 +240,41 @@ class DynamoDBSessionStorage:
 
         except Exception as e:
             logger.exception(f"Error querying sessions for user {user_id}: {e}")
+            return []
+
+    def get_session_by_share_token(self, share_token: str) -> Optional[SessionState]:
+        """Look up a shared session by its public token via the sparse GSI."""
+        try:
+            response = self.table.query(
+                IndexName='share_token-index',
+                KeyConditionExpression='share_token = :token',
+                ExpressionAttributeValues={':token': share_token},
+                Limit=1,
+            )
+            items = response.get('Items', [])
+            if not items:
+                return None
+            return self._deserialize_session(items[0])
+        except Exception as e:
+            logger.exception(f"Error querying session by share token: {e}")
+            return None
+
+    def list_public_sessions(self, limit: int = 1000) -> List[SessionState]:
+        """List publicly shared sessions, for the share sitemap."""
+        try:
+            response = self.table.query(
+                IndexName='public_flag-index',
+                KeyConditionExpression='public_flag = :flag',
+                ExpressionAttributeValues={':flag': '1'},
+                Limit=limit,
+            )
+            sessions = []
+            for item in response.get('Items', []):
+                try:
+                    sessions.append(self._deserialize_session(item))
+                except Exception as e:
+                    logger.exception(f"Error deserializing public session: {e}")
+            return sessions
+        except Exception as e:
+            logger.exception(f"Error listing public sessions: {e}")
             return []

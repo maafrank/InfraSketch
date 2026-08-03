@@ -668,6 +668,11 @@ async def trigger_sync(session_id: str, request: SyncRequest, http_request: Requ
     if direction not in ("auto", "diagram_to_doc"):
         raise HTTPException(status_code=400, detail=f"Unsupported sync direction: {direction}")
 
+    # A manual trigger is the user asking us to try again, so clear the
+    # consecutive-failure counter that would otherwise keep the scheduler
+    # permanently disabled for this session.
+    session_manager.reset_sync_failures(session_id)
+
     session_manager.update_sync_status(
         session_id,
         state="pending",

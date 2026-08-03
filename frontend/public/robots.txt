@@ -22,3 +22,6 @@ User-agent: Amazonbot
 Allow: /
 
 Sitemap: https://infrasketch.net/sitemap.xml
+# Publicly shared diagrams. Served by the backend, not the build, because
+# shares are created continuously while the frontend deploys rarely.
+Sitemap: https://infrasketch.net/share/sitemap.xml

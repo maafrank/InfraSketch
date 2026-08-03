@@ -86,6 +86,15 @@ class ClerkAuthMiddleware(BaseHTTPMiddleware):
         "/api/resubscribe/",  # Email re-subscribe links (token-based auth)
         "/api/webhooks/",  # Webhook endpoints (use signature verification instead)
         "/api/badges/",  # Badge images (public, no auth required)
+        "/share/",  # Server-rendered share page, OG image, and share sitemap
+    ]
+
+    # GET-only public prefixes. /api/share/{token} must be readable by anyone,
+    # but POST /api/share/{token}/fork creates a session and therefore needs an
+    # owner, so it stays authenticated. Blanket-prefixing /api/share/ would have
+    # let anyone fork anonymously and orphan the resulting session.
+    PUBLIC_GET_PATH_PREFIXES = [
+        "/api/share/",
     ]
 
     async def dispatch(self, request: Request, call_next):
@@ -106,6 +115,12 @@ class ClerkAuthMiddleware(BaseHTTPMiddleware):
         for prefix in self.PUBLIC_PATH_PREFIXES:
             if request.url.path.startswith(prefix):
                 return await call_next(request)
+
+        # Read-only public prefixes: GET is open, everything else authenticates.
+        if request.method == "GET":
+            for prefix in self.PUBLIC_GET_PATH_PREFIXES:
+                if request.url.path.startswith(prefix):
+                    return await call_next(request)
 
         # Skip auth for CORS preflight requests (OPTIONS method)
         if request.method == "OPTIONS":

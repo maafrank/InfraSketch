@@ -1,6 +1,7 @@
 from typing import Dict, Optional, List
 import copy
 import os
+import secrets
 import uuid
 import time
 from datetime import datetime, timezone
@@ -457,6 +458,169 @@ class SessionManager:
             return None
         return session.repo_analysis_status
 
+    def share_session(self, session_id: str, allow_fork: bool = True) -> Optional[str]:
+        """Make a session public and return its share token.
+
+        Idempotent: re-sharing an already-shared session keeps the existing
+        token so previously-distributed links keep working.
+        """
+        session = self.get_session(session_id)
+        if not session:
+            return None
+
+        if not session.share_token:
+            # 12 bytes -> 16 url-safe chars. Unguessable, but the token is not
+            # the only protection: the payload is sanitized before it leaves.
+            session.share_token = secrets.token_urlsafe(12)
+
+        session.is_public = True
+        session.public_flag = "1"
+        session.allow_fork = allow_fork
+        if not session.shared_at:
+            session.shared_at = datetime.now(timezone.utc)
+
+        if self.is_lambda:
+            if not self.storage.save_session(session):
+                return None
+        return session.share_token
+
+    def unshare_session(self, session_id: str) -> bool:
+        """Revoke public access.
+
+        Clears the token outright rather than just flipping is_public, so a
+        previously-shared link can never be reactivated by a later re-share.
+        """
+        session = self.get_session(session_id)
+        if not session:
+            return False
+        session.share_token = None
+        session.is_public = False
+        session.public_flag = None
+        session.shared_at = None
+        if self.is_lambda:
+            return self.storage.save_session(session)
+        return True
+
+    def get_session_by_share_token(self, share_token: str) -> Optional[SessionState]:
+        """Resolve a share token to its session, or None if not shared."""
+        if not share_token:
+            return None
+
+        if self.is_lambda:
+            session = self.storage.get_session_by_share_token(share_token)
+        else:
+            session = next(
+                (s for s in self.sessions.values() if s.share_token == share_token),
+                None,
+            )
+
+        # A stale index entry (or a revoked share) must not serve content.
+        if session and not session.is_public:
+            return None
+        return session
+
+    def list_public_sessions(self, limit: int = 1000) -> List[SessionState]:
+        """List publicly shared sessions, newest first. Backs the share sitemap."""
+        if self.is_lambda:
+            sessions = self.storage.list_public_sessions(limit=limit)
+        else:
+            sessions = [s for s in self.sessions.values() if s.is_public]
+
+        sessions.sort(key=lambda s: s.shared_at or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
+        return sessions[:limit]
+
+    def increment_share_views(self, session_id: str) -> None:
+        """Bump the view counter. Best-effort: never fail a page load over it."""
+        try:
+            session = self.get_session(session_id)
+            if not session:
+                return
+            session.share_view_count += 1
+            if self.is_lambda:
+                self.storage.save_session(session)
+        except Exception as e:
+            logger.warning(f"Could not record share view for {session_id}: {e}")
+
+    def set_review_status(
+        self,
+        session_id: str,
+        status: str,
+        error: Optional[str] = None,
+        reviewed_diagram_revision: Optional[int] = None,
+    ) -> bool:
+        """Update architecture review generation status."""
+        session = self.get_session(session_id)
+        if not session:
+            return False
+
+        session.review_status.status = status
+        session.review_status.error = error
+        if reviewed_diagram_revision is not None:
+            session.review_status.reviewed_diagram_revision = reviewed_diagram_revision
+
+        if status == "generating":
+            session.review_status.started_at = time.time()
+            session.review_status.completed_at = None
+        elif status in ("completed", "failed"):
+            session.review_status.completed_at = time.time()
+
+        if self.is_lambda:
+            return self.storage.save_session(session)
+        return True
+
+    def update_review(self, session_id: str, review: dict) -> bool:
+        """Store a completed architecture review, stamped with the reviewed revision."""
+        session = self.get_session(session_id)
+        if not session:
+            return False
+        session.review = review
+        session.review_status.reviewed_diagram_revision = session.diagram_revision
+        if self.is_lambda:
+            return self.storage.save_session(session)
+        return True
+
+    def set_iac_status(
+        self,
+        session_id: str,
+        status: str,
+        target: Optional[str] = None,
+        error: Optional[str] = None,
+    ) -> bool:
+        """Update Infrastructure-as-Code generation status."""
+        session = self.get_session(session_id)
+        if not session:
+            return False
+
+        session.iac_status.status = status
+        session.iac_status.error = error
+        if target is not None:
+            session.iac_status.target = target
+
+        if status == "generating":
+            session.iac_status.started_at = time.time()
+            session.iac_status.completed_at = None
+        elif status in ("completed", "failed"):
+            session.iac_status.completed_at = time.time()
+
+        if self.is_lambda:
+            return self.storage.save_session(session)
+        return True
+
+    def store_iac_artifact(self, session_id: str, target: str, artifact: dict) -> bool:
+        """Store generated IaC for one target, stamped with the source revision.
+
+        Stamping lets the UI tell the user their Terraform was generated from an
+        older diagram instead of silently handing them stale files.
+        """
+        session = self.get_session(session_id)
+        if not session:
+            return False
+        artifact = {**artifact, "diagram_revision": session.diagram_revision}
+        session.iac_artifacts[target] = artifact
+        if self.is_lambda:
+            return self.storage.save_session(session)
+        return True
+
     def _maybe_schedule_sync(
         self,
         session: SessionState,
@@ -508,6 +672,22 @@ class SessionManager:
         session.sync_status.completed_at = time.time()
         session.sync_status.sync_due_at = None
         session.sync_status.consecutive_failures = 0
+        if self.is_lambda:
+            return self.storage.save_session(session)
+        return True
+
+    def reset_sync_failures(self, session_id: str) -> bool:
+        """Clear the consecutive-failure counter that auto-disables scheduling.
+
+        Once `consecutive_failures` hits MAX_CONSECUTIVE_FAILURES the scheduler
+        stops scheduling for the session permanently. A manual "Sync now" is the
+        user telling us to try again, so it clears the counter first.
+        """
+        session = self.get_session(session_id)
+        if not session:
+            return False
+        session.sync_status.consecutive_failures = 0
+        session.sync_status.error = None
         if self.is_lambda:
             return self.storage.save_session(session)
         return True

@@ -11,6 +11,8 @@ XP_VALUES = {
     "group_created": 8,
     "group_collapsed": 2,
     "repo_analyzed": 35,
+    "review_completed": 20,
+    "iac_exported": 25,
     "session_created": 5,
     "daily_login": 15,
     "achievement_unlocked": 50,

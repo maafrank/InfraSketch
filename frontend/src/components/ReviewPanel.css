@@ -1,0 +1,298 @@
+/* Architecture review panel.
+   Shares DesignDocPanel's docking model: fixed to the left edge, offset by the
+   session-history sidebar, fullscreen on mobile. */
+
+.review-panel {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  background: var(--bg-primary);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  z-index: 900;
+  will-change: width;
+}
+
+.review-panel .resize-handle-right {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 10;
+}
+
+.review-header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.review-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.review-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem 2rem;
+}
+
+.review-generating,
+.review-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-secondary);
+}
+
+.review-error {
+  color: #f56565;
+}
+
+/* ── Score ───────────────────────────────────────────────────────────────── */
+
+.review-score {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+}
+
+.review-score-value {
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1;
+  min-width: 3.5rem;
+  text-align: center;
+}
+
+.review-score-strong .review-score-value { color: #48bb78; }
+.review-score-fair .review-score-value { color: #f6ad55; }
+.review-score-weak .review-score-value { color: #f56565; }
+
+.review-score-label {
+  display: block;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  margin-bottom: 0.4rem;
+}
+
+.review-severity-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.review-chip {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+
+.review-chip-critical { color: #f56565; }
+.review-chip-high { color: #ed8936; }
+.review-chip-medium { color: #ecc94b; }
+.review-chip-low { color: #90cdf4; }
+.review-chip-clean { color: #48bb78; }
+
+.review-summary {
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin: 0 0 1.25rem;
+}
+
+.review-stale-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  border: 1px solid #f6ad55;
+  color: #f6ad55;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.review-stale-rerun {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid currentColor;
+  color: inherit;
+  border-radius: 6px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ── Findings ────────────────────────────────────────────────────────────── */
+
+.review-findings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.review-finding {
+  border: 1px solid var(--border-color);
+  border-left-width: 3px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.review-finding-critical { border-left-color: #f56565; }
+.review-finding-high { border-left-color: #ed8936; }
+.review-finding-medium { border-left-color: #ecc94b; }
+.review-finding-low { border-left-color: #90cdf4; }
+
+.review-finding-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.7rem 0.85rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-primary);
+}
+
+.review-finding-header:hover {
+  background: var(--bg-secondary);
+}
+
+.review-badge {
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  color: var(--text-inverse);
+}
+
+.review-badge-critical { background: #f56565; }
+.review-badge-high { background: #ed8936; }
+.review-badge-medium { background: #ecc94b; color: #1a202c; }
+.review-badge-low { background: #90cdf4; color: #1a202c; }
+
+.review-finding-title {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.review-finding-category {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+}
+
+.review-finding-body {
+  padding: 0 0.85rem 0.85rem;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.review-finding-body p {
+  margin: 0 0 0.6rem;
+}
+
+.review-recommendation {
+  color: var(--text-primary);
+}
+
+.review-finding-nodes {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  word-break: break-all;
+}
+
+.review-fix-button {
+  padding: 0.4rem 0.75rem;
+  background: var(--gradient-primary);
+  color: var(--text-inverse);
+  border: none;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.review-fix-button:hover {
+  transform: translateY(-1px);
+}
+
+.review-footer {
+  margin-top: 1.25rem;
+  display: flex;
+  justify-content: center;
+}
+
+.review-rerun-button {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.review-rerun-button:hover {
+  border-color: var(--text-secondary);
+  color: var(--text-primary);
+}
+
+/* ── Mobile ──────────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .review-panel.mobile-modal {
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    border-right: none;
+    z-index: 1200;
+  }
+
+  .review-panel .resize-handle-right {
+    display: none;
+  }
+
+  /* Keep the tap targets at the 44px minimum the rest of the app uses. */
+  .review-finding-header,
+  .review-fix-button,
+  .review-rerun-button {
+    min-height: 44px;
+  }
+}

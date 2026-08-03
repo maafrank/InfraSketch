@@ -161,6 +161,17 @@ export const getSession = async (sessionId) => {
   return response.data;
 };
 
+/**
+ * Replace the whole diagram. Backs undo/redo: restore a snapshot the client
+ * captured before an earlier mutation. Not charged.
+ * @param {string} sessionId
+ * @param {object} diagram Complete Diagram (nodes, edges, manual_layout)
+ */
+export const replaceDiagram = async (sessionId, diagram) => {
+  const response = await client.put(`/session/${sessionId}/diagram`, diagram);
+  return response.data;
+};
+
 export const addNode = async (sessionId, node) => {
   const response = await client.post(`/session/${sessionId}/nodes`, node);
   return response.data;
@@ -239,6 +250,80 @@ export const triggerSync = async (sessionId, direction = 'auto') => {
 
 export const updateAutoSyncPreference = async (enabled) => {
   const response = await client.patch('/user/preferences/auto-sync', { enabled });
+  return response.data;
+};
+
+// ── Public sharing ───────────────────────────────────────────────────────────
+
+export const shareSession = async (sessionId, allowFork = true) => {
+  const response = await client.post(`/session/${sessionId}/share`, { allow_fork: allowFork });
+  return response.data;
+};
+
+export const unshareSession = async (sessionId) => {
+  const response = await client.delete(`/session/${sessionId}/share`);
+  return response.data;
+};
+
+/** Public read. Works signed-out; the interceptor simply adds no token. */
+export const getSharedDiagram = async (token) => {
+  const response = await client.get(`/share/${token}`);
+  return response.data;
+};
+
+/** Clone a shared diagram into the caller's account. Requires sign-in. */
+export const forkSharedDiagram = async (token) => {
+  const response = await client.post(`/share/${token}/fork`);
+  return response.data;
+};
+
+// ── Architecture review ──────────────────────────────────────────────────────
+
+export const startArchitectureReview = async (sessionId) => {
+  const response = await client.post(`/session/${sessionId}/review`);
+  return response.data;
+};
+
+export const getReviewStatus = async (sessionId) => {
+  const response = await client.get(`/session/${sessionId}/review/status`);
+  return response.data;
+};
+
+export const pollReviewStatus = createPoller({
+  fetchStatus: getReviewStatus,
+  mapSuccess: (s) => ({ review: s.review, isStale: s.is_stale === true }),
+  timeoutMessage: 'Architecture review timed out',
+  timeoutMs: POLL_TIMEOUTS_MS.review,
+});
+
+// ── Infrastructure-as-Code export ────────────────────────────────────────────
+
+export const startIacGeneration = async (sessionId, target) => {
+  const response = await client.post(`/session/${sessionId}/iac/generate`, { target });
+  return response.data;
+};
+
+export const getIacStatus = async (sessionId, target) => {
+  const response = await client.get(`/session/${sessionId}/iac/status`, { params: { target } });
+  return response.data;
+};
+
+/**
+ * The generic poller passes only sessionId to fetchStatus, but the IaC status
+ * endpoint needs the target too, so this curries it in.
+ */
+export const pollIacStatus = (sessionId, target, onProgress = null) => {
+  const poll = createPoller({
+    fetchStatus: (sid) => getIacStatus(sid, target),
+    mapSuccess: (s) => ({ artifact: s.artifact, isStale: s.is_stale === true }),
+    timeoutMessage: 'Infrastructure code generation timed out',
+    timeoutMs: POLL_TIMEOUTS_MS.iac,
+  });
+  return poll(sessionId, onProgress);
+};
+
+export const downloadIac = async (sessionId, target) => {
+  const response = await client.post(`/session/${sessionId}/iac/download`, { target });
   return response.data;
 };
 

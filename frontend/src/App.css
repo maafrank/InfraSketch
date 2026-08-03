@@ -155,6 +155,75 @@ body {
 .add-node-button,
 .new-design-button,
 .export-button,
+/* Architecture review trigger. Same shape as the other header buttons, amber
+   to match the review panel's highlight color. */
+.review-button {
+  padding: 0.6rem 1.25rem;
+  background: transparent;
+  color: #f6ad55;
+  border: 1px solid #f6ad55;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.review-button:hover:not(:disabled) {
+  background: #f6ad55;
+  color: var(--bg-primary);
+  box-shadow: 0 0 15px rgba(246, 173, 85, 0.3);
+}
+
+/* IaC export trigger. Cyan, distinct from the review amber and the design-doc
+   green, since all three sit adjacent in the header. */
+.iac-button {
+  padding: 0.6rem 1.25rem;
+  background: transparent;
+  color: #00d4ff;
+  border: 1px solid #00d4ff;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.iac-button:hover:not(:disabled) {
+  background: #00d4ff;
+  color: var(--bg-primary);
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+}
+
+/* Share trigger. Purple, the third distinct hue in the header cluster. */
+.share-button {
+  padding: 0.6rem 1.25rem;
+  background: transparent;
+  color: #b794f4;
+  border: 1px solid #b794f4;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.share-button:hover:not(:disabled) {
+  background: #b794f4;
+  color: var(--bg-primary);
+  box-shadow: 0 0 15px rgba(183, 148, 244, 0.3);
+}
+
+.review-button:disabled,
+.iac-button:disabled,
+.share-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .create-design-doc-button {
   padding: 0.6rem 1.25rem;
   background: transparent;
@@ -177,6 +246,7 @@ body {
   box-shadow: 0 0 15px rgba(0, 184, 48, 0.3);
 }
 
+.review-button:disabled,
 .add-node-button:disabled,
 .new-design-button:disabled,
 .export-button:disabled,
@@ -2103,6 +2173,8 @@ body {
   z-index: 100;
 }
 
+.floating-undo-button,
+.floating-redo-button,
 .floating-edit-button,
 .floating-layout-button,
 .floating-direction-button,
@@ -2125,6 +2197,26 @@ body {
   background: var(--gradient-primary);
 }
 
+/* Undo/redo are the only floating buttons with a disabled state, since they
+   are unavailable until there is history to move through. */
+.floating-undo-button,
+.floating-redo-button {
+  background: linear-gradient(135deg, #718096 0%, #4a5568 100%);
+}
+
+.floating-undo-button:disabled,
+.floating-redo-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.floating-undo-button:disabled:hover,
+.floating-redo-button:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 .floating-layout-button {
   background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
 }
@@ -2141,6 +2233,8 @@ body {
   background: linear-gradient(135deg, #4fd1c5 0%, #319795 100%);
 }
 
+.floating-undo-button:hover,
+.floating-redo-button:hover,
 .floating-edit-button:hover,
 .floating-layout-button:hover,
 .floating-direction-button:hover,
@@ -2150,6 +2244,8 @@ body {
   box-shadow: 0 6px 20px var(--btn-hover-shadow);
 }
 
+.floating-undo-button:active,
+.floating-redo-button:active,
 .floating-edit-button:active,
 .floating-layout-button:active,
 .floating-direction-button:active,
@@ -2291,6 +2387,26 @@ body {
   border-width: 3px !important;
   box-shadow: 0 0 20px rgba(16, 185, 129, 0.5) !important;
   background: rgba(16, 185, 129, 0.1) !important;
+}
+
+/* Set when an expanded architecture-review finding names this node. Amber so it
+   never reads as the green "drop here to merge" affordance. */
+.review-highlighted {
+  border-color: #f6ad55 !important;
+  border-width: 3px !important;
+  box-shadow: 0 0 22px rgba(246, 173, 85, 0.55) !important;
+  animation: review-highlight-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes review-highlight-pulse {
+  0%, 100% { box-shadow: 0 0 22px rgba(246, 173, 85, 0.55); }
+  50% { box-shadow: 0 0 32px rgba(246, 173, 85, 0.85); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .review-highlighted {
+    animation: none;
+  }
 }
 
 .drop-hint {
@@ -3481,6 +3597,38 @@ body {
 
 .save-status.error {
   color: #f56565;
+}
+
+/* Manual "Sync now" trigger. Sits between the save status and the export
+   dropdown, so the footer needs the status to stop hogging the free space. */
+.design-doc-footer .save-status {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sync-now-button {
+  flex: 0 0 auto;
+  margin-right: 0.5rem;
+  padding: 0.5rem 0.85rem;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.sync-now-button:hover:not(:disabled) {
+  border-color: var(--text-secondary);
+  color: var(--text-primary);
+}
+
+.sync-now-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .export-buttons {

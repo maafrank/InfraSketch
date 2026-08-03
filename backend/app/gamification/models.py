@@ -29,6 +29,9 @@ class GamificationCounters(BaseModel):
     export_formats_used: List[str] = Field(default_factory=list)
     repos_analyzed: int = 0
     sessions_created: int = 0
+    reviews_completed: int = 0
+    best_review_score: int = 0
+    iac_exports: int = 0
 
 
 class UserGamification(BaseModel):

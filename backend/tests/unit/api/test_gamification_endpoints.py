@@ -120,7 +120,7 @@ class TestGetAchievements:
         assert response.status_code == 200
         data = response.json()
         assert "achievements" in data
-        assert len(data["achievements"]) == 32
+        assert len(data["achievements"]) == 36
 
     @patch("app.api.routes_users.get_gamification_storage")
     def test_shows_unlocked_status(self, mock_get_storage, client):
@@ -154,7 +154,7 @@ class TestGetAchievements:
         assert "stats" in data
         assert "unlocked" in data["stats"]
         assert "total" in data["stats"]
-        assert data["stats"]["total"] == 32
+        assert data["stats"]["total"] == 36
         assert data["stats"]["unlocked"] == 2  # first_diagram, first_chat
 
     @patch("app.api.routes_users.get_gamification_storage")

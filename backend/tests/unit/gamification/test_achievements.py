@@ -42,8 +42,8 @@ def _make_with_streak(longest=0, current=0):
 # ── Achievement registry ──
 
 class TestAchievementRegistry:
-    def test_exactly_32_achievements(self):
-        assert len(ACHIEVEMENT_DEFINITIONS) == 32
+    def test_exactly_36_achievements(self):
+        assert len(ACHIEVEMENT_DEFINITIONS) == 36
 
     def test_all_have_required_fields(self):
         required = {"id", "name", "description", "rarity", "category", "check", "progress"}
@@ -74,9 +74,11 @@ class TestAchievementRegistry:
         by_cat = {}
         for defn in ACHIEVEMENT_DEFINITIONS:
             by_cat.setdefault(defn["category"], []).append(defn["id"])
-        assert len(by_cat[CAT_FIRST_TIME]) == 7
-        assert len(by_cat[CAT_VOLUME]) == 15
-        assert len(by_cat[CAT_FEATURE]) == 5
+        # +2 first_time (first_review, first_iac), +1 volume (reviews_10),
+        # +1 feature (flawless_design) for architecture review and IaC export.
+        assert len(by_cat[CAT_FIRST_TIME]) == 9
+        assert len(by_cat[CAT_VOLUME]) == 16
+        assert len(by_cat[CAT_FEATURE]) == 6
         assert len(by_cat[CAT_STREAK]) == 5
 
     def test_check_functions_are_callable(self):
@@ -296,10 +298,10 @@ class TestAlreadyUnlocked:
 # ── Progress reporting ──
 
 class TestGetAchievementProgress:
-    def test_returns_all_32_achievements(self):
+    def test_returns_all_36_achievements(self):
         g = _make_gamification()
         progress = get_achievement_progress(g)
-        assert len(progress) == 32
+        assert len(progress) == 36
 
     def test_unlocked_achievement_shows_status(self):
         g = _make_gamification(diagrams_generated=1)

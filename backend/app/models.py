@@ -83,6 +83,26 @@ class RepoAnalysisStatus(BaseModel):
     completed_at: Optional[float] = None  # Unix timestamp
 
 
+class ReviewStatus(BaseModel):
+    """Status of architecture review generation (for async polling)."""
+    status: Literal["not_started", "generating", "completed", "failed"] = "not_started"
+    error: Optional[str] = None
+    started_at: Optional[float] = None  # Unix timestamp
+    completed_at: Optional[float] = None  # Unix timestamp
+    # diagram_revision the stored review was generated from, so the UI can warn
+    # that the diagram has moved on since.
+    reviewed_diagram_revision: Optional[int] = None
+
+
+class IacStatus(BaseModel):
+    """Status of Infrastructure-as-Code generation (for async polling)."""
+    status: Literal["not_started", "generating", "completed", "failed"] = "not_started"
+    target: Optional[str] = None  # terraform | kubernetes | compose
+    error: Optional[str] = None
+    started_at: Optional[float] = None  # Unix timestamp
+    completed_at: Optional[float] = None  # Unix timestamp
+
+
 class SyncStatus(BaseModel):
     """Status of automatic diagram <-> design-doc sync for this session."""
     state: Literal["idle", "pending", "running", "failed"] = "idle"
@@ -113,6 +133,25 @@ class SessionState(BaseModel):
     created_at: Optional[datetime] = None  # When session was created (for sorting)
     name: Optional[str] = None  # Concise session name (e.g., "E-commerce Platform")
     name_generated: bool = False  # Prevents re-generating name once set
+
+    # Public sharing. share_token is the URL slug; public_flag is a sparse
+    # attribute set to "1" only while shared, used purely as a GSI partition key
+    # so listing public sessions is a query rather than a full-table scan.
+    share_token: Optional[str] = None
+    is_public: bool = False
+    public_flag: Optional[str] = None
+    shared_at: Optional[datetime] = None
+    share_view_count: int = 0
+    allow_fork: bool = True
+
+    # Architecture review
+    review: Optional[Dict[str, Any]] = None  # {score, summary, findings, counts}
+    review_status: ReviewStatus = Field(default_factory=ReviewStatus)
+
+    # Infrastructure-as-Code export. Keyed by target ("terraform" | "kubernetes"
+    # | "compose"), each value {files, warnings, assumptions, diagram_revision}.
+    iac_artifacts: Dict[str, Any] = Field(default_factory=dict)
+    iac_status: IacStatus = Field(default_factory=IacStatus)
 
     # Bidirectional auto-sync (diagram <-> design doc)
     diagram_revision: int = 0  # Bumped on every diagram mutation

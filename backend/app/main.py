@@ -11,6 +11,10 @@ from app.api.routes_billing import router as billing_router
 from app.api.routes_design_docs import router as design_docs_router
 from app.api.routes_diagrams import router as diagrams_router
 from app.api.routes_groups import router as groups_router
+from app.api.routes_iac import router as iac_router
+from app.api.routes_review import router as review_router
+from app.api.routes_share_html import router as share_html_router
+from app.api.routes_sharing import router as sharing_router
 from app.api.routes_users import router as users_router
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.auth import APIKeyMiddleware
@@ -69,6 +73,13 @@ app.include_router(groups_router, prefix="/api")
 app.include_router(design_docs_router, prefix="/api")
 app.include_router(billing_router, prefix="/api")
 app.include_router(users_router, prefix="/api")
+app.include_router(review_router, prefix="/api")
+app.include_router(iac_router, prefix="/api")
+app.include_router(sharing_router, prefix="/api")
+
+# Mounted at the root, not /api: the public URL is infrasketch.net/share/{token},
+# served through a CloudFront behavior that forwards /share/* to API Gateway.
+app.include_router(share_html_router)
 
 
 @app.get("/")

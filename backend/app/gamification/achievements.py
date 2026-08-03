@@ -311,6 +311,44 @@ ACHIEVEMENT_DEFINITIONS = [
         "check": lambda g: g.longest_streak >= 100,
         "progress": lambda g: {"current": g.longest_streak, "target": 100},
     },
+
+    # ── Architecture review + IaC export (4) ──
+    {
+        "id": "first_review",
+        "name": "Under Review",
+        "description": "Ran your first architecture review",
+        "rarity": RARITY_COMMON,
+        "category": CAT_FIRST_TIME,
+        "check": lambda g: g.counters.reviews_completed >= 1,
+        "progress": lambda g: {"current": g.counters.reviews_completed, "target": 1},
+    },
+    {
+        "id": "first_iac",
+        "name": "Shipped to Infra",
+        "description": "Exported your first Infrastructure-as-Code bundle",
+        "rarity": RARITY_UNCOMMON,
+        "category": CAT_FIRST_TIME,
+        "check": lambda g: g.counters.iac_exports >= 1,
+        "progress": lambda g: {"current": g.counters.iac_exports, "target": 1},
+    },
+    {
+        "id": "reviews_10",
+        "name": "Design Critic",
+        "description": "Ran 10 architecture reviews",
+        "rarity": RARITY_RARE,
+        "category": CAT_VOLUME,
+        "check": lambda g: g.counters.reviews_completed >= 10,
+        "progress": lambda g: {"current": g.counters.reviews_completed, "target": 10},
+    },
+    {
+        "id": "flawless_design",
+        "name": "Flawless",
+        "description": "Scored 90 or higher on an architecture review",
+        "rarity": RARITY_EPIC,
+        "category": CAT_FEATURE,
+        "check": lambda g: g.counters.best_review_score >= 90,
+        "progress": lambda g: {"current": g.counters.best_review_score, "target": 90},
+    },
 ]
 
 # Build a lookup dict by id for fast access

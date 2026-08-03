@@ -273,10 +273,25 @@ describe('DesignDocPanel', () => {
       const select = screen.getByRole('combobox');
       const options = select.querySelectorAll('option');
 
-      expect(options).toHaveLength(4); // Default + 3 export options
+      expect(options).toHaveLength(5); // Default + 4 export options
       expect(screen.getByText('PDF')).toBeInTheDocument();
       expect(screen.getByText('Markdown')).toBeInTheDocument();
       expect(screen.getByText('PNG')).toBeInTheDocument();
+      expect(screen.getByText('Infrastructure as Code...')).toBeInTheDocument();
+    });
+
+    it('IaC selection opens the export modal instead of downloading', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      const onExportIac = vi.fn();
+      const onExport = vi.fn();
+      render(<DesignDocPanel {...defaultProps} onExport={onExport} onExportIac={onExportIac} />);
+
+      await user.selectOptions(screen.getByRole('combobox'), 'iac');
+
+      expect(onExportIac).toHaveBeenCalledTimes(1);
+      // IaC is an async job with its own modal, so it must not go through the
+      // document-download path.
+      expect(onExport).not.toHaveBeenCalled();
     });
 
     it('calls handleExport when format selected', async () => {

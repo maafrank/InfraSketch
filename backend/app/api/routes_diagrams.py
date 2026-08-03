@@ -65,6 +65,7 @@ from app.models import (
     UpdateNodePositionsRequest,
 )
 from app.session.manager import session_manager
+from app.sync.context import current_mutation_provenance
 from app.subscription.models import SubscribeRequest, SubscriptionStatus
 from app.subscription.storage import get_subscriber_storage
 from app.user.models import UserPreferences
@@ -630,6 +631,74 @@ async def delete_node(session_id: str, node_id: str, http_request: Request,
 
 # NOTE: declared before /nodes/{node_id} so the path parameter route does not
 # swallow "positions" as a node ID. FastAPI matches in declaration order.
+@router.put("/session/{session_id}/diagram", response_model=Diagram)
+async def replace_diagram(session_id: str, diagram: Diagram, http_request: Request,
+    user_id: str = Depends(get_current_user),
+    session: SessionState = Depends(get_session_for_user)
+):
+    """
+    Replace the session's diagram wholesale.
+
+    Backs undo/redo: the client holds a stack of prior Diagram snapshots (every
+    mutation endpoint returns a complete Diagram) and restores one by PUTting it
+    back. Not charged, since undoing a mistake is not a new unit of work.
+
+    The payload is validated for referential integrity first. Unlike the
+    incremental endpoints, this one accepts arbitrary client-supplied structure,
+    so a buggy client could otherwise persist a diagram with dangling edges or
+    broken group links that the canvas and the agent both choke on.
+    """
+    node_ids = {node.id for node in diagram.nodes}
+
+    if len(node_ids) != len(diagram.nodes):
+        raise HTTPException(status_code=400, detail="Diagram contains duplicate node IDs")
+
+    edge_ids = {edge.id for edge in diagram.edges}
+    if len(edge_ids) != len(diagram.edges):
+        raise HTTPException(status_code=400, detail="Diagram contains duplicate edge IDs")
+
+    for edge in diagram.edges:
+        if edge.source not in node_ids:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Edge '{edge.id}' references unknown source node '{edge.source}'",
+            )
+        if edge.target not in node_ids:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Edge '{edge.id}' references unknown target node '{edge.target}'",
+            )
+
+    for node in diagram.nodes:
+        if node.parent_id is not None and node.parent_id not in node_ids:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Node '{node.id}' references unknown parent '{node.parent_id}'",
+            )
+        for child_id in node.child_ids:
+            if child_id not in node_ids:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Group '{node.id}' references unknown child '{child_id}'",
+                )
+
+    # Provenance "user": an undo is a real structural change, so it should
+    # schedule a design-doc sync exactly like the edit it reverses. The engine's
+    # debounce coalesces a rapid undo/redo chain into a single run.
+    token = current_mutation_provenance.set("user")
+    try:
+        session_manager.update_diagram(session_id, diagram)
+    finally:
+        current_mutation_provenance.reset(token)
+
+    logger.info(
+        f"Replaced diagram for session {session_id} "
+        f"({len(diagram.nodes)} nodes, {len(diagram.edges)} edges)"
+    )
+
+    return diagram
+
+
 @router.patch("/session/{session_id}/nodes/positions", response_model=Diagram)
 async def update_node_positions(session_id: str, request: UpdateNodePositionsRequest, http_request: Request,
     user_id: str = Depends(get_current_user),

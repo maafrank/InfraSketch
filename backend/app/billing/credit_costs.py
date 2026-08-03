@@ -14,6 +14,8 @@ CREDIT_COSTS = {
     "design_doc_export": {"base": 2},
     "repo_analysis": {"base": 10},  # Higher cost due to multiple API calls + diagram generation
     "diagram_to_doc_sync": {"base": 2},  # Auto-sync diagram changes into the design doc
+    "architecture_review": {"base": 5},  # Scored critique of the diagram
+    "iac_export": {"base": 10},  # Multi-file infrastructure-as-code generation (long output)
 }
 
 # Plan configurations
@@ -30,6 +32,15 @@ DESIGN_DOC_PLANS = {"starter", "pro", "enterprise"}
 # Plans that include design doc export (PDF / Markdown).
 # Sold as "Design document export" on the Starter tier.
 DESIGN_DOC_EXPORT_PLANS = {"starter", "pro", "enterprise"}
+
+# Plans that include the architecture review. Sold alongside the design doc on
+# Starter, since review is an engagement feature we want broadly adopted.
+ARCHITECTURE_REVIEW_PLANS = DESIGN_DOC_PLANS
+
+# Plans that include Infrastructure-as-Code export (Terraform / Kubernetes /
+# Compose). Pro-only: this is the strongest paid differentiator and the most
+# expensive action to run.
+IAC_EXPORT_PLANS = {"pro", "enterprise"}
 
 # Plans that include the Power (Sonnet) and Ultra (Opus) models.
 # Sold as "Power model access" on the Pro tier. Free stays on Speed (Haiku).

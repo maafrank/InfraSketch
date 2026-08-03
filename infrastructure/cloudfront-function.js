@@ -38,6 +38,15 @@ function handler(event) {
 
   // 2) URI rewrite: directory paths -> <dir>/index.html
   var uri = req.uri;
+
+  // /share/* is served by the backend (API Gateway origin), not the S3 bucket.
+  // Those paths have no prerendered index.html, so the rewrite below would turn
+  // /share/abc123 into /share/abc123/index.html and 404. Return before it.
+  // The www -> apex redirect above still applies to share links.
+  if (uri.indexOf('/share/') === 0) {
+    return req;
+  }
+
   if (uri.endsWith('/')) {
     req.uri = uri + 'index.html';
   } else {

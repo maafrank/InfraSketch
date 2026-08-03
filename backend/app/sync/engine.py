@@ -187,49 +187,60 @@ def schedule(
     """
     from app.session.manager import session_manager
 
+    def _skip(reason: str) -> None:
+        """Log why a sync was not scheduled.
+
+        Every branch below is a silent no-op otherwise, which makes a broken
+        sync path indistinguishable from a quiet one in CloudWatch. Grep for
+        "sync: not scheduled" to see exactly which gate stopped a given edit.
+        """
+        logger.info(f"sync: not scheduled for session {session.session_id} ({reason})")
+
     if not _feature_flag_enabled():
-        return
+        return _skip(f"{SYNC_ENABLED_ENV} is not true")
 
     # Loop prevention: never schedule a follow-up sync when sync itself made the mutation.
     if provenance == "sync":
-        return
+        return _skip("mutation came from sync itself")
 
     # Initial generation: don't sync. The generation paths bump last_synced_* themselves.
     if provenance == "generation":
-        return
+        return _skip("mutation came from initial generation")
 
     # Phase 1: only diagram -> doc.
     if side != "diagram":
-        return
+        return _skip(f"side={side}, only diagram_to_doc is implemented")
 
     # Doc must exist for diagram_to_doc to make sense.
     if not session.design_doc:
-        return
+        return _skip("session has no design doc")
 
     # Skip preview docs (free-tier).
     if session.design_doc_status.is_preview:
-        return
+        return _skip("design doc is a free-tier preview")
 
     # Don't sync while another async generation is in flight.
     if session.diagram_generation_status.status == "generating":
-        return
+        return _skip("diagram generation in flight")
     if session.design_doc_status.status == "generating":
-        return
+        return _skip("design doc generation in flight")
 
     # Gating: paid users only.
     if not _user_is_paid(session.user_id):
-        return
+        return _skip(f"user {session.user_id} is not on an entitled plan")
 
     if not _user_auto_sync_enabled(session.user_id):
-        return
+        return _skip(f"user {session.user_id} disabled auto-sync in preferences")
 
     # Auto-disable after repeated failures.
     if session.sync_status.consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
-        return
+        return _skip(
+            f"auto-disabled after {session.sync_status.consecutive_failures} consecutive failures"
+        )
 
     # Skip non-structural changes (drag-to-reposition, group create/collapse).
     if not _is_structural_change(old_diagram, new_diagram):
-        return
+        return _skip("change is not structural (position/group only)")
 
     now = time.time()
     new_due_at = now + DEBOUNCE_SECONDS_DIAGRAM_TO_DOC

@@ -1,0 +1,196 @@
+"""Tests for architecture review and IaC output normalization.
+
+Both features take unstructured model output and turn it into something the UI
+renders and the user downloads, so the normalization layer is where a bad
+generation gets caught.
+"""
+
+import io
+import zipfile
+
+from app.iac.generator import (
+    MAX_FILE_BYTES,
+    _normalize_files,
+    _safe_path,
+    build_zip,
+)
+from app.review.analyzer import _normalize_findings, _score_from_findings
+
+
+# ── Review scoring ───────────────────────────────────────────────────────────
+
+class TestReviewScoring:
+    def test_a_clean_design_scores_100(self):
+        assert _score_from_findings([]) == 100
+
+    def test_severity_drives_the_penalty(self):
+        assert _score_from_findings([{"severity": "low"}]) == 98
+        assert _score_from_findings([{"severity": "medium"}]) == 95
+        assert _score_from_findings([{"severity": "high"}]) == 88
+        assert _score_from_findings([{"severity": "critical"}]) == 75
+
+    def test_penalties_accumulate(self):
+        findings = [{"severity": "critical"}, {"severity": "high"}, {"severity": "low"}]
+        assert _score_from_findings(findings) == 100 - 25 - 12 - 2
+
+    def test_score_floors_at_zero(self):
+        assert _score_from_findings([{"severity": "critical"}] * 10) == 0
+
+    def test_unknown_severity_contributes_nothing(self):
+        assert _score_from_findings([{"severity": "catastrophic"}]) == 100
+
+
+# ── Review finding normalization ─────────────────────────────────────────────
+
+class TestNormalizeFindings:
+    def test_normalizes_case(self):
+        raw = [{"severity": "HIGH", "category": "Reliability", "title": "SPOF"}]
+        result = _normalize_findings(raw, {"a"})
+        assert result[0]["severity"] == "high"
+        assert result[0]["category"] == "reliability"
+
+    def test_drops_unknown_severity(self):
+        raw = [{"severity": "spicy", "category": "reliability", "title": "x"}]
+        assert _normalize_findings(raw, {"a"}) == []
+
+    def test_drops_unknown_category(self):
+        raw = [{"severity": "high", "category": "vibes", "title": "x"}]
+        assert _normalize_findings(raw, {"a"}) == []
+
+    def test_drops_finding_without_a_title(self):
+        raw = [{"severity": "high", "category": "reliability", "title": "   "}]
+        assert _normalize_findings(raw, {"a"}) == []
+
+    def test_drops_node_ids_not_in_the_diagram(self):
+        """A finding must never point the canvas at a node that does not exist."""
+        raw = [{
+            "severity": "high", "category": "reliability", "title": "SPOF",
+            "node_ids": ["real", "hallucinated"],
+        }]
+        assert _normalize_findings(raw, {"real"})[0]["node_ids"] == ["real"]
+
+    def test_sorts_most_severe_first(self):
+        raw = [
+            {"severity": "low", "category": "cost", "title": "L"},
+            {"severity": "critical", "category": "security", "title": "C"},
+            {"severity": "medium", "category": "data", "title": "M"},
+            {"severity": "high", "category": "reliability", "title": "H"},
+        ]
+        titles = [f["title"] for f in _normalize_findings(raw, set())]
+        assert titles == ["C", "H", "M", "L"]
+
+    def test_tolerates_junk_entries(self):
+        raw = [None, "a string", 42, {"severity": "low", "category": "cost", "title": "ok"}]
+        result = _normalize_findings(raw, set())
+        assert len(result) == 1
+        assert result[0]["title"] == "ok"
+
+    def test_handles_empty_and_none(self):
+        assert _normalize_findings([], set()) == []
+        assert _normalize_findings(None, set()) == []
+
+
+# ── IaC path safety ──────────────────────────────────────────────────────────
+
+class TestSafePath:
+    def test_accepts_plain_and_nested_paths(self):
+        assert _safe_path("main.tf") == "main.tf"
+        assert _safe_path("manifests/api.yaml") == "manifests/api.yaml"
+
+    def test_strips_a_leading_slash(self):
+        assert _safe_path("/etc/passwd") == "etc/passwd"
+
+    def test_rejects_parent_traversal(self):
+        """Zip-slip: these paths would write outside the extraction directory."""
+        assert _safe_path("../evil.tf") is None
+        assert _safe_path("../../etc/crontab") is None
+        assert _safe_path("..") is None
+
+    def test_normalizes_interior_traversal(self):
+        assert _safe_path("a/../b.tf") == "b.tf"
+
+    def test_rejects_empty_and_non_strings(self):
+        assert _safe_path("") is None
+        assert _safe_path("   ") is None
+        assert _safe_path(None) is None
+        assert _safe_path(42) is None
+
+    def test_normalizes_windows_separators(self):
+        assert _safe_path("manifests\\api.yaml") == "manifests/api.yaml"
+
+
+# ── IaC file normalization ───────────────────────────────────────────────────
+
+class TestNormalizeFiles:
+    def test_prepends_the_scaffold_header_as_a_comment(self):
+        files = _normalize_files([{"path": "main.tf", "content": "resource {}"}], "#")
+        assert files[0]["content"].startswith("# Generated by InfraSketch")
+        assert "scaffold" in files[0]["content"]
+        assert "resource {}" in files[0]["content"]
+
+    def test_markdown_gets_a_blockquote_header(self):
+        """`#` is a heading in Markdown, not a comment, so it would render."""
+        files = _normalize_files([{"path": "README.md", "content": "# Title"}], "#")
+        assert files[0]["content"].startswith("> Generated by InfraSketch")
+
+    def test_drops_unsafe_paths(self):
+        files = _normalize_files([
+            {"path": "../evil.tf", "content": "bad"},
+            {"path": "main.tf", "content": "good"},
+        ], "#")
+        assert [f["path"] for f in files] == ["main.tf"]
+
+    def test_drops_duplicate_paths(self):
+        files = _normalize_files([
+            {"path": "main.tf", "content": "first"},
+            {"path": "main.tf", "content": "second"},
+        ], "#")
+        assert len(files) == 1
+        assert "first" in files[0]["content"]
+
+    def test_drops_empty_content(self):
+        files = _normalize_files([
+            {"path": "empty.tf", "content": "   "},
+            {"path": "main.tf", "content": "real"},
+        ], "#")
+        assert [f["path"] for f in files] == ["main.tf"]
+
+    def test_drops_oversized_files(self):
+        files = _normalize_files([
+            {"path": "huge.tf", "content": "x" * (MAX_FILE_BYTES + 1)},
+            {"path": "main.tf", "content": "ok"},
+        ], "#")
+        assert [f["path"] for f in files] == ["main.tf"]
+
+    def test_caps_total_size(self):
+        """A runaway generation must not blow the 400KB DynamoDB item limit."""
+        raw = [{"path": f"f{i}.tf", "content": "x" * 90_000} for i in range(10)]
+        files = _normalize_files(raw, "#")
+        total = sum(len(f["content"].encode()) for f in files)
+        assert total <= 400_000
+        assert len(files) < 10
+
+    def test_caps_file_count(self):
+        raw = [{"path": f"f{i}.tf", "content": "x"} for i in range(60)]
+        assert len(_normalize_files(raw, "#")) <= 40
+
+    def test_tolerates_junk_entries(self):
+        files = _normalize_files([None, "string", {"path": "main.tf", "content": "ok"}], "#")
+        assert len(files) == 1
+
+
+# ── IaC zip bundling ─────────────────────────────────────────────────────────
+
+class TestBuildZip:
+    def test_namespaces_entries_under_a_target_directory(self):
+        files = [{"path": "main.tf", "content": "a"}, {"path": "sub/b.yaml", "content": "b"}]
+        names = zipfile.ZipFile(io.BytesIO(build_zip(files, "terraform"))).namelist()
+        assert names == ["infrasketch-terraform/main.tf", "infrasketch-terraform/sub/b.yaml"]
+
+    def test_round_trips_content(self):
+        files = [{"path": "main.tf", "content": "resource \"aws_s3_bucket\" \"b\" {}"}]
+        archive = zipfile.ZipFile(io.BytesIO(build_zip(files, "terraform")))
+        assert archive.read("infrasketch-terraform/main.tf").decode() == files[0]["content"]
+
+    def test_handles_an_empty_file_list(self):
+        assert zipfile.ZipFile(io.BytesIO(build_zip([], "compose"))).namelist() == []

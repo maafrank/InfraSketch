@@ -23,6 +23,8 @@ _COUNTER_MAP = {
     "group_collapsed": ("groups_collapsed", None),
     "repo_analyzed": ("repos_analyzed", None),
     "session_created": ("sessions_created", None),
+    "review_completed": ("reviews_completed", None),
+    "iac_exported": ("iac_exports", None),
 }
 
 # Actions that append to set-like lists
@@ -42,6 +44,13 @@ def _update_counters(gamification: UserGamification, action: str, metadata: dict
         field_name = counter_info[0]
         current = getattr(gamification.counters, field_name)
         setattr(gamification.counters, field_name, current + 1)
+
+    # best_review_score is a high-water mark, not a tally, so it can't go
+    # through _COUNTER_MAP.
+    if action == "review_completed" and metadata:
+        score = metadata.get("score")
+        if isinstance(score, int) and score > gamification.counters.best_review_score:
+            gamification.counters.best_review_score = score
 
     list_info = _LIST_APPEND_MAP.get(action)
     if list_info and metadata:

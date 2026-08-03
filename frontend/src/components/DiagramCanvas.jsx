@@ -155,7 +155,11 @@ const toPositionPayload = (flowNodes) =>
       Number.isFinite(node.position.x) && Number.isFinite(node.position.y))
     .map((node) => ({ id: node.id, x: node.position.x, y: node.position.y }));
 
-function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAddEdge, onDeleteEdge, onReactFlowInit, onUpdateNode, onOpenNodePalette, onLayoutReady, onExportPng, onExampleClick, onNodePositionsChange, designDocOpen, designDocWidth, chatPanelOpen, chatPanelWidth, layoutDirection = 'TB', onLayoutDirectionChange, onMergeNodes, onUngroupNodes, onToggleCollapse, onRegenerateDescription, mergingNodes = false, onToggleAllGroups, hasExpandedGroups }) {
+// Stable default so the highlight effect does not re-fire on every render when
+// the parent passes nothing.
+const EMPTY_HIGHLIGHT = [];
+
+function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAddEdge, onDeleteEdge, onReactFlowInit, onUpdateNode, onOpenNodePalette, onLayoutReady, onExportPng, onExampleClick, onNodePositionsChange, designDocOpen, designDocWidth, chatPanelOpen, chatPanelWidth, layoutDirection = 'TB', onLayoutDirectionChange, onMergeNodes, onUngroupNodes, onToggleCollapse, onRegenerateDescription, mergingNodes = false, onToggleAllGroups, hasExpandedGroups, onUndo, onRedo, canUndo = false, canRedo = false, highlightedNodeIds = EMPTY_HIGHLIGHT }) {
   const reactFlowInstance = useReactFlow();
 
   // Pass the React Flow instance to parent
@@ -281,10 +285,10 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
   // `save` defaults to false because this function has two very different
   // callers. The layout button is an explicit "tidy this up" and should
   // persist. But it is also handed to the parent via onLayoutReady and invoked
-  // incidentally (re-center on sidebar resize, before the design-doc
-  // screenshot, and before a PNG export). Persisting on those paths wrote a new
-  // `diagram` object on every call, which re-triggered the caller and looped,
-  // and it overwrote hand-arranged positions with fresh dagre coordinates.
+  // incidentally (re-center on sidebar resize, and before the design-doc
+  // screenshot). Persisting on those paths wrote a new `diagram` object on
+  // every call, which re-triggered the caller and looped, and it overwrote
+  // hand-arranged positions with fresh dagre coordinates.
   const applyLayout = useCallback(({ save = false } = {}) => {
     setNodes((currentNodes) => {
       const layoutedNodes = getLayoutedElements(currentNodes, edges, layoutDirection);
@@ -309,6 +313,60 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
       onLayoutReady(applyLayout);
     }
   }, [onLayoutReady, applyLayout]);
+
+  // Applies the review panel's node highlight without going through the main
+  // diagram transform, which would re-run layout on every finding click.
+  useEffect(() => {
+    const highlighted = new Set(highlightedNodeIds);
+    setNodes((currentNodes) => {
+      let changed = false;
+      const next = currentNodes.map((node) => {
+        const shouldHighlight = highlighted.has(node.id);
+        if (Boolean(node.data.isHighlighted) === shouldHighlight) return node;
+        changed = true;
+        return { ...node, data: { ...node.data, isHighlighted: shouldHighlight } };
+      });
+      // Returning a new array unconditionally would re-render the canvas on
+      // every unrelated node update.
+      return changed ? next : currentNodes;
+    });
+  }, [highlightedNodeIds, setNodes]);
+
+  // Undo/redo keyboard shortcuts.
+  //
+  // Bound on document, so the handler must bow out whenever the user is typing.
+  // The design doc uses TipTap (a contenteditable) and has its own undo stack;
+  // stealing Cmd+Z from it would silently revert the diagram while someone is
+  // editing prose.
+  useEffect(() => {
+    const isTextEntry = (el) => {
+      if (!el) return false;
+      const tag = el.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+      if (el.isContentEditable === true) return true;
+      // isContentEditable alone is not enough: it is unimplemented in jsdom,
+      // and the closest() walk also catches events targeting a descendant
+      // inside TipTap's editable region rather than the editable root itself.
+      return typeof el.closest === 'function'
+        && el.closest('[contenteditable="true"], [contenteditable=""]') !== null;
+    };
+
+    const handleKeyDown = (event) => {
+      const modifier = event.metaKey || event.ctrlKey;
+      if (!modifier || event.key.toLowerCase() !== 'z') return;
+      if (isTextEntry(event.target) || isTextEntry(document.activeElement)) return;
+
+      event.preventDefault();
+      if (event.shiftKey) {
+        if (onRedo) onRedo();
+      } else if (onUndo) {
+        onUndo();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onUndo, onRedo]);
 
   // Separate effect to update drop target highlighting during drag (without recalculating layout)
   useEffect(() => {
@@ -503,7 +561,9 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
   }, [designDocOpen, chatPanelOpen, designDocWidth, chatPanelWidth, reactFlowInstance, nodes.length]);
 
   const handleNodeClick = useCallback((event, node) => {
-    onNodeClick(node);
+    // Guarded like every other parent callback here: the public share page
+    // renders this canvas read-only and passes no interaction handlers.
+    if (onNodeClick) onNodeClick(node);
   }, [onNodeClick]);
 
   const handlePaneClick = useCallback(() => {
@@ -767,6 +827,48 @@ function DiagramCanvasInner({ diagram, loading, onNodeClick, onDeleteNode, onAdd
 
       {/* Floating action buttons */}
       <div className="floating-buttons">
+        <button
+          className="floating-undo-button"
+          onClick={() => onUndo && onUndo()}
+          disabled={!canUndo || loading}
+          title="Undo (Cmd+Z)"
+          aria-label="Undo"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M3 7v6h6" />
+            <path d="M3 13a9 9 0 1 0 3-7.7L3 8" />
+          </svg>
+        </button>
+        <button
+          className="floating-redo-button"
+          onClick={() => onRedo && onRedo()}
+          disabled={!canRedo || loading}
+          title="Redo (Cmd+Shift+Z)"
+          aria-label="Redo"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M21 7v6h-6" />
+            <path d="M21 13a9 9 0 1 1-3-7.7L21 8" />
+          </svg>
+        </button>
         <button
           className="floating-edit-button"
           onClick={() => onOpenNodePalette && onOpenNodePalette()}
