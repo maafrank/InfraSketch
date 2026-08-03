@@ -121,4 +121,44 @@ describe('useDesignDoc: not paying twice for the same document', () => {
     // Loading a session must not pop the panel open on its own.
     expect(result.current.designDocOpen).toBe(false);
   });
+
+  // Regression: the header button was wired `onClick={handleCreateDesignDoc}`,
+  // so React passed a MouseEvent as `force`. Every click therefore took the
+  // forced path: it cleared the existing document and paid to generate a new
+  // one, which is why a doc "disappeared" on reopen and on session switch.
+  describe('a stray click argument must never force regeneration', () => {
+    const clickEvent = { type: 'click', preventDefault() {}, stopPropagation() {} };
+
+    it('ignores a MouseEvent-shaped argument and opens the existing doc', async () => {
+      const { result } = renderHook(() => useDesignDoc(deps));
+      act(() => result.current.setDesignDoc('# Existing'));
+
+      await act(() => result.current.handleCreateDesignDoc(clickEvent));
+
+      expect(generateDesignDoc).not.toHaveBeenCalled();
+      expect(result.current.designDoc).toBe('# Existing');
+      expect(result.current.designDocOpen).toBe(true);
+    });
+
+    it('ignores any non-true argument', async () => {
+      const { result } = renderHook(() => useDesignDoc(deps));
+      act(() => result.current.setDesignDoc('# Existing'));
+
+      for (const arg of [clickEvent, 'yes', 1, {}, []]) {
+        await act(() => result.current.handleCreateDesignDoc(arg));
+      }
+
+      expect(generateDesignDoc).not.toHaveBeenCalled();
+      expect(result.current.designDoc).toBe('# Existing');
+    });
+
+    it('still honours an explicit true', async () => {
+      const { result } = renderHook(() => useDesignDoc(deps));
+      act(() => result.current.setDesignDoc('# Existing'));
+
+      await act(() => result.current.handleCreateDesignDoc(true));
+
+      expect(generateDesignDoc).toHaveBeenCalledWith('sess-1');
+    });
+  });
 });

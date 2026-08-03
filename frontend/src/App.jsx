@@ -1350,7 +1350,10 @@ function AppContent({ resumeMode = false, isMobile }) {
                 </button>
                 <button
                   className={`create-design-doc-button${diagram && !designDoc && !designDocLoading && !designDocOpen ? ' pulse-glow' : ''}`}
-                  onClick={handleCreateDesignDoc}
+                  // Must be wrapped: onClick passes the MouseEvent, and this
+                  // handler's first parameter is `force`. Passing it bare made
+                  // every click a forced regeneration.
+                  onClick={() => handleCreateDesignDoc()}
                   // `loading` matters: while a session is still being fetched,
                   // designDoc is stale/empty, and a click here would generate a
                   // second document over one that already exists.

@@ -32,8 +32,14 @@ export function useDesignDoc({
   const [designDocWidth, setDesignDocWidth] = useState(PANEL_WIDTHS.designDoc.default);
   const [designDocIsPreview, setDesignDocIsPreview] = useState(false);
 
-  const handleCreateDesignDoc = useCallback(async (force = false) => {
+  const handleCreateDesignDoc = useCallback(async (forceArg = false) => {
     if (!sessionId) return;
+
+    // Only a literal `true` forces regeneration. Callers wire this straight to
+    // onClick, which hands over a MouseEvent; treating that as truthy meant
+    // every click wiped the document and paid to generate it again. Narrowing
+    // here means a bare onClick can never do that, whatever the call site does.
+    const force = forceArg === true;
 
     // Short-circuit when a doc already exists, unless the caller is forcing a
     // fresh regeneration (e.g. after a FREEDESIGN promo redemption that just
